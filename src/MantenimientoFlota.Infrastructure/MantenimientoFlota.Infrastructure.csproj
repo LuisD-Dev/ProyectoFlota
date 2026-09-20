@@ -1,6 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.12" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\MantenimientoFlota.Application\MantenimientoFlota.Application.csproj" />
     <ProjectReference Include="..\MantenimientoFlota.Domain\MantenimientoFlota.Domain.csproj" />
   </ItemGroup>
