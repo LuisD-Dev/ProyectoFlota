@@ -1,3 +1,5 @@
+using MantenimientoFlota.Application.Interfaces;
+using MantenimientoFlota.Infrastructure.Implementation;
 using MantenimientoFlota.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -17,6 +19,8 @@ public static class DependencyInjection
 
         services.AddDbContext<MantenimientoFlotaDbContext>(options =>
             options.UseSqlServer(connectionString));
+
+        services.AddScoped<ICategoriaActivoRepository, CategoriaActivoRepository>();
 
         return services;
     }
