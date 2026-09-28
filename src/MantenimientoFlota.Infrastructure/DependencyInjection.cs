@@ -20,6 +20,7 @@ public static class DependencyInjection
         services.AddDbContext<MantenimientoFlotaDbContext>(options =>
             options.UseSqlServer(connectionString));
 
+        services.AddScoped<IActivoRepository, ActivoRepository>();
         services.AddScoped<ICategoriaActivoRepository, CategoriaActivoRepository>();
 
         return services;
