@@ -15,4 +15,6 @@ public interface ICategoriaActivoRepository
     void Delete(int id);
 
     Task<bool> ExistsByNameAsync(string nombre, int? idExcluir = null);
+
+    Task<bool> HasAssociatedAssetsAsync(int categoriaActivoId);
 }

@@ -1,18 +1,20 @@
-using MantenimientoFlota.Domain.Entities;
+using MantenimientoFlota.Application.Common.Results;
+using MantenimientoFlota.Application.DTOs.CategoriaActivo;
 
 namespace MantenimientoFlota.Application.Interfaces;
 
 public interface ICategoriaActivoService
 {
-    Task<IEnumerable<CategoriaActivo>> GetAllAsync();
+    Task<IReadOnlyList<CategoriaActivoDto>> GetAllAsync();
 
-    Task<CategoriaActivo?> GetByIdAsync(int id);
+    Task<CategoriaActivoDto?> GetByIdAsync(int id);
 
-    Task<CategoriaActivo?> AddAsync(CategoriaActivo categoria);
+    Task<CategoriaActivoOperationResult> CreateAsync(
+        CrearCategoriaActivoDto dto);
 
-    void Update(CategoriaActivo categoria);
+    Task<CategoriaActivoOperationResult> UpdateAsync(
+        int id,
+        ActualizarCategoriaActivoDto dto);
 
-    void Delete(int id);
-
-    Task<bool> ExistsByNameAsync(string nombre, int? idExcluir = null);
+    Task<CategoriaActivoOperationResult> DeleteAsync(int id);
 }

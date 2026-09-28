@@ -70,4 +70,12 @@ public class CategoriaActivoRepository : ICategoriaActivoRepository
 
         return await query.AnyAsync();
     }
+
+    public async Task<bool> HasAssociatedAssetsAsync(int categoriaActivoId)
+    {
+        return await _context.Activos
+            .AsNoTracking()
+            .AnyAsync(activo =>
+                activo.CategoriaActivoId == categoriaActivoId);
+    }
 }
