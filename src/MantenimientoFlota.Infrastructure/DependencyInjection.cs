@@ -27,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<
             ITecnicoEspecialidadRepository,
             TecnicoEspecialidadRepository>();
+        services.AddScoped<IRepuestoRepository, RepuestoRepository>();
 
         return services;
     }
