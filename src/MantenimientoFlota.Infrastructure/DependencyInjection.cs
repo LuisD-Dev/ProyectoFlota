@@ -23,6 +23,7 @@ public static class DependencyInjection
         services.AddScoped<IActivoRepository, ActivoRepository>();
         services.AddScoped<ICategoriaActivoRepository, CategoriaActivoRepository>();
         services.AddScoped<IEspecialidadRepository, EspecialidadRepository>();
+        services.AddScoped<ITecnicoRepository, TecnicoRepository>();
 
         return services;
     }
