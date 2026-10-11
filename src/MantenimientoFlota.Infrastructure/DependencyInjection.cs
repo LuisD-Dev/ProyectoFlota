@@ -29,6 +29,9 @@ public static class DependencyInjection
             TecnicoEspecialidadRepository>();
         services.AddScoped<IRepuestoRepository, RepuestoRepository>();
         services.AddScoped<IProveedorRepository, ProveedorRepository>();
+        services.AddScoped<
+            IRepuestoProveedorRepository,
+            RepuestoProveedorRepository>();
 
         return services;
     }
