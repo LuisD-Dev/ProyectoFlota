@@ -79,4 +79,11 @@ public class ActivoRepository : IActivoRepository
             .AsNoTracking()
             .AnyAsync(categoria => categoria.Id == categoriaActivoId);
     }
+
+    public async Task<bool> HasAssociatedMaintenanceOrdersAsync(int activoId)
+    {
+        return await _context.OrdenesMantenimiento
+            .AsNoTracking()
+            .AnyAsync(orden => orden.ActivoId == activoId);
+    }
 }

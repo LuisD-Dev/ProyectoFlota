@@ -17,4 +17,6 @@ public interface IActivoRepository
     Task<bool> ExistsByCodigoAsync(string codigo, int? idExcluir = null);
 
     Task<bool> CategoriaExisteAsync(int categoriaActivoId);
+
+    Task<bool> HasAssociatedMaintenanceOrdersAsync(int activoId);
 }

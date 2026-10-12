@@ -107,7 +107,10 @@ namespace MantenimientoFlota.Infrastructure.Persistence.Migrations
                     b.HasIndex("Nombre")
                         .IsUnique();
 
-                    b.ToTable("CategoriasActivo", (string)null);
+                    b.ToTable("CategoriasActivo", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CategoriasActivo_IntervaloMantenimientoKm_NoNegativo", "[IntervaloMantenimientoKm] >= 0");
+                        });
                 });
 
             modelBuilder.Entity("MantenimientoFlota.Domain.Entities.Especialidad", b =>
@@ -331,7 +334,10 @@ namespace MantenimientoFlota.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Tecnicos", (string)null);
+                    b.ToTable("Tecnicos", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Tecnicos_TarifaPorHora_NoNegativa", "[TarifaPorHora] >= 0");
+                        });
                 });
 
             modelBuilder.Entity("MantenimientoFlota.Domain.Entities.TecnicoEspecialidad", b =>

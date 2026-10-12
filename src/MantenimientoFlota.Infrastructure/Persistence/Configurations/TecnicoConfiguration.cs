@@ -8,7 +8,12 @@ public sealed class TecnicoConfiguration : IEntityTypeConfiguration<Tecnico>
 {
     public void Configure(EntityTypeBuilder<Tecnico> builder)
     {
-        builder.ToTable("Tecnicos");
+        builder.ToTable("Tecnicos", table =>
+        {
+            table.HasCheckConstraint(
+                "CK_Tecnicos_TarifaPorHora_NoNegativa",
+                "[TarifaPorHora] >= 0");
+        });
 
         builder.HasKey(tecnico => tecnico.Id);
 

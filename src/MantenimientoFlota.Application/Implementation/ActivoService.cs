@@ -127,6 +127,11 @@ public class ActivoService : IActivoService
             return new(ActivoOperationStatus.DoesNotExist);
         }
 
+        if (await _repository.HasAssociatedMaintenanceOrdersAsync(id))
+        {
+            return new(ActivoOperationStatus.HasAssociatedMaintenanceOrders);
+        }
+
         _repository.Delete(id);
 
         return new(ActivoOperationStatus.Succeeded);

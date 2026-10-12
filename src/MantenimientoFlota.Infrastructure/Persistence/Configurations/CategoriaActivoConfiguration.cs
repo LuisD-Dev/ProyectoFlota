@@ -8,7 +8,12 @@ public sealed class CategoriaActivoConfiguration : IEntityTypeConfiguration<Cate
 {
     public void Configure(EntityTypeBuilder<CategoriaActivo> builder)
     {
-        builder.ToTable("CategoriasActivo");
+        builder.ToTable("CategoriasActivo", table =>
+        {
+            table.HasCheckConstraint(
+                "CK_CategoriasActivo_IntervaloMantenimientoKm_NoNegativo",
+                "[IntervaloMantenimientoKm] >= 0");
+        });
 
         builder.HasKey(categoria => categoria.Id);
 

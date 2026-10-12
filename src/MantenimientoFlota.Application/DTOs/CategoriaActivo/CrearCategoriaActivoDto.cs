@@ -11,5 +11,6 @@ public sealed class CrearCategoriaActivoDto
     [MaxLength(500, ErrorMessage = "La descripción no puede superar los 500 caracteres.")]
     public string? Descripcion { get; set; }
 
+    [Range(0, int.MaxValue, ErrorMessage = "El intervalo de mantenimiento debe ser mayor o igual que cero.")]
     public int IntervaloMantenimientoKm { get; set; }
 }

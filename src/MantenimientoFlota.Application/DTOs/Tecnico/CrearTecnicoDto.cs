@@ -32,10 +32,10 @@ public sealed class CrearTecnicoDto
     [Required(ErrorMessage = "La tarifa por hora es obligatoria.")]
     [Range(
         typeof(decimal),
-        "-9999999999999999.99",
+        "0",
         "9999999999999999.99",
         ParseLimitsInInvariantCulture = true,
         ConvertValueInInvariantCulture = true,
-        ErrorMessage = "La tarifa por hora está fuera del rango permitido.")]
+        ErrorMessage = "La tarifa por hora debe ser mayor o igual que cero.")]
     public decimal? TarifaPorHora { get; set; }
 }

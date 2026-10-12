@@ -132,6 +132,7 @@ public sealed class ActivoController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> DeleteAsync(int id)
     {
         if (id <= 0)
@@ -149,6 +150,14 @@ public sealed class ActivoController : ControllerBase
             return NotFound(new
             {
                 mensaje = $"No se encontró el activo con id {id}."
+            });
+        }
+
+        if (result.Status == ActivoOperationStatus.HasAssociatedMaintenanceOrders)
+        {
+            return Conflict(new
+            {
+                mensaje = "No se puede eliminar el activo porque tiene órdenes de mantenimiento asociadas."
             });
         }
 
