@@ -133,6 +133,66 @@ namespace MantenimientoFlota.Infrastructure.Persistence.Migrations
                     b.ToTable("Especialidades", (string)null);
                 });
 
+            modelBuilder.Entity("MantenimientoFlota.Domain.Entities.OrdenMantenimiento", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ActivoId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal>("CostoTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("EstadoActual")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("FechaCierre")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FechaProgramada")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaSolicitud")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Motivo")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Prioridad")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("TipoMantenimiento")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActivoId");
+
+                    b.HasIndex("Codigo")
+                        .IsUnique();
+
+                    b.ToTable("OrdenesMantenimiento", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_OrdenesMantenimiento_CostoTotal_NoNegativo", "[CostoTotal] >= 0");
+                        });
+                });
+
             modelBuilder.Entity("MantenimientoFlota.Domain.Entities.Proveedor", b =>
                 {
                     b.Property<int>("Id")
@@ -308,6 +368,17 @@ namespace MantenimientoFlota.Infrastructure.Persistence.Migrations
                     b.Navigation("CategoriaActivo");
                 });
 
+            modelBuilder.Entity("MantenimientoFlota.Domain.Entities.OrdenMantenimiento", b =>
+                {
+                    b.HasOne("MantenimientoFlota.Domain.Entities.Activo", "Activo")
+                        .WithMany("OrdenesMantenimiento")
+                        .HasForeignKey("ActivoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Activo");
+                });
+
             modelBuilder.Entity("MantenimientoFlota.Domain.Entities.RepuestoProveedor", b =>
                 {
                     b.HasOne("MantenimientoFlota.Domain.Entities.Proveedor", "Proveedor")
@@ -344,6 +415,11 @@ namespace MantenimientoFlota.Infrastructure.Persistence.Migrations
                     b.Navigation("Especialidad");
 
                     b.Navigation("Tecnico");
+                });
+
+            modelBuilder.Entity("MantenimientoFlota.Domain.Entities.Activo", b =>
+                {
+                    b.Navigation("OrdenesMantenimiento");
                 });
 
             modelBuilder.Entity("MantenimientoFlota.Domain.Entities.CategoriaActivo", b =>

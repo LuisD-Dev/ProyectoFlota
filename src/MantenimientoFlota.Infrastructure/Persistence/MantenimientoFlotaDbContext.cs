@@ -27,6 +27,8 @@ public class MantenimientoFlotaDbContext : DbContext
 
     public DbSet<RepuestoProveedor> RepuestoProveedores => Set<RepuestoProveedor>();
 
+    public DbSet<OrdenMantenimiento> OrdenesMantenimiento => Set<OrdenMantenimiento>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

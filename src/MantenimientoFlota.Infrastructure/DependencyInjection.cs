@@ -32,6 +32,9 @@ public static class DependencyInjection
         services.AddScoped<
             IRepuestoProveedorRepository,
             RepuestoProveedorRepository>();
+        services.AddScoped<
+            IOrdenMantenimientoRepository,
+            OrdenMantenimientoRepository>();
 
         return services;
     }

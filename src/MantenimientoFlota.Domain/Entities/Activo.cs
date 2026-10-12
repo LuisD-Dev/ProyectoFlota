@@ -27,4 +27,7 @@ public class Activo
     public int CategoriaActivoId { get; set; }
 
     public CategoriaActivo CategoriaActivo { get; set; } = null!;
+
+    public ICollection<OrdenMantenimiento> OrdenesMantenimiento { get; set; } =
+        new List<OrdenMantenimiento>();
 }
