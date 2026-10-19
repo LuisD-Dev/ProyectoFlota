@@ -15,9 +15,9 @@ public class RepuestoService : IRepuestoService
         _repository = repository;
     }
 
-    public async Task<IReadOnlyList<RepuestoDto>> GetAllAsync()
+    public async Task<IReadOnlyList<RepuestoDto>> GetAllAsync(bool stockBajo = false)
     {
-        var repuestos = await _repository.GetAllAsync();
+        var repuestos = await _repository.GetAllAsync(stockBajo);
 
         return repuestos
             .Select(MapToDto)

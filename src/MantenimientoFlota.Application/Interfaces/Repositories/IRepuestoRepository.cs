@@ -4,7 +4,7 @@ namespace MantenimientoFlota.Application.Interfaces.Repositories;
 
 public interface IRepuestoRepository
 {
-    Task<IEnumerable<Repuesto>> GetAllAsync();
+    Task<IEnumerable<Repuesto>> GetAllAsync(bool stockBajo = false);
 
     Task<Repuesto?> GetByIdAsync(int id);
 

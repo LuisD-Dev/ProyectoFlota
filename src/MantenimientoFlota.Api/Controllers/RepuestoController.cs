@@ -21,9 +21,11 @@ public sealed class RepuestoController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<RepuestoDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<RepuestoDto>>> GetAllAsync()
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IEnumerable<RepuestoDto>>> GetAllAsync(
+        [FromQuery] bool stockBajo = false)
     {
-        var repuestos = await _service.GetAllAsync();
+        var repuestos = await _service.GetAllAsync(stockBajo);
 
         return Ok(repuestos);
     }

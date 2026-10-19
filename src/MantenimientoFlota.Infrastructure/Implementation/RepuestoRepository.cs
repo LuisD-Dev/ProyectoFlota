@@ -14,11 +14,16 @@ public class RepuestoRepository : IRepuestoRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<Repuesto>> GetAllAsync()
+    public async Task<IEnumerable<Repuesto>> GetAllAsync(bool stockBajo = false)
     {
-        return await _context.Repuestos
-            .AsNoTracking()
-            .ToListAsync();
+        IQueryable<Repuesto> query = _context.Repuestos.AsNoTracking();
+
+        if (stockBajo)
+        {
+            query = query.Where(repuesto => repuesto.StockActual < repuesto.StockMinimo);
+        }
+
+        return await query.ToListAsync();
     }
 
     public async Task<Repuesto?> GetByIdAsync(int id)
