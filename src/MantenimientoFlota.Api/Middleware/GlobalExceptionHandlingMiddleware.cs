@@ -1,3 +1,5 @@
+using MantenimientoFlota.Api.Common;
+
 namespace MantenimientoFlota.Api.Middleware;
 
 public sealed class GlobalExceptionHandlingMiddleware
@@ -33,11 +35,10 @@ public sealed class GlobalExceptionHandlingMiddleware
             context.Response.Clear();
             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
 
-            await context.Response.WriteAsJsonAsync(new
-            {
-                status = StatusCodes.Status500InternalServerError,
-                message = "Ocurrió un error interno en el servidor."
-            });
+            await context.Response.WriteAsJsonAsync(ApiErrorFactory.Create(
+                context,
+                StatusCodes.Status500InternalServerError,
+                "Ocurrió un error interno en el servidor."));
         }
     }
 }

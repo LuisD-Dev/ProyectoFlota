@@ -1,3 +1,5 @@
+using MantenimientoFlota.Api.Common;
+using MantenimientoFlota.Api.Contracts;
 using MantenimientoFlota.Application.Common.Results;
 using MantenimientoFlota.Application.DTOs.OrdenMantenimiento;
 using MantenimientoFlota.Application.Interfaces.Services;
@@ -5,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MantenimientoFlota.Api.Controllers;
 
+[ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
 [ApiController]
 [Route("api/[controller]")]
 public sealed class OrdenMantenimientoController : ControllerBase
@@ -31,26 +34,20 @@ public sealed class OrdenMantenimientoController : ControllerBase
     [ProducesResponseType(
         typeof(OrdenMantenimientoDto),
         StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<OrdenMantenimientoDto>> GetById(int id)
     {
         if (id <= 0)
         {
-            return BadRequest(new
-            {
-                mensaje = "El identificador debe ser mayor que cero."
-            });
+            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "El identificador debe ser mayor que cero."));
         }
 
         var orden = await _service.GetByIdAsync(id);
 
         if (orden is null)
         {
-            return NotFound(new
-            {
-                mensaje = $"No se encontró la orden de mantenimiento con id {id}."
-            });
+            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró la orden de mantenimiento con id {id}."));
         }
 
         return Ok(orden);
@@ -60,8 +57,8 @@ public sealed class OrdenMantenimientoController : ControllerBase
     [ProducesResponseType(
         typeof(OrdenMantenimientoDto),
         StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<OrdenMantenimientoDto>> CreateAsync(
         CrearOrdenMantenimientoDto dto)
     {
@@ -70,10 +67,7 @@ public sealed class OrdenMantenimientoController : ControllerBase
         if (result.Status ==
             OrdenMantenimientoOperationStatus.ActivoDoesNotExist)
         {
-            return NotFound(new
-            {
-                mensaje = $"No se encontró el activo con id {dto.ActivoId}."
-            });
+            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el activo con id {dto.ActivoId}."));
         }
 
         var orden = result.Value!;

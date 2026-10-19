@@ -1,3 +1,5 @@
+using MantenimientoFlota.Api.Common;
+using MantenimientoFlota.Api.Contracts;
 using MantenimientoFlota.Application.Common.Results;
 using MantenimientoFlota.Application.DTOs.TecnicoEspecialidad;
 using MantenimientoFlota.Application.Interfaces.Services;
@@ -5,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MantenimientoFlota.Api.Controllers;
 
+[ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
 [ApiController]
 [Route("api/[controller]")]
 public sealed class TecnicoEspecialidadController : ControllerBase
@@ -29,7 +32,7 @@ public sealed class TecnicoEspecialidadController : ControllerBase
 
     [HttpGet("{tecnicoId:int}/{especialidadId:int}")]
     [ProducesResponseType(typeof(TecnicoEspecialidadDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TecnicoEspecialidadDto>> GetById(
         int tecnicoId,
         int especialidadId)
@@ -40,10 +43,7 @@ public sealed class TecnicoEspecialidadController : ControllerBase
 
         if (tecnicoEspecialidad is null)
         {
-            return NotFound(new
-            {
-                mensaje = $"No se encontró la relación entre el técnico con id {tecnicoId} y la especialidad con id {especialidadId}."
-            });
+            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró la relación entre el técnico con id {tecnicoId} y la especialidad con id {especialidadId}."));
         }
 
         return Ok(tecnicoEspecialidad);
@@ -53,9 +53,9 @@ public sealed class TecnicoEspecialidadController : ControllerBase
     [ProducesResponseType(
         typeof(TecnicoEspecialidadDto),
         StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<TecnicoEspecialidadDto>> CreateAsync(
         CrearTecnicoEspecialidadDto dto)
     {
@@ -64,28 +64,19 @@ public sealed class TecnicoEspecialidadController : ControllerBase
         if (result.Status ==
             TecnicoEspecialidadOperationStatus.TechnicianDoesNotExist)
         {
-            return NotFound(new
-            {
-                mensaje = $"No se encontró el técnico con id {dto.TecnicoId}."
-            });
+            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el técnico con id {dto.TecnicoId}."));
         }
 
         if (result.Status ==
             TecnicoEspecialidadOperationStatus.SpecialtyDoesNotExist)
         {
-            return NotFound(new
-            {
-                mensaje = $"No se encontró la especialidad con id {dto.EspecialidadId}."
-            });
+            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró la especialidad con id {dto.EspecialidadId}."));
         }
 
         if (result.Status ==
             TecnicoEspecialidadOperationStatus.RelationshipAlreadyExists)
         {
-            return Conflict(new
-            {
-                mensaje = "Ya existe una relación entre el técnico y la especialidad indicados."
-            });
+            return Conflict(ApiErrorFactory.Create(HttpContext, StatusCodes.Status409Conflict, "Ya existe una relación entre el técnico y la especialidad indicados."));
         }
 
         var tecnicoEspecialidad = result.Value!;
@@ -102,8 +93,8 @@ public sealed class TecnicoEspecialidadController : ControllerBase
 
     [HttpPut("{tecnicoId:int}/{especialidadId:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateAsync(
         int tecnicoId,
         int especialidadId,
@@ -116,10 +107,7 @@ public sealed class TecnicoEspecialidadController : ControllerBase
 
         if (result.Status == TecnicoEspecialidadOperationStatus.DoesNotExist)
         {
-            return NotFound(new
-            {
-                mensaje = $"No se encontró la relación entre el técnico con id {tecnicoId} y la especialidad con id {especialidadId}."
-            });
+            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró la relación entre el técnico con id {tecnicoId} y la especialidad con id {especialidadId}."));
         }
 
         return NoContent();
@@ -127,7 +115,7 @@ public sealed class TecnicoEspecialidadController : ControllerBase
 
     [HttpDelete("{tecnicoId:int}/{especialidadId:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteAsync(
         int tecnicoId,
         int especialidadId)
@@ -136,10 +124,7 @@ public sealed class TecnicoEspecialidadController : ControllerBase
 
         if (result.Status == TecnicoEspecialidadOperationStatus.DoesNotExist)
         {
-            return NotFound(new
-            {
-                mensaje = $"No se encontró la relación entre el técnico con id {tecnicoId} y la especialidad con id {especialidadId}."
-            });
+            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró la relación entre el técnico con id {tecnicoId} y la especialidad con id {especialidadId}."));
         }
 
         return NoContent();

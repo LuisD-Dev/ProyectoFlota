@@ -1,3 +1,5 @@
+using MantenimientoFlota.Api.Common;
+using MantenimientoFlota.Api.Contracts;
 using MantenimientoFlota.Application.Common.Results;
 using MantenimientoFlota.Application.DTOs.Proveedor;
 using MantenimientoFlota.Application.Interfaces.Services;
@@ -5,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MantenimientoFlota.Api.Controllers;
 
+[ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
 [ApiController]
 [Route("api/[controller]")]
 public sealed class ProveedorController : ControllerBase
@@ -29,26 +32,20 @@ public sealed class ProveedorController : ControllerBase
 
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(ProveedorDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ProveedorDto>> GetById(int id)
     {
         if (id <= 0)
         {
-            return BadRequest(new
-            {
-                mensaje = "El identificador debe ser mayor que cero."
-            });
+            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "El identificador debe ser mayor que cero."));
         }
 
         var proveedor = await _service.GetByIdAsync(id);
 
         if (proveedor is null)
         {
-            return NotFound(new
-            {
-                mensaje = $"No se encontró el proveedor con id {id}."
-            });
+            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el proveedor con id {id}."));
         }
 
         return Ok(proveedor);
@@ -56,7 +53,7 @@ public sealed class ProveedorController : ControllerBase
 
     [HttpPost]
     [ProducesResponseType(typeof(ProveedorDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ProveedorDto>> CreateAsync(
         CrearProveedorDto dto)
     {
@@ -70,28 +67,22 @@ public sealed class ProveedorController : ControllerBase
 
     [HttpPut("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateAsync(
         int id,
         ActualizarProveedorDto dto)
     {
         if (id <= 0)
         {
-            return BadRequest(new
-            {
-                mensaje = "El identificador debe ser mayor que cero."
-            });
+            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "El identificador debe ser mayor que cero."));
         }
 
         var result = await _service.UpdateAsync(id, dto);
 
         if (result.Status == ProveedorOperationStatus.DoesNotExist)
         {
-            return NotFound(new
-            {
-                mensaje = $"No se encontró el proveedor con id {id}."
-            });
+            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el proveedor con id {id}."));
         }
 
         return NoContent();
@@ -99,35 +90,26 @@ public sealed class ProveedorController : ControllerBase
 
     [HttpDelete("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> DeleteAsync(int id)
     {
         if (id <= 0)
         {
-            return BadRequest(new
-            {
-                mensaje = "El identificador debe ser mayor que cero."
-            });
+            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "El identificador debe ser mayor que cero."));
         }
 
         var result = await _service.DeleteAsync(id);
 
         if (result.Status == ProveedorOperationStatus.DoesNotExist)
         {
-            return NotFound(new
-            {
-                mensaje = $"No se encontró el proveedor con id {id}."
-            });
+            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el proveedor con id {id}."));
         }
 
         if (result.Status == ProveedorOperationStatus.HasAssociatedParts)
         {
-            return Conflict(new
-            {
-                mensaje = "No se puede eliminar el proveedor porque tiene repuestos asociados."
-            });
+            return Conflict(ApiErrorFactory.Create(HttpContext, StatusCodes.Status409Conflict, "No se puede eliminar el proveedor porque tiene repuestos asociados."));
         }
 
         return NoContent();

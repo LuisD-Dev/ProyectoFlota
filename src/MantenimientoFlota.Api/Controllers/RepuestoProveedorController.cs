@@ -1,3 +1,5 @@
+using MantenimientoFlota.Api.Common;
+using MantenimientoFlota.Api.Contracts;
 using MantenimientoFlota.Application.Common.Results;
 using MantenimientoFlota.Application.DTOs.RepuestoProveedor;
 using MantenimientoFlota.Application.Interfaces.Services;
@@ -5,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MantenimientoFlota.Api.Controllers;
 
+[ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
 [ApiController]
 [Route("api/[controller]")]
 public sealed class RepuestoProveedorController : ControllerBase
@@ -31,8 +34,8 @@ public sealed class RepuestoProveedorController : ControllerBase
     [ProducesResponseType(
         typeof(RepuestoProveedorDto),
         StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<RepuestoProveedorDto>> GetById(
         int repuestoId,
         int proveedorId)
@@ -58,9 +61,9 @@ public sealed class RepuestoProveedorController : ControllerBase
     [ProducesResponseType(
         typeof(RepuestoProveedorDto),
         StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<RepuestoProveedorDto>> CreateAsync(
         CrearRepuestoProveedorDto dto)
     {
@@ -69,27 +72,18 @@ public sealed class RepuestoProveedorController : ControllerBase
         if (result.Status ==
             RepuestoProveedorOperationStatus.RepuestoDoesNotExist)
         {
-            return NotFound(new
-            {
-                mensaje = $"No se encontró el repuesto con id {dto.RepuestoId}."
-            });
+            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el repuesto con id {dto.RepuestoId}."));
         }
 
         if (result.Status ==
             RepuestoProveedorOperationStatus.ProveedorDoesNotExist)
         {
-            return NotFound(new
-            {
-                mensaje = $"No se encontró el proveedor con id {dto.ProveedorId}."
-            });
+            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el proveedor con id {dto.ProveedorId}."));
         }
 
         if (result.Status == RepuestoProveedorOperationStatus.AlreadyExists)
         {
-            return Conflict(new
-            {
-                mensaje = "Ya existe una relación entre el repuesto y el proveedor indicados."
-            });
+            return Conflict(ApiErrorFactory.Create(HttpContext, StatusCodes.Status409Conflict, "Ya existe una relación entre el repuesto y el proveedor indicados."));
         }
 
         var repuestoProveedor = result.Value!;
@@ -106,8 +100,8 @@ public sealed class RepuestoProveedorController : ControllerBase
 
     [HttpPut("{repuestoId:int}/{proveedorId:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateAsync(
         int repuestoId,
         int proveedorId,
@@ -133,8 +127,8 @@ public sealed class RepuestoProveedorController : ControllerBase
 
     [HttpDelete("{repuestoId:int}/{proveedorId:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteAsync(
         int repuestoId,
         int proveedorId)
@@ -159,21 +153,15 @@ public sealed class RepuestoProveedorController : ControllerBase
         return repuestoId > 0 && proveedorId > 0;
     }
 
-    private static object CreateInvalidIdsResponse()
+    private ApiErrorResponse CreateInvalidIdsResponse()
     {
-        return new
-        {
-            mensaje = "Los identificadores de repuesto y proveedor deben ser mayores que cero."
-        };
+        return ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "Los identificadores de repuesto y proveedor deben ser mayores que cero.");
     }
 
-    private static object CreateNotFoundResponse(
+    private ApiErrorResponse CreateNotFoundResponse(
         int repuestoId,
         int proveedorId)
     {
-        return new
-        {
-            mensaje = $"No se encontró la relación entre el repuesto con id {repuestoId} y el proveedor con id {proveedorId}."
-        };
+        return ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró la relación entre el repuesto con id {repuestoId} y el proveedor con id {proveedorId}.");
     }
 }

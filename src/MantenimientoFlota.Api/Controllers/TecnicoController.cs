@@ -1,3 +1,5 @@
+using MantenimientoFlota.Api.Common;
+using MantenimientoFlota.Api.Contracts;
 using MantenimientoFlota.Application.Common.Results;
 using MantenimientoFlota.Application.DTOs.Tecnico;
 using MantenimientoFlota.Application.Interfaces.Services;
@@ -5,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MantenimientoFlota.Api.Controllers;
 
+[ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
 [ApiController]
 [Route("api/[controller]")]
 public sealed class TecnicoController : ControllerBase
@@ -27,26 +30,20 @@ public sealed class TecnicoController : ControllerBase
 
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(TecnicoDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TecnicoDto>> GetById(int id)
     {
         if (id <= 0)
         {
-            return BadRequest(new
-            {
-                mensaje = "El identificador debe ser mayor que cero."
-            });
+            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "El identificador debe ser mayor que cero."));
         }
 
         var tecnico = await _service.GetByIdAsync(id);
 
         if (tecnico is null)
         {
-            return NotFound(new
-            {
-                mensaje = $"No se encontró el técnico con id {id}."
-            });
+            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el técnico con id {id}."));
         }
 
         return Ok(tecnico);
@@ -54,7 +51,7 @@ public sealed class TecnicoController : ControllerBase
 
     [HttpPost]
     [ProducesResponseType(typeof(TecnicoDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<TecnicoDto>> CreateAsync(CrearTecnicoDto dto)
     {
         var result = await _service.CreateAsync(dto);
@@ -67,28 +64,22 @@ public sealed class TecnicoController : ControllerBase
 
     [HttpPut("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateAsync(
         int id,
         ActualizarTecnicoDto dto)
     {
         if (id <= 0)
         {
-            return BadRequest(new
-            {
-                mensaje = "El identificador debe ser mayor que cero."
-            });
+            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "El identificador debe ser mayor que cero."));
         }
 
         var result = await _service.UpdateAsync(id, dto);
 
         if (result.Status == TecnicoOperationStatus.DoesNotExist)
         {
-            return NotFound(new
-            {
-                mensaje = $"No se encontró el técnico con id {id}."
-            });
+            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el técnico con id {id}."));
         }
 
         return NoContent();
@@ -96,35 +87,26 @@ public sealed class TecnicoController : ControllerBase
 
     [HttpDelete("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> DeleteAsync(int id)
     {
         if (id <= 0)
         {
-            return BadRequest(new
-            {
-                mensaje = "El identificador debe ser mayor que cero."
-            });
+            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "El identificador debe ser mayor que cero."));
         }
 
         var result = await _service.DeleteAsync(id);
 
         if (result.Status == TecnicoOperationStatus.DoesNotExist)
         {
-            return NotFound(new
-            {
-                mensaje = $"No se encontró el técnico con id {id}."
-            });
+            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el técnico con id {id}."));
         }
 
         if (result.Status == TecnicoOperationStatus.HasAssociatedSpecialties)
         {
-            return Conflict(new
-            {
-                mensaje = "No se puede eliminar el técnico porque tiene especialidades asociadas."
-            });
+            return Conflict(ApiErrorFactory.Create(HttpContext, StatusCodes.Status409Conflict, "No se puede eliminar el técnico porque tiene especialidades asociadas."));
         }
 
         return NoContent();

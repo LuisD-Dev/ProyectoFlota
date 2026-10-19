@@ -1,3 +1,5 @@
+using MantenimientoFlota.Api.Common;
+using MantenimientoFlota.Api.Contracts;
 using MantenimientoFlota.Application.Common.Results;
 using MantenimientoFlota.Application.DTOs.Activo;
 using MantenimientoFlota.Application.Interfaces.Services;
@@ -5,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MantenimientoFlota.Api.Controllers;
 
+[ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
 [ApiController]
 [Route("api/[controller]")]
 public sealed class ActivoController : ControllerBase
@@ -27,26 +30,20 @@ public sealed class ActivoController : ControllerBase
 
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(ActivoDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ActivoDto>> GetById(int id)
     {
         if (id <= 0)
         {
-            return BadRequest(new
-            {
-                mensaje = "El identificador debe ser mayor que cero."
-            });
+            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "El identificador debe ser mayor que cero."));
         }
 
         var activo = await _service.GetByIdAsync(id);
 
         if (activo is null)
         {
-            return NotFound(new
-            {
-                mensaje = $"No se encontró el activo con id {id}."
-            });
+            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el activo con id {id}."));
         }
 
         return Ok(activo);
@@ -54,26 +51,20 @@ public sealed class ActivoController : ControllerBase
 
     [HttpPost]
     [ProducesResponseType(typeof(ActivoDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<ActivoDto>> CreateAsync(CrearActivoDto dto)
     {
         var result = await _service.CreateAsync(dto);
 
         if (result.Status == ActivoOperationStatus.CodeAlreadyExists)
         {
-            return Conflict(new
-            {
-                mensaje = "Ya existe un activo con el código indicado."
-            });
+            return Conflict(ApiErrorFactory.Create(HttpContext, StatusCodes.Status409Conflict, "Ya existe un activo con el código indicado."));
         }
 
         if (result.Status == ActivoOperationStatus.CategoryDoesNotExist)
         {
-            return BadRequest(new
-            {
-                mensaje = "No existe una categoría de activo con el identificador indicado."
-            });
+            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "No existe una categoría de activo con el identificador indicado."));
         }
 
         return CreatedAtAction(
@@ -84,45 +75,33 @@ public sealed class ActivoController : ControllerBase
 
     [HttpPut("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> UpdateAsync(
         int id,
         ActualizarActivoDto dto)
     {
         if (id <= 0)
         {
-            return BadRequest(new
-            {
-                mensaje = "El identificador debe ser mayor que cero."
-            });
+            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "El identificador debe ser mayor que cero."));
         }
 
         var result = await _service.UpdateAsync(id, dto);
 
         if (result.Status == ActivoOperationStatus.DoesNotExist)
         {
-            return NotFound(new
-            {
-                mensaje = $"No se encontró el activo con id {id}."
-            });
+            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el activo con id {id}."));
         }
 
         if (result.Status == ActivoOperationStatus.CodeAlreadyExists)
         {
-            return Conflict(new
-            {
-                mensaje = "Ya existe un activo con el código indicado."
-            });
+            return Conflict(ApiErrorFactory.Create(HttpContext, StatusCodes.Status409Conflict, "Ya existe un activo con el código indicado."));
         }
 
         if (result.Status == ActivoOperationStatus.CategoryDoesNotExist)
         {
-            return BadRequest(new
-            {
-                mensaje = "No existe una categoría de activo con el identificador indicado."
-            });
+            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "No existe una categoría de activo con el identificador indicado."));
         }
 
         return NoContent();
@@ -130,35 +109,26 @@ public sealed class ActivoController : ControllerBase
 
     [HttpDelete("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> DeleteAsync(int id)
     {
         if (id <= 0)
         {
-            return BadRequest(new
-            {
-                mensaje = "El identificador debe ser mayor que cero."
-            });
+            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "El identificador debe ser mayor que cero."));
         }
 
         var result = await _service.DeleteAsync(id);
 
         if (result.Status == ActivoOperationStatus.DoesNotExist)
         {
-            return NotFound(new
-            {
-                mensaje = $"No se encontró el activo con id {id}."
-            });
+            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el activo con id {id}."));
         }
 
         if (result.Status == ActivoOperationStatus.HasAssociatedMaintenanceOrders)
         {
-            return Conflict(new
-            {
-                mensaje = "No se puede eliminar el activo porque tiene órdenes de mantenimiento asociadas."
-            });
+            return Conflict(ApiErrorFactory.Create(HttpContext, StatusCodes.Status409Conflict, "No se puede eliminar el activo porque tiene órdenes de mantenimiento asociadas."));
         }
 
         return NoContent();
