@@ -23,9 +23,19 @@ public sealed class OrdenMantenimientoController : ControllerBase
     [ProducesResponseType(
         typeof(IReadOnlyList<OrdenMantenimientoDto>),
         StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<OrdenMantenimientoDto>>> GetAllAsync()
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IReadOnlyList<OrdenMantenimientoDto>>> GetAllAsync(
+        [FromQuery] int? activoId = null)
     {
-        var ordenes = await _service.GetAllAsync();
+        if (activoId is <= 0)
+        {
+            return BadRequest(ApiErrorFactory.Create(
+                HttpContext,
+                StatusCodes.Status400BadRequest,
+                "El identificador del activo debe ser mayor que cero."));
+        }
+
+        var ordenes = await _service.GetAllAsync(activoId);
 
         return Ok(ordenes);
     }

@@ -5,7 +5,7 @@ namespace MantenimientoFlota.Application.Interfaces.Services;
 
 public interface IOrdenMantenimientoService
 {
-    Task<IReadOnlyList<OrdenMantenimientoDto>> GetAllAsync();
+    Task<IReadOnlyList<OrdenMantenimientoDto>> GetAllAsync(int? activoId = null);
 
     Task<OrdenMantenimientoDto?> GetByIdAsync(int id);
 

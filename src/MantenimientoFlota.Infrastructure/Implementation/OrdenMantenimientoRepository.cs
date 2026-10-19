@@ -15,10 +15,15 @@ public sealed class OrdenMantenimientoRepository : IOrdenMantenimientoRepository
         _context = context;
     }
 
-    public async Task<IReadOnlyList<OrdenMantenimientoDto>> GetAllAsync()
+    public async Task<IReadOnlyList<OrdenMantenimientoDto>> GetAllAsync(int? activoId = null)
     {
         IQueryable<OrdenMantenimiento> query = _context.OrdenesMantenimiento
             .AsNoTracking();
+
+        if (activoId.HasValue)
+        {
+            query = query.Where(orden => orden.ActivoId == activoId.Value);
+        }
 
         return await ProjectToDto(query)
             .OrderByDescending(orden => orden.FechaSolicitud)

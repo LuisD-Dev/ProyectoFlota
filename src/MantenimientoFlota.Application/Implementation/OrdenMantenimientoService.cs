@@ -17,9 +17,9 @@ public class OrdenMantenimientoService : IOrdenMantenimientoService
         _repository = repository;
     }
 
-    public async Task<IReadOnlyList<OrdenMantenimientoDto>> GetAllAsync()
+    public async Task<IReadOnlyList<OrdenMantenimientoDto>> GetAllAsync(int? activoId = null)
     {
-        return await _repository.GetAllAsync();
+        return await _repository.GetAllAsync(activoId);
     }
 
     public async Task<OrdenMantenimientoDto?> GetByIdAsync(int id)
