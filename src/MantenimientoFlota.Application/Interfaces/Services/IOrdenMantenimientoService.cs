@@ -1,7 +1,7 @@
 using MantenimientoFlota.Application.Common.Results;
 using MantenimientoFlota.Application.DTOs.OrdenMantenimiento;
 
-namespace MantenimientoFlota.Application.Interfaces;
+namespace MantenimientoFlota.Application.Interfaces.Services;
 
 public interface IOrdenMantenimientoService
 {

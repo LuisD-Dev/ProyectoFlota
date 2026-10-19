@@ -1,6 +1,7 @@
 using MantenimientoFlota.Application.Common.Results;
 using MantenimientoFlota.Application.DTOs.OrdenMantenimiento;
-using MantenimientoFlota.Application.Interfaces;
+using MantenimientoFlota.Application.Interfaces.Services;
+using MantenimientoFlota.Application.Interfaces.Repositories;
 using MantenimientoFlota.Domain.Entities;
 using MantenimientoFlota.Domain.Enums;
 

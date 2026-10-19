@@ -1,5 +1,5 @@
 using MantenimientoFlota.Application.Implementation;
-using MantenimientoFlota.Application.Interfaces;
+using MantenimientoFlota.Application.Interfaces.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MantenimientoFlota.Application;

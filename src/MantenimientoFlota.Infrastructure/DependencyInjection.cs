@@ -1,4 +1,4 @@
-using MantenimientoFlota.Application.Interfaces;
+using MantenimientoFlota.Application.Interfaces.Repositories;
 using MantenimientoFlota.Infrastructure.Implementation;
 using MantenimientoFlota.Infrastructure.Persistence;
 using MantenimientoFlota.Infrastructure.Persistence.Seed;

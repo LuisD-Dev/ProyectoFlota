@@ -1,4 +1,4 @@
-using MantenimientoFlota.Application.Interfaces;
+using MantenimientoFlota.Application.Interfaces.Repositories;
 using MantenimientoFlota.Application.DTOs.OrdenMantenimiento;
 using MantenimientoFlota.Domain.Entities;
 using MantenimientoFlota.Infrastructure.Persistence;

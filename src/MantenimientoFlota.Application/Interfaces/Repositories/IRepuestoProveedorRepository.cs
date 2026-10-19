@@ -1,6 +1,6 @@
 using MantenimientoFlota.Domain.Entities;
 
-namespace MantenimientoFlota.Application.Interfaces;
+namespace MantenimientoFlota.Application.Interfaces.Repositories;
 
 public interface IRepuestoProveedorRepository
 {

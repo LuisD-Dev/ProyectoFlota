@@ -1,7 +1,7 @@
 using MantenimientoFlota.Application.Common.Results;
 using MantenimientoFlota.Application.DTOs.Especialidad;
 
-namespace MantenimientoFlota.Application.Interfaces;
+namespace MantenimientoFlota.Application.Interfaces.Services;
 
 public interface IEspecialidadService
 {

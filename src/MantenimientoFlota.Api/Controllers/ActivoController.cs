@@ -1,6 +1,6 @@
 using MantenimientoFlota.Application.Common.Results;
 using MantenimientoFlota.Application.DTOs.Activo;
-using MantenimientoFlota.Application.Interfaces;
+using MantenimientoFlota.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MantenimientoFlota.Api.Controllers;

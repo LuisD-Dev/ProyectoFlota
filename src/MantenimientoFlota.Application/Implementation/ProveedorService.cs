@@ -1,6 +1,7 @@
 using MantenimientoFlota.Application.Common.Results;
 using MantenimientoFlota.Application.DTOs.Proveedor;
-using MantenimientoFlota.Application.Interfaces;
+using MantenimientoFlota.Application.Interfaces.Services;
+using MantenimientoFlota.Application.Interfaces.Repositories;
 using MantenimientoFlota.Domain.Entities;
 
 namespace MantenimientoFlota.Application.Implementation;
