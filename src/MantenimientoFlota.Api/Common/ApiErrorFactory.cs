@@ -12,6 +12,13 @@ public static class ApiErrorFactory
         Dictionary<string, string[]>? errors = null,
         string? title = null)
     {
+        if (status is StatusCodes.Status400BadRequest
+            or StatusCodes.Status404NotFound
+            or StatusCodes.Status409Conflict)
+        {
+            context.Items[RequestOutcomeMarker.Key] = RequestOutcome.ExpectedFailure;
+        }
+
         return new ApiErrorResponse(
             status,
             title ?? status switch
@@ -37,7 +44,9 @@ public static class ApiErrorFactory
                         ? "El valor enviado no es válido."
                         : error.ErrorMessage).ToArray());
 
-        return Create(context, StatusCodes.Status400BadRequest,
+        var response = Create(context, StatusCodes.Status400BadRequest,
             "Revise los campos indicados.", errors, "Error de validación");
+        context.Items[RequestOutcomeMarker.Key] = RequestOutcome.Validation;
+        return response;
     }
 }

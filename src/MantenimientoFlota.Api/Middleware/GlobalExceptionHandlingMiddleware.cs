@@ -23,11 +23,18 @@ public sealed class GlobalExceptionHandlingMiddleware
         }
         catch (Exception exception)
         {
+            var responseStarted = context.Response.HasStarted;
             _logger.LogError(
-                exception,
-                "Ocurrió una excepción no controlada durante el procesamiento de la solicitud.");
+                "Excepción inesperada. TraceId={TraceId} Method={Method} Route={Route} Status={Status} Outcome={Outcome} ExceptionType={ExceptionType} ResponseStarted={ResponseStarted}",
+                context.TraceIdentifier,
+                context.Request.Method,
+                GetRouteTemplate(context),
+                responseStarted ? context.Response.StatusCode : StatusCodes.Status500InternalServerError,
+                RequestOutcome.UnexpectedException.ToString(),
+                exception.GetType().FullName,
+                responseStarted);
 
-            if (context.Response.HasStarted)
+            if (responseStarted)
             {
                 throw;
             }
@@ -39,6 +46,34 @@ public sealed class GlobalExceptionHandlingMiddleware
                 context,
                 StatusCodes.Status500InternalServerError,
                 "Ocurrió un error interno en el servidor."));
+            return;
+        }
+
+        var status = context.Response.StatusCode;
+        if (status is >= 200 and < 300)
+        {
+            _logger.LogInformation(
+                "Solicitud completada. TraceId={TraceId} Method={Method} Route={Route} Status={Status} Outcome={Outcome}",
+                context.TraceIdentifier,
+                context.Request.Method,
+                GetRouteTemplate(context),
+                status,
+                RequestOutcome.Success.ToString());
+        }
+        else if (context.Items.TryGetValue(RequestOutcomeMarker.Key, out var marker)
+            && marker is RequestOutcome outcome
+            && outcome is RequestOutcome.Validation or RequestOutcome.ExpectedFailure)
+        {
+            _logger.LogWarning(
+                "Solicitud rechazada. TraceId={TraceId} Method={Method} Route={Route} Status={Status} Outcome={Outcome}",
+                context.TraceIdentifier,
+                context.Request.Method,
+                GetRouteTemplate(context),
+                status,
+                outcome.ToString());
         }
     }
+
+    private static string? GetRouteTemplate(HttpContext context) =>
+        (context.GetEndpoint() as RouteEndpoint)?.RoutePattern.RawText;
 }
