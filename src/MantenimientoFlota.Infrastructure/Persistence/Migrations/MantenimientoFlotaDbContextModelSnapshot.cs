@@ -133,6 +133,9 @@ namespace MantenimientoFlota.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Nombre")
+                        .IsUnique();
+
                     b.ToTable("Especialidades", (string)null);
                 });
 

@@ -16,6 +16,9 @@ public sealed class EspecialidadConfiguration : IEntityTypeConfiguration<Especia
             .IsRequired()
             .HasMaxLength(100);
 
+        builder.HasIndex(especialidad => especialidad.Nombre)
+            .IsUnique();
+
         builder.Property(especialidad => especialidad.Descripcion)
             .HasMaxLength(500);
     }
