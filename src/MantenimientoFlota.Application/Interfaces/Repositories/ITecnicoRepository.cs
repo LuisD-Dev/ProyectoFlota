@@ -4,7 +4,9 @@ namespace MantenimientoFlota.Application.Interfaces.Repositories;
 
 public interface ITecnicoRepository
 {
-    Task<IEnumerable<Tecnico>> GetAllAsync();
+    Task<IEnumerable<Tecnico>> GetAllAsync(
+        bool? disponible = null,
+        int? especialidadId = null);
 
     Task<Tecnico?> GetByIdAsync(int id);
 

@@ -15,9 +15,11 @@ public class TecnicoService : ITecnicoService
         _repository = repository;
     }
 
-    public async Task<IEnumerable<TecnicoDto>> GetAllAsync()
+    public async Task<IEnumerable<TecnicoDto>> GetAllAsync(
+        bool? disponible = null,
+        int? especialidadId = null)
     {
-        var tecnicos = await _repository.GetAllAsync();
+        var tecnicos = await _repository.GetAllAsync(disponible, especialidadId);
 
         return tecnicos
             .Select(MapToDto)

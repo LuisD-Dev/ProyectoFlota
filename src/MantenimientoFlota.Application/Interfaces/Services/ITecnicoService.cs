@@ -5,7 +5,9 @@ namespace MantenimientoFlota.Application.Interfaces.Services;
 
 public interface ITecnicoService
 {
-    Task<IEnumerable<TecnicoDto>> GetAllAsync();
+    Task<IEnumerable<TecnicoDto>> GetAllAsync(
+        bool? disponible = null,
+        int? especialidadId = null);
 
     Task<TecnicoDto?> GetByIdAsync(int id);
 

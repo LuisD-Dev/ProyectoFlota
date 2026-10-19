@@ -14,10 +14,25 @@ public class TecnicoRepository : ITecnicoRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<Tecnico>> GetAllAsync()
+    public async Task<IEnumerable<Tecnico>> GetAllAsync(
+        bool? disponible = null,
+        int? especialidadId = null)
     {
-        return await _context.Tecnicos
-            .AsNoTracking()
+        IQueryable<Tecnico> query = _context.Tecnicos.AsNoTracking();
+
+        if (disponible.HasValue)
+        {
+            query = query.Where(tecnico => tecnico.Disponible == disponible.Value);
+        }
+
+        if (especialidadId.HasValue)
+        {
+            query = query.Where(tecnico =>
+                tecnico.TecnicoEspecialidades.Any(relacion =>
+                    relacion.EspecialidadId == especialidadId.Value));
+        }
+
+        return await query
             .OrderBy(tecnico => tecnico.NombreCompleto)
             .ToListAsync();
     }

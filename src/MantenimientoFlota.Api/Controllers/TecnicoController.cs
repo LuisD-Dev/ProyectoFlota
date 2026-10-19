@@ -21,9 +21,20 @@ public sealed class TecnicoController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<TecnicoDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<TecnicoDto>>> GetAllAsync()
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IEnumerable<TecnicoDto>>> GetAllAsync(
+        [FromQuery] bool? disponible = null,
+        [FromQuery] int? especialidadId = null)
     {
-        var tecnicos = await _service.GetAllAsync();
+        if (especialidadId is <= 0)
+        {
+            return BadRequest(ApiErrorFactory.Create(
+                HttpContext,
+                StatusCodes.Status400BadRequest,
+                "El identificador de la especialidad debe ser mayor que cero."));
+        }
+
+        var tecnicos = await _service.GetAllAsync(disponible, especialidadId);
 
         return Ok(tecnicos);
     }
