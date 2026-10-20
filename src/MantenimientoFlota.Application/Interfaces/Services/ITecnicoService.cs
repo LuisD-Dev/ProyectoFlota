@@ -1,4 +1,3 @@
-using MantenimientoFlota.Application.Common.Results;
 using MantenimientoFlota.Application.DTOs.Tecnico;
 
 namespace MantenimientoFlota.Application.Interfaces.Services;
@@ -9,13 +8,13 @@ public interface ITecnicoService
         bool? disponible = null,
         int? especialidadId = null);
 
-    Task<TecnicoDetalleDto?> GetByIdAsync(int id);
+    Task<TecnicoDetalleDto> GetByIdAsync(int id);
 
-    Task<TecnicoOperationResult> CreateAsync(CrearTecnicoDto dto);
+    Task<TecnicoDto> CreateAsync(CrearTecnicoDto dto);
 
-    Task<TecnicoOperationResult> UpdateAsync(
+    Task UpdateAsync(
         int id,
         ActualizarTecnicoDto dto);
 
-    Task<TecnicoOperationResult> DeleteAsync(int id);
+    Task DeleteAsync(int id);
 }

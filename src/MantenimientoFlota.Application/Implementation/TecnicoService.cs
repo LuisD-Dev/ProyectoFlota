@@ -1,4 +1,4 @@
-using MantenimientoFlota.Application.Common.Results;
+using MantenimientoFlota.Application.Common.Exceptions;
 using MantenimientoFlota.Application.DTOs.Tecnico;
 using MantenimientoFlota.Application.Interfaces.Services;
 using MantenimientoFlota.Application.Interfaces.Repositories;
@@ -19,6 +19,9 @@ public class TecnicoService : ITecnicoService
         bool? disponible = null,
         int? especialidadId = null)
     {
+        if (especialidadId is <= 0)
+            throw new InvalidRequestException("El identificador de la especialidad debe ser mayor que cero.");
+
         var tecnicos = await _repository.GetAllAsync(disponible, especialidadId);
 
         return tecnicos
@@ -26,14 +29,15 @@ public class TecnicoService : ITecnicoService
             .ToList();
     }
 
-    public async Task<TecnicoDetalleDto?> GetByIdAsync(int id)
+    public async Task<TecnicoDetalleDto> GetByIdAsync(int id)
     {
+        ValidarId(id);
         var fechaReferencia = DateOnly.FromDateTime(DateTime.UtcNow);
         var tecnico = await _repository.GetDetalleByIdAsync(id);
 
         if (tecnico is null)
         {
-            return null;
+            throw new ResourceNotFoundException($"No se encontró el técnico con id {id}.");
         }
 
         foreach (var especialidad in tecnico.Especialidades)
@@ -61,7 +65,7 @@ public class TecnicoService : ITecnicoService
         return anios;
     }
 
-    public async Task<TecnicoOperationResult> CreateAsync(CrearTecnicoDto dto)
+    public async Task<TecnicoDto> CreateAsync(CrearTecnicoDto dto)
     {
         var tecnico = new Tecnico
         {
@@ -76,20 +80,19 @@ public class TecnicoService : ITecnicoService
         var tecnicoCreado = await _repository.AddAsync(tecnico)
             ?? tecnico;
 
-        return new(
-            TecnicoOperationStatus.Succeeded,
-            MapToDto(tecnicoCreado));
+        return MapToDto(tecnicoCreado);
     }
 
-    public async Task<TecnicoOperationResult> UpdateAsync(
+    public async Task UpdateAsync(
         int id,
         ActualizarTecnicoDto dto)
     {
+        ValidarId(id);
         var tecnico = await _repository.GetByIdAsync(id);
 
         if (tecnico is null)
         {
-            return new(TecnicoOperationStatus.DoesNotExist);
+            throw new ResourceNotFoundException($"No se encontró el técnico con id {id}.");
         }
 
         tecnico.NombreCompleto = dto.NombreCompleto.Trim();
@@ -100,27 +103,30 @@ public class TecnicoService : ITecnicoService
         tecnico.TarifaPorHora = dto.TarifaPorHora!.Value;
 
         _repository.Update(tecnico);
-
-        return new(TecnicoOperationStatus.Succeeded);
     }
 
-    public async Task<TecnicoOperationResult> DeleteAsync(int id)
+    public async Task DeleteAsync(int id)
     {
+        ValidarId(id);
         var tecnico = await _repository.GetByIdAsync(id);
 
         if (tecnico is null)
         {
-            return new(TecnicoOperationStatus.DoesNotExist);
+            throw new ResourceNotFoundException($"No se encontró el técnico con id {id}.");
         }
 
         if (await _repository.HasAssociatedSpecialtiesAsync(id))
         {
-            return new(TecnicoOperationStatus.HasAssociatedSpecialties);
+            throw new ConflictException("No se puede eliminar el técnico porque tiene especialidades asociadas.");
         }
 
         _repository.Delete(id);
+    }
 
-        return new(TecnicoOperationStatus.Succeeded);
+    private static void ValidarId(int id)
+    {
+        if (id <= 0)
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
     }
 
     private static TecnicoDto MapToDto(Tecnico tecnico)

@@ -124,6 +124,22 @@ duplicado en POST/PUT (incluidos espacios exteriores), PUT con código propio,
 con/sin proveedores, validación por campo, éxitos, listado/filtro/detalle y
 coincidencia del traceId con el cierre Warning.
 
+Técnico utiliza también las excepciones existentes: InvalidRequestException para
+IDs o especialidadId cero/negativos, ResourceNotFoundException para detalle,
+actualización o eliminación inexistentes y ConflictException para eliminación
+con especialidades asociadas. Conserva mensajes, normalización y comprobación
+de existencia antes de asociaciones. No se agregan reglas de unicidad: el
+servicio anterior no comprobaba duplicados. ITecnicoService devuelve TecnicoDto
+al crear, detalle no nullable y Task al actualizar/eliminar; se retira
+TecnicoOperationResult sin consumidores. Se conservan disponible/especialidadId,
+su combinación AND y disponible=false, el detalle con certificaciones, fechas,
+conteo y antigüedad con una referencia UTC, DTO, repositorios y TecnicoEspecialidad.
+POST mantiene 201 y Location; PUT/DELETE, 204; la validación automática no cambia.
+Pruebas manuales pendientes: IDs/filtros inválidos, 404, eliminación con/sin
+especialidades, filtros individuales/combinados (incluido false), detalle con
+cero/varias asociaciones y fechas límite, validación por campo, éxitos y traceId
+correlacionado con el único cierre Warning.
+
 Los catálogos restantes, órdenes y asociaciones (incluido TecnicoEspecialidad)
 mantienen sus mecanismos actuales: A5 sigue parcial. Pruebas manuales pendientes:
 400 por ID, 404 de detalle/PUT/DELETE, 409 por duplicados o asociaciones,

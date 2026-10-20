@@ -1,6 +1,5 @@
-using MantenimientoFlota.Api.Common;
 using MantenimientoFlota.Api.Contracts;
-using MantenimientoFlota.Application.Common.Results;
+using MantenimientoFlota.Application.Common.Exceptions;
 using MantenimientoFlota.Application.DTOs.Tecnico;
 using MantenimientoFlota.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -28,10 +27,7 @@ public sealed class TecnicoController : ControllerBase
     {
         if (especialidadId is <= 0)
         {
-            return BadRequest(ApiErrorFactory.Create(
-                HttpContext,
-                StatusCodes.Status400BadRequest,
-                "El identificador de la especialidad debe ser mayor que cero."));
+            throw new InvalidRequestException("El identificador de la especialidad debe ser mayor que cero.");
         }
 
         var tecnicos = await _service.GetAllAsync(disponible, especialidadId);
@@ -47,15 +43,10 @@ public sealed class TecnicoController : ControllerBase
     {
         if (id <= 0)
         {
-            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "El identificador debe ser mayor que cero."));
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         }
 
         var tecnico = await _service.GetByIdAsync(id);
-
-        if (tecnico is null)
-        {
-            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el técnico con id {id}."));
-        }
 
         return Ok(tecnico);
     }
@@ -69,8 +60,8 @@ public sealed class TecnicoController : ControllerBase
 
         return CreatedAtAction(
             nameof(GetById),
-            new { id = result.Value!.Id },
-            result.Value);
+            new { id = result.Id },
+            result);
     }
 
     [HttpPut("{id:int}")]
@@ -83,15 +74,10 @@ public sealed class TecnicoController : ControllerBase
     {
         if (id <= 0)
         {
-            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "El identificador debe ser mayor que cero."));
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         }
 
-        var result = await _service.UpdateAsync(id, dto);
-
-        if (result.Status == TecnicoOperationStatus.DoesNotExist)
-        {
-            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el técnico con id {id}."));
-        }
+        await _service.UpdateAsync(id, dto);
 
         return NoContent();
     }
@@ -105,20 +91,10 @@ public sealed class TecnicoController : ControllerBase
     {
         if (id <= 0)
         {
-            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "El identificador debe ser mayor que cero."));
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         }
 
-        var result = await _service.DeleteAsync(id);
-
-        if (result.Status == TecnicoOperationStatus.DoesNotExist)
-        {
-            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el técnico con id {id}."));
-        }
-
-        if (result.Status == TecnicoOperationStatus.HasAssociatedSpecialties)
-        {
-            return Conflict(ApiErrorFactory.Create(HttpContext, StatusCodes.Status409Conflict, "No se puede eliminar el técnico porque tiene especialidades asociadas."));
-        }
+        await _service.DeleteAsync(id);
 
         return NoContent();
     }
