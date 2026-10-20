@@ -1,5 +1,6 @@
 using MantenimientoFlota.Application.Interfaces.Repositories;
 using MantenimientoFlota.Domain.Entities;
+using MantenimientoFlota.Domain.Enums;
 using MantenimientoFlota.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,12 +15,25 @@ public class ActivoRepository : IActivoRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<Activo>> GetAllAsync()
+    public async Task<IEnumerable<Activo>> GetAllAsync(
+        int? categoriaActivoId = null,
+        EstadoActivo? estado = null)
     {
-        return await _context.Activos
+        IQueryable<Activo> query = _context.Activos
             .AsNoTracking()
-            .Include(activo => activo.CategoriaActivo)
-            .ToListAsync();
+            .Include(activo => activo.CategoriaActivo);
+
+        if (categoriaActivoId.HasValue)
+        {
+            query = query.Where(activo => activo.CategoriaActivoId == categoriaActivoId.Value);
+        }
+
+        if (estado.HasValue)
+        {
+            query = query.Where(activo => activo.Estado == estado.Value);
+        }
+
+        return await query.ToListAsync();
     }
 
     public async Task<Activo?> GetByIdAsync(int id)

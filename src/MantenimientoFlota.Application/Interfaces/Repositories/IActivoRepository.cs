@@ -1,10 +1,13 @@
 using MantenimientoFlota.Domain.Entities;
+using MantenimientoFlota.Domain.Enums;
 
 namespace MantenimientoFlota.Application.Interfaces.Repositories;
 
 public interface IActivoRepository
 {
-    Task<IEnumerable<Activo>> GetAllAsync();
+    Task<IEnumerable<Activo>> GetAllAsync(
+        int? categoriaActivoId = null,
+        EstadoActivo? estado = null);
 
     Task<Activo?> GetByIdAsync(int id);
 

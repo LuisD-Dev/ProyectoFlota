@@ -21,9 +21,11 @@ public sealed class ActivoController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<ActivoDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<ActivoDto>>> GetAllAsync()
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IEnumerable<ActivoDto>>> GetAllAsync(
+        [FromQuery] ConsultarActivosDto consulta)
     {
-        var activos = await _service.GetAllAsync();
+        var activos = await _service.GetAllAsync(consulta.CategoriaActivoId, consulta.Estado);
 
         return Ok(activos);
     }

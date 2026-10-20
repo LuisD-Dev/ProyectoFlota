@@ -3,6 +3,7 @@ using MantenimientoFlota.Application.DTOs.Activo;
 using MantenimientoFlota.Application.Interfaces.Services;
 using MantenimientoFlota.Application.Interfaces.Repositories;
 using MantenimientoFlota.Domain.Entities;
+using MantenimientoFlota.Domain.Enums;
 
 namespace MantenimientoFlota.Application.Implementation;
 
@@ -15,9 +16,11 @@ public class ActivoService : IActivoService
         _repository = repository;
     }
 
-    public async Task<IReadOnlyList<ActivoDto>> GetAllAsync()
+    public async Task<IReadOnlyList<ActivoDto>> GetAllAsync(
+        int? categoriaActivoId = null,
+        EstadoActivo? estado = null)
     {
-        var activos = await _repository.GetAllAsync();
+        var activos = await _repository.GetAllAsync(categoriaActivoId, estado);
 
         return activos
             .Select(MapToDto)
