@@ -485,3 +485,5 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+# Imágenes cargadas localmente (datos de ejecución)
+**/App_Data/imagenes-activos/

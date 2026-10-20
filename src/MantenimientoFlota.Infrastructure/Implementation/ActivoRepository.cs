@@ -4,6 +4,8 @@ using MantenimientoFlota.Domain.Entities;
 using MantenimientoFlota.Domain.Enums;
 using MantenimientoFlota.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
+using MantenimientoFlota.Application.Common.Results;
 
 namespace MantenimientoFlota.Infrastructure.Implementation;
 
@@ -106,6 +108,25 @@ public class ActivoRepository : IActivoRepository
     {
         _context.Entry(activo).Property(entidad => entidad.Estado).IsModified = true;
         _context.SaveChanges();
+    }
+
+    public async Task ActualizarImagenUrlAsync(int id, string imagenUrl, CancellationToken cancellationToken)
+    {
+        var activo = new Activo { Id = id, ImagenUrl = imagenUrl };
+        _context.Entry(activo).Property(entidad => entidad.ImagenUrl).IsModified = true;
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is SqlException sql
+            && sql.Number is 515 or 547 or 2601 or 2627 or 2628 or 8152)
+        {
+            throw new ImagenUpdateRejectedException(ex);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            throw new ImagenUpdateRejectedException(ex);
+        }
     }
 
     public async Task<bool> ExistsByCodigoAsync(

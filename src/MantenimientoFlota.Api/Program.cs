@@ -4,8 +4,16 @@ using Microsoft.AspNetCore.Mvc;
 using MantenimientoFlota.Api.Middleware;
 using MantenimientoFlota.Infrastructure;
 using Scalar.AspNetCore;
+using MantenimientoFlota.Application.Interfaces.Services;
+using MantenimientoFlota.Infrastructure.Implementation;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var imagenRoot = Path.GetFullPath(builder.Configuration["ActivoImagenes:Directorio"] ?? "App_Data/imagenes-activos",
+    builder.Environment.ContentRootPath);
+builder.Services.AddSingleton(new ActivoImagenStorageOptions(imagenRoot));
+builder.Services.AddScoped<IActivoImagenStorage, LocalActivoImagenStorage>();
 
 builder.Services.AddControllers().ConfigureApiBehaviorOptions(options =>
 {
@@ -29,6 +37,14 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+Directory.CreateDirectory(imagenRoot);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(imagenRoot),
+    RequestPath = LocalActivoImagenStorage.RequestPath,
+    OnPrepareResponse = context => context.Context.Response.Headers["X-Content-Type-Options"] = "nosniff"
+});
 
 app.UseAuthorization();
 

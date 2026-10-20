@@ -21,4 +21,6 @@ public interface IActivoService
     Task<ActivoOperationResult> CambiarEstadoAdministrativoAsync(int id, CambiarEstadoActivoDto dto);
 
     Task<ActivoOperationResult> DeleteAsync(int id);
+
+    Task<ActivoImagenDto?> ActualizarImagenAsync(int id, Stream contenido, string extension, CancellationToken cancellationToken);
 }

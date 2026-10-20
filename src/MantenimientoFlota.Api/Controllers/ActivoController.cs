@@ -59,6 +59,11 @@ public sealed class ActivoController : ControllerBase
     {
         var result = await _service.CreateAsync(dto);
 
+        if (result.Status == ActivoOperationStatus.ReservedImageUrl)
+        {
+            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "Las rutas de imágenes administradas solo pueden asignarse mediante la carga de imagen del activo."));
+        }
+
         if (result.Status == ActivoOperationStatus.CodeAlreadyExists)
         {
             return Conflict(ApiErrorFactory.Create(HttpContext, StatusCodes.Status409Conflict, "Ya existe un activo con el código indicado."));
@@ -92,6 +97,11 @@ public sealed class ActivoController : ControllerBase
 
         var result = await _service.UpdateAsync(id, dto);
 
+        if (result.Status == ActivoOperationStatus.ReservedImageUrl)
+        {
+            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "Las rutas de imágenes administradas solo pueden asignarse mediante la carga de imagen del activo."));
+        }
+
         if (result.Status == ActivoOperationStatus.DoesNotExist)
         {
             return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el activo con id {id}."));
@@ -113,6 +123,33 @@ public sealed class ActivoController : ControllerBase
         }
 
         return NoContent();
+    }
+
+    [HttpPut("{id:int}/imagen")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(3 * 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 3 * 1024 * 1024)]
+    [EndpointDescription("Carga o reemplaza una imagen JPEG/PNG de máximo 2 MiB. Valida extensión y firma, sin decodificación completa. Límites del servidor pueden producir 413 antes del controlador.")]
+    [ProducesResponseType(typeof(ActivoImagenDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
+    public async Task<IActionResult> ActualizarImagenAsync(int id, [FromForm] CargarImagenActivoDto dto,
+        CancellationToken cancellationToken)
+    {
+        if (id <= 0)
+            return BadRequest(ApiErrorFactory.Create(HttpContext, 400, "El identificador debe ser mayor que cero."));
+
+        var archivo = await ActivoImagenValidator.LeerAsync(dto.Archivo!, cancellationToken);
+        if (archivo.Error is not null)
+            return BadRequest(ApiErrorFactory.Create(HttpContext, 400, archivo.Error,
+                new Dictionary<string, string[]> { [nameof(dto.Archivo)] = [archivo.Error] }));
+
+        using var contenido = archivo.Contenido!;
+        var result = await _service.ActualizarImagenAsync(id, contenido, archivo.Extension!, cancellationToken);
+        if (result is null)
+            return NotFound(ApiErrorFactory.Create(HttpContext, 404, $"No se encontró el activo con id {id}."));
+        return Ok(result);
     }
 
     [HttpPatch("{id:int}/estado")]

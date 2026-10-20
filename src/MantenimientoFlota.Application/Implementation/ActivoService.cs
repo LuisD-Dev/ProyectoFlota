@@ -10,10 +10,12 @@ namespace MantenimientoFlota.Application.Implementation;
 public class ActivoService : IActivoService
 {
     private readonly IActivoRepository _repository;
+    private readonly IActivoImagenStorage _imagenes;
 
-    public ActivoService(IActivoRepository repository)
+    public ActivoService(IActivoRepository repository, IActivoImagenStorage imagenes)
     {
         _repository = repository;
+        _imagenes = imagenes;
     }
 
     public async Task<IReadOnlyList<ActivoDto>> GetAllAsync(
@@ -59,6 +61,11 @@ public class ActivoService : IActivoService
 
     public async Task<ActivoOperationResult> CreateAsync(CrearActivoDto dto)
     {
+        if (_imagenes.EsRutaReservada(dto.ImagenUrl))
+        {
+            return new(ActivoOperationStatus.ReservedImageUrl);
+        }
+
         var codigo = dto.Codigo.Trim();
 
         if (await _repository.ExistsByCodigoAsync(codigo))
@@ -109,6 +116,13 @@ public class ActivoService : IActivoService
             return new(ActivoOperationStatus.DoesNotExist);
         }
 
+        if (_imagenes.EsRutaReservada(dto.ImagenUrl)
+            && !(dto.ImagenUrl == activoExistente.ImagenUrl
+                && _imagenes.EsRutaAdministrada(id, activoExistente.ImagenUrl)))
+        {
+            return new(ActivoOperationStatus.ReservedImageUrl);
+        }
+
         var codigo = dto.Codigo.Trim();
 
         if (await _repository.ExistsByCodigoAsync(codigo, id))
@@ -138,7 +152,8 @@ public class ActivoService : IActivoService
             FechaAdquisicion = dto.FechaAdquisicion!.Value,
             ValorReferencia = dto.ValorReferencia!.Value,
             Estado = dto.Estado!.Value,
-            ImagenUrl = dto.ImagenUrl ?? string.Empty,
+            ImagenUrl = _imagenes.EsRutaAdministrada(id, activoExistente.ImagenUrl)
+                ? activoExistente.ImagenUrl : dto.ImagenUrl ?? string.Empty,
             Placa = dto.Placa ?? string.Empty,
             KilometrajeActual = dto.KilometrajeActual!.Value,
             CategoriaActivoId = categoriaActivoId
@@ -208,6 +223,27 @@ public class ActivoService : IActivoService
         _repository.UpdateEstado(activo);
 
         return new(ActivoOperationStatus.Succeeded);
+    }
+
+    public async Task<ActivoImagenDto?> ActualizarImagenAsync(
+        int id, Stream contenido, string extension, CancellationToken cancellationToken)
+    {
+        var activo = await _repository.GetByIdAsync(id);
+        if (activo is null) return null;
+
+        var nuevaRuta = await _imagenes.GuardarAsync(id, contenido, extension, cancellationToken);
+        try
+        {
+            await _repository.ActualizarImagenUrlAsync(id, nuevaRuta, cancellationToken);
+        }
+        catch (ImagenUpdateRejectedException)
+        {
+            await _imagenes.EliminarSiAdministradaAsync(id, nuevaRuta);
+            throw;
+        }
+        // Otros fallos pueden tener resultado SQL incierto: conservar ambos archivos.
+        await _imagenes.EliminarSiAdministradaAsync(id, activo.ImagenUrl);
+        return new(id, nuevaRuta);
     }
 
     private static ActivoDto MapToDto(Activo activo)

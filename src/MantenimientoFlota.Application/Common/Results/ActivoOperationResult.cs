@@ -10,7 +10,8 @@ public enum ActivoOperationStatus
     CategoryDoesNotExist,
     HasAssociatedMaintenanceOrders,
     InvalidAdministrativeState,
-    HasOpenMaintenanceOrders
+    HasOpenMaintenanceOrders,
+    ReservedImageUrl
 }
 
 public sealed record ActivoOperationResult(

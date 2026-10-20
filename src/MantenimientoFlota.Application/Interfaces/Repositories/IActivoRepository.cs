@@ -20,6 +20,8 @@ public interface IActivoRepository
 
     void UpdateEstado(Activo activo);
 
+    Task ActualizarImagenUrlAsync(int id, string imagenUrl, CancellationToken cancellationToken);
+
     Task<bool> ExistsByCodigoAsync(string codigo, int? idExcluir = null);
 
     Task<bool> CategoriaExisteAsync(int categoriaActivoId);
