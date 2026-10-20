@@ -65,7 +65,7 @@ mensajes de proveedores ni detalles técnicos. El único middleware traduce esas
 clases a 400, 404 y 409 mediante ApiErrorFactory, con INVALID_REQUEST,
 RESOURCE_NOT_FOUND y CONFLICT, respectivamente. Conserva todos los campos A6.
 
-Solo Especialidad se migra en esta etapa: IDs inválidos, detalle inexistente,
+Especialidad se migró en la primera etapa: IDs inválidos, detalle inexistente,
 duplicados de nombre y actualización/eliminación inexistente o eliminación con
 técnicos asociados. Se conserva Trim(), la exclusión del propio ID y la prioridad
 de existencia antes de duplicados/asociaciones. POST conserva 201, su DTO y
@@ -79,7 +79,22 @@ relanza sin sustituirla. Los errores técnicos conservan el tratamiento genéric
 500; no se convierten excepciones de persistencia indiscriminadamente a 409.
 La validación automática por campo permanece intacta como Validation.
 
-Los demás catálogos, órdenes y asociaciones (incluido TecnicoEspecialidad)
+Categoría de Activo utiliza ahora la misma jerarquía existente: ID inválido
+produce InvalidRequestException; detalle, actualización y eliminación inexistentes
+producen ResourceNotFoundException; nombre duplicado y eliminación con activos
+asociados producen ConflictException. Conserva exactamente los mensajes, Trim(),
+la exclusión del propio ID y la comprobación de existencia antes del duplicado o
+de las asociaciones. El controlador ya no traduce resultados ni null a errores.
+El contrato interno devuelve CategoriaActivoDto al crear, detalle no nullable y
+Task al actualizar/eliminar; se retira CategoriaActivoOperationResult sin
+consumidores. Se conservan listado, detalle con activos y cantidad, POST 201 con
+Location, PUT/DELETE 204, DTO, repositorios y validación automática por campo.
+Pruebas manuales pendientes para Categoría: ID cero/negativo, detalle/PUT/DELETE
+inexistentes, duplicado en POST/PUT, conservación del nombre propio, eliminación
+con/sin activos, detalle con/sin activos, respuestas exitosas y correlación del
+traceId con un único cierre Warning / ExpectedFailure en rechazos.
+
+Los catálogos restantes, órdenes y asociaciones (incluido TecnicoEspecialidad)
 mantienen sus mecanismos actuales: A5 sigue parcial. Pruebas manuales pendientes:
 400 por ID, 404 de detalle/PUT/DELETE, 409 por duplicados o asociaciones,
 actualización conservando el nombre propio, respuestas exitosas y Location,

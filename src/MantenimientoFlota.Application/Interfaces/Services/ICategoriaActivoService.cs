@@ -1,4 +1,3 @@
-using MantenimientoFlota.Application.Common.Results;
 using MantenimientoFlota.Application.DTOs.CategoriaActivo;
 
 namespace MantenimientoFlota.Application.Interfaces.Services;
@@ -7,14 +6,14 @@ public interface ICategoriaActivoService
 {
     Task<IReadOnlyList<CategoriaActivoDto>> GetAllAsync();
 
-    Task<CategoriaActivoDetalleDto?> GetByIdAsync(int id);
+    Task<CategoriaActivoDetalleDto> GetByIdAsync(int id);
 
-    Task<CategoriaActivoOperationResult> CreateAsync(
+    Task<CategoriaActivoDto> CreateAsync(
         CrearCategoriaActivoDto dto);
 
-    Task<CategoriaActivoOperationResult> UpdateAsync(
+    Task UpdateAsync(
         int id,
         ActualizarCategoriaActivoDto dto);
 
-    Task<CategoriaActivoOperationResult> DeleteAsync(int id);
+    Task DeleteAsync(int id);
 }

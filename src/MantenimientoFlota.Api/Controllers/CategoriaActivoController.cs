@@ -1,6 +1,5 @@
-using MantenimientoFlota.Api.Common;
 using MantenimientoFlota.Api.Contracts;
-using MantenimientoFlota.Application.Common.Results;
+using MantenimientoFlota.Application.Common.Exceptions;
 using MantenimientoFlota.Application.DTOs.CategoriaActivo;
 using MantenimientoFlota.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -38,15 +37,10 @@ public sealed class CategoriaActivoController : ControllerBase
     {
         if (id <= 0)
         {
-            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "El identificador debe ser mayor que cero."));
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         }
 
         var categoria = await _service.GetByIdAsync(id);
-
-        if (categoria is null)
-        {
-            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró la categoría de activo con id {id}."));
-        }
 
         return Ok(categoria);
     }
@@ -60,15 +54,10 @@ public sealed class CategoriaActivoController : ControllerBase
     {
         var result = await _service.CreateAsync(dto);
 
-        if (result.Status == CategoriaActivoOperationStatus.NameAlreadyExists)
-        {
-            return Conflict(ApiErrorFactory.Create(HttpContext, StatusCodes.Status409Conflict, "Ya existe una categoría de activo con el nombre indicado."));
-        }
-
         return CreatedAtAction(
             nameof(GetById),
-            new { id = result.Value!.Id },
-            result.Value);
+            new { id = result.Id },
+            result);
     }
 
     [HttpPut("{id:int}")]
@@ -82,20 +71,10 @@ public sealed class CategoriaActivoController : ControllerBase
     {
         if (id <= 0)
         {
-            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "El identificador debe ser mayor que cero."));
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         }
 
-        var result = await _service.UpdateAsync(id, dto);
-
-        if (result.Status == CategoriaActivoOperationStatus.DoesNotExist)
-        {
-            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró la categoría de activo con id {id}."));
-        }
-
-        if (result.Status == CategoriaActivoOperationStatus.NameAlreadyExists)
-        {
-            return Conflict(ApiErrorFactory.Create(HttpContext, StatusCodes.Status409Conflict, "Ya existe una categoría de activo con el nombre indicado."));
-        }
+        await _service.UpdateAsync(id, dto);
 
         return NoContent();
     }
@@ -109,20 +88,10 @@ public sealed class CategoriaActivoController : ControllerBase
     {
         if (id <= 0)
         {
-            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "El identificador debe ser mayor que cero."));
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         }
 
-        var result = await _service.DeleteAsync(id);
-
-        if (result.Status == CategoriaActivoOperationStatus.DoesNotExist)
-        {
-            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró la categoría de activo con id {id}."));
-        }
-
-        if (result.Status == CategoriaActivoOperationStatus.HasAssociatedAssets)
-        {
-            return Conflict(ApiErrorFactory.Create(HttpContext, StatusCodes.Status409Conflict, "No se puede eliminar la categoría porque tiene activos asociados."));
-        }
+        await _service.DeleteAsync(id);
 
         return NoContent();
     }
