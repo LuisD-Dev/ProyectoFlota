@@ -25,6 +25,9 @@ public sealed class RepuestoConfiguration : IEntityTypeConfiguration<Repuesto>
             .IsRequired()
             .HasMaxLength(50);
 
+        builder.HasIndex(repuesto => repuesto.Codigo)
+            .IsUnique();
+
         builder.Property(repuesto => repuesto.Nombre)
             .IsRequired()
             .HasMaxLength(150);

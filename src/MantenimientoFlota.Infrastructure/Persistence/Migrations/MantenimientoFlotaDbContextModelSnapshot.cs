@@ -265,6 +265,9 @@ namespace MantenimientoFlota.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Codigo")
+                        .IsUnique();
+
                     b.ToTable("Repuestos", null, t =>
                         {
                             t.HasCheckConstraint("CK_Repuestos_StockActual_NoNegativo", "[StockActual] >= 0");
