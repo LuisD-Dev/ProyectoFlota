@@ -8,7 +8,9 @@ public enum ActivoOperationStatus
     DoesNotExist,
     CodeAlreadyExists,
     CategoryDoesNotExist,
-    HasAssociatedMaintenanceOrders
+    HasAssociatedMaintenanceOrders,
+    InvalidAdministrativeState,
+    HasOpenMaintenanceOrders
 }
 
 public sealed record ActivoOperationResult(

@@ -131,6 +131,18 @@ public class ActivoRepository : IActivoRepository
             .AnyAsync(categoria => categoria.Id == categoriaActivoId);
     }
 
+    public async Task<bool> HasOpenMaintenanceOrdersAsync(int activoId)
+    {
+        return await _context.OrdenesMantenimiento
+            .AsNoTracking()
+            .AnyAsync(orden => orden.ActivoId == activoId
+                && (orden.EstadoActual == EstadoOrdenMantenimiento.Solicitada
+                    || orden.EstadoActual == EstadoOrdenMantenimiento.Diagnosticada
+                    || orden.EstadoActual == EstadoOrdenMantenimiento.Aprobada
+                    || orden.EstadoActual == EstadoOrdenMantenimiento.EnEjecucion
+                    || orden.EstadoActual == EstadoOrdenMantenimiento.EnEsperaDeRepuesto));
+    }
+
     public async Task<bool> HasAssociatedMaintenanceOrdersAsync(int activoId)
     {
         return await _context.OrdenesMantenimiento

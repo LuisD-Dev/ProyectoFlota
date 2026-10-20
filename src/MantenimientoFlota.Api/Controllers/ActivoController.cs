@@ -76,6 +76,7 @@ public sealed class ActivoController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [EndpointDescription("Actualiza el activo. Si cambia a FueraDeServicio o DadoDeBaja, rechaza la solicitud con 409 cuando existen órdenes abiertas. Reenviar el estado actual permite actualizar los demás campos.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
@@ -104,6 +105,43 @@ public sealed class ActivoController : ControllerBase
         if (result.Status == ActivoOperationStatus.CategoryDoesNotExist)
         {
             return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "No existe una categoría de activo con el identificador indicado."));
+        }
+
+        if (result.Status == ActivoOperationStatus.HasOpenMaintenanceOrders)
+        {
+            return Conflict(ApiErrorFactory.Create(HttpContext, StatusCodes.Status409Conflict, "No se puede cambiar el estado del activo porque tiene órdenes de mantenimiento abiertas."));
+        }
+
+        return NoContent();
+    }
+
+    [HttpPatch("{id:int}/estado")]
+    [EndpointDescription("Establece exclusivamente FueraDeServicio (2) o DadoDeBaja (3). Rechaza con 409 si existen órdenes abiertas, incluso al repetir el estado actual. Las órdenes finales no bloquean esta operación.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> CambiarEstadoAdministrativoAsync(int id, CambiarEstadoActivoDto dto)
+    {
+        if (id <= 0)
+        {
+            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "El identificador debe ser mayor que cero."));
+        }
+
+        var result = await _service.CambiarEstadoAdministrativoAsync(id, dto);
+        if (result.Status == ActivoOperationStatus.InvalidAdministrativeState)
+        {
+            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "Solo se permite establecer el estado FueraDeServicio o DadoDeBaja."));
+        }
+
+        if (result.Status == ActivoOperationStatus.DoesNotExist)
+        {
+            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el activo con id {id}."));
+        }
+
+        if (result.Status == ActivoOperationStatus.HasOpenMaintenanceOrders)
+        {
+            return Conflict(ApiErrorFactory.Create(HttpContext, StatusCodes.Status409Conflict, "No se puede cambiar el estado del activo porque tiene órdenes de mantenimiento abiertas."));
         }
 
         return NoContent();

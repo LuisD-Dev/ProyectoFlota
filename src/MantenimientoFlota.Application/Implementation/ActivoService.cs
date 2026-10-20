@@ -123,6 +123,12 @@ public class ActivoService : IActivoService
             return new(ActivoOperationStatus.CategoryDoesNotExist);
         }
 
+        if (activoExistente.Estado != dto.Estado!.Value
+            && await TieneConflictoEstadoAdministrativoAsync(id, dto.Estado.Value))
+        {
+            return new(ActivoOperationStatus.HasOpenMaintenanceOrders);
+        }
+
         var activoActualizado = new Activo
         {
             Id = id,
@@ -141,6 +147,42 @@ public class ActivoService : IActivoService
         _repository.Update(activoActualizado);
 
         return new(ActivoOperationStatus.Succeeded);
+    }
+
+    public async Task<ActivoOperationResult> CambiarEstadoAdministrativoAsync(
+        int id,
+        CambiarEstadoActivoDto dto)
+    {
+        if (dto.Estado is not (EstadoActivo.FueraDeServicio or EstadoActivo.DadoDeBaja))
+        {
+            return new(ActivoOperationStatus.InvalidAdministrativeState);
+        }
+
+        var activo = await _repository.GetByIdAsync(id);
+        if (activo is null)
+        {
+            return new(ActivoOperationStatus.DoesNotExist);
+        }
+
+        if (await TieneConflictoEstadoAdministrativoAsync(id, dto.Estado.Value))
+        {
+            return new(ActivoOperationStatus.HasOpenMaintenanceOrders);
+        }
+
+        if (activo.Estado == dto.Estado.Value)
+        {
+            return new(ActivoOperationStatus.Succeeded);
+        }
+
+        activo.Estado = dto.Estado.Value;
+        _repository.UpdateEstado(activo);
+        return new(ActivoOperationStatus.Succeeded);
+    }
+
+    private async Task<bool> TieneConflictoEstadoAdministrativoAsync(int id, EstadoActivo destino)
+    {
+        return destino is EstadoActivo.FueraDeServicio or EstadoActivo.DadoDeBaja
+            && await _repository.HasOpenMaintenanceOrdersAsync(id);
     }
 
     public async Task<ActivoOperationResult> DeleteAsync(int id)

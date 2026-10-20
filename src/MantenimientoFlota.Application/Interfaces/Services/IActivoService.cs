@@ -18,5 +18,7 @@ public interface IActivoService
         int id,
         ActualizarActivoDto dto);
 
+    Task<ActivoOperationResult> CambiarEstadoAdministrativoAsync(int id, CambiarEstadoActivoDto dto);
+
     Task<ActivoOperationResult> DeleteAsync(int id);
 }

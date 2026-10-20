@@ -25,4 +25,6 @@ public interface IActivoRepository
     Task<bool> CategoriaExisteAsync(int categoriaActivoId);
 
     Task<bool> HasAssociatedMaintenanceOrdersAsync(int activoId);
+
+    Task<bool> HasOpenMaintenanceOrdersAsync(int activoId);
 }
