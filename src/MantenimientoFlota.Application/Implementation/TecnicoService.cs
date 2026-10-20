@@ -26,13 +26,39 @@ public class TecnicoService : ITecnicoService
             .ToList();
     }
 
-    public async Task<TecnicoDto?> GetByIdAsync(int id)
+    public async Task<TecnicoDetalleDto?> GetByIdAsync(int id)
     {
-        var tecnico = await _repository.GetByIdAsync(id);
+        var fechaReferencia = DateOnly.FromDateTime(DateTime.UtcNow);
+        var tecnico = await _repository.GetDetalleByIdAsync(id);
 
-        return tecnico is null
-            ? null
-            : MapToDto(tecnico);
+        if (tecnico is null)
+        {
+            return null;
+        }
+
+        foreach (var especialidad in tecnico.Especialidades)
+        {
+            especialidad.AntiguedadAnios = CalcularAntiguedadAnios(
+                especialidad.FechaObtencion, fechaReferencia);
+        }
+
+        return tecnico;
+    }
+
+    private static int CalcularAntiguedadAnios(DateOnly fechaObtencion, DateOnly fechaReferencia)
+    {
+        if (fechaObtencion > fechaReferencia)
+        {
+            return 0;
+        }
+
+        var anios = fechaReferencia.Year - fechaObtencion.Year;
+        if (fechaObtencion.AddYears(anios) > fechaReferencia)
+        {
+            anios--;
+        }
+
+        return anios;
     }
 
     public async Task<TecnicoOperationResult> CreateAsync(CrearTecnicoDto dto)

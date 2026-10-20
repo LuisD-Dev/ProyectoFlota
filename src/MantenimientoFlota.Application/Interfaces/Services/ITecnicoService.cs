@@ -9,7 +9,7 @@ public interface ITecnicoService
         bool? disponible = null,
         int? especialidadId = null);
 
-    Task<TecnicoDto?> GetByIdAsync(int id);
+    Task<TecnicoDetalleDto?> GetByIdAsync(int id);
 
     Task<TecnicoOperationResult> CreateAsync(CrearTecnicoDto dto);
 

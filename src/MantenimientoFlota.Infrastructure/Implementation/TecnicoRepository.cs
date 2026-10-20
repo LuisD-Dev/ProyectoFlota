@@ -1,4 +1,5 @@
 using MantenimientoFlota.Application.Interfaces.Repositories;
+using MantenimientoFlota.Application.DTOs.Tecnico;
 using MantenimientoFlota.Domain.Entities;
 using MantenimientoFlota.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -42,6 +43,37 @@ public class TecnicoRepository : ITecnicoRepository
         return await _context.Tecnicos
             .AsNoTracking()
             .FirstOrDefaultAsync(tecnico => tecnico.Id == id);
+    }
+
+    public async Task<TecnicoDetalleDto?> GetDetalleByIdAsync(int id)
+    {
+        return await _context.Tecnicos
+            .AsNoTracking()
+            .AsSingleQuery()
+            .Where(tecnico => tecnico.Id == id)
+            .Select(tecnico => new TecnicoDetalleDto
+            {
+                Id = tecnico.Id,
+                NombreCompleto = tecnico.NombreCompleto,
+                Identificacion = tecnico.Identificacion,
+                Telefono = tecnico.Telefono,
+                Correo = tecnico.Correo,
+                Disponible = tecnico.Disponible,
+                TarifaPorHora = tecnico.TarifaPorHora,
+                CantidadEspecialidades = tecnico.TecnicoEspecialidades.Count(),
+                Especialidades = tecnico.TecnicoEspecialidades
+                    .OrderBy(relacion => relacion.Especialidad.Nombre)
+                    .ThenBy(relacion => relacion.EspecialidadId)
+                    .Select(relacion => new EspecialidadTecnicoResumenDto
+                    {
+                        EspecialidadId = relacion.EspecialidadId,
+                        Nombre = relacion.Especialidad.Nombre,
+                        NivelCertificacion = relacion.NivelCertificacion,
+                        FechaObtencion = relacion.FechaObtencion
+                    })
+                    .ToList()
+            })
+            .FirstOrDefaultAsync();
     }
 
     public async Task<Tecnico?> AddAsync(Tecnico tecnico)

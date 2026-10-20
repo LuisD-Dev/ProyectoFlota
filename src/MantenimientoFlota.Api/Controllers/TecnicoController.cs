@@ -40,10 +40,10 @@ public sealed class TecnicoController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(TecnicoDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(TecnicoDetalleDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<TecnicoDto>> GetById(int id)
+    public async Task<ActionResult<TecnicoDetalleDto>> GetById(int id)
     {
         if (id <= 0)
         {
