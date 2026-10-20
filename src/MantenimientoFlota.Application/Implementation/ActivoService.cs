@@ -157,7 +157,13 @@ public class ActivoService : IActivoService
             return new(ActivoOperationStatus.HasAssociatedMaintenanceOrders);
         }
 
-        _repository.Delete(id);
+        if (activo.Estado == EstadoActivo.DadoDeBaja)
+        {
+            return new(ActivoOperationStatus.Succeeded);
+        }
+
+        activo.Estado = EstadoActivo.DadoDeBaja;
+        _repository.UpdateEstado(activo);
 
         return new(ActivoOperationStatus.Succeeded);
     }

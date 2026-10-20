@@ -18,7 +18,7 @@ public interface IActivoRepository
 
     void Update(Activo activo);
 
-    void Delete(int id);
+    void UpdateEstado(Activo activo);
 
     Task<bool> ExistsByCodigoAsync(string codigo, int? idExcluir = null);
 

@@ -102,16 +102,9 @@ public class ActivoRepository : IActivoRepository
         _context.SaveChanges();
     }
 
-    public void Delete(int id)
+    public void UpdateEstado(Activo activo)
     {
-        var activo = _context.Activos.Find(id);
-
-        if (activo is null)
-        {
-            return;
-        }
-
-        _context.Activos.Remove(activo);
+        _context.Entry(activo).Property(entidad => entidad.Estado).IsModified = true;
         _context.SaveChanges();
     }
 
