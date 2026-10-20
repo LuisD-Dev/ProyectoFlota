@@ -17,5 +17,7 @@ public interface IRepuestoRepository
 
     void Delete(int id);
 
+    Task<bool> ExistsByCodigoAsync(string codigo, int? idExcluir = null);
+
     Task<bool> HasAssociatedSuppliersAsync(int repuestoId);
 }

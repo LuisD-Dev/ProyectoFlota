@@ -54,9 +54,16 @@ public sealed class RepuestoController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(RepuestoDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<RepuestoDto>> CreateAsync(CrearRepuestoDto dto)
     {
         var result = await _service.CreateAsync(dto);
+
+        if (result.Status == RepuestoOperationStatus.CodeAlreadyExists)
+        {
+            return Conflict(ApiErrorFactory.Create(HttpContext, StatusCodes.Status409Conflict,
+                "Ya existe un repuesto con el código indicado."));
+        }
 
         return CreatedAtAction(
             nameof(GetById),
@@ -68,6 +75,7 @@ public sealed class RepuestoController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> UpdateAsync(int id, ActualizarRepuestoDto dto)
     {
         if (id <= 0)
@@ -80,6 +88,12 @@ public sealed class RepuestoController : ControllerBase
         if (result.Status == RepuestoOperationStatus.DoesNotExist)
         {
             return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el repuesto con id {id}."));
+        }
+
+        if (result.Status == RepuestoOperationStatus.CodeAlreadyExists)
+        {
+            return Conflict(ApiErrorFactory.Create(HttpContext, StatusCodes.Status409Conflict,
+                "Ya existe un repuesto con el código indicado."));
         }
 
         return NoContent();

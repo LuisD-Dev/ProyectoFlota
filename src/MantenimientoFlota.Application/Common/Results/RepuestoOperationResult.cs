@@ -6,7 +6,8 @@ public enum RepuestoOperationStatus
 {
     Succeeded,
     DoesNotExist,
-    HasAssociatedSuppliers
+    HasAssociatedSuppliers,
+    CodeAlreadyExists
 }
 
 public sealed record RepuestoOperationResult(

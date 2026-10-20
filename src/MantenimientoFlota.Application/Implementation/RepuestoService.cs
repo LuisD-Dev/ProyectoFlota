@@ -32,9 +32,16 @@ public class RepuestoService : IRepuestoService
     public async Task<RepuestoOperationResult> CreateAsync(
         CrearRepuestoDto dto)
     {
+        var codigo = dto.Codigo.Trim();
+
+        if (await _repository.ExistsByCodigoAsync(codigo))
+        {
+            return new(RepuestoOperationStatus.CodeAlreadyExists);
+        }
+
         var repuesto = new Repuesto
         {
-            Codigo = dto.Codigo.Trim(),
+            Codigo = codigo,
             Nombre = dto.Nombre.Trim(),
             UnidadMedida = dto.UnidadMedida.Trim(),
             StockActual = dto.StockActual,
@@ -59,7 +66,14 @@ public class RepuestoService : IRepuestoService
             return new(RepuestoOperationStatus.DoesNotExist);
         }
 
-        repuesto.Codigo = dto.Codigo.Trim();
+        var codigo = dto.Codigo.Trim();
+
+        if (await _repository.ExistsByCodigoAsync(codigo, id))
+        {
+            return new(RepuestoOperationStatus.CodeAlreadyExists);
+        }
+
+        repuesto.Codigo = codigo;
         repuesto.Nombre = dto.Nombre.Trim();
         repuesto.UnidadMedida = dto.UnidadMedida.Trim();
         repuesto.StockActual = dto.StockActual;

@@ -95,6 +95,20 @@ public class RepuestoRepository : IRepuestoRepository
         _context.SaveChanges();
     }
 
+    public async Task<bool> ExistsByCodigoAsync(string codigo, int? idExcluir = null)
+    {
+        var query = _context.Repuestos
+            .AsNoTracking()
+            .Where(repuesto => repuesto.Codigo == codigo);
+
+        if (idExcluir.HasValue)
+        {
+            query = query.Where(repuesto => repuesto.Id != idExcluir.Value);
+        }
+
+        return await query.AnyAsync();
+    }
+
     public async Task<bool> HasAssociatedSuppliersAsync(int repuestoId)
     {
         return await _context.RepuestoProveedores
