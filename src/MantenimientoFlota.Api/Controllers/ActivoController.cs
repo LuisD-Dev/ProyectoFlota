@@ -1,6 +1,6 @@
 using MantenimientoFlota.Api.Common;
 using MantenimientoFlota.Api.Contracts;
-using MantenimientoFlota.Application.Common.Results;
+using MantenimientoFlota.Application.Common.Exceptions;
 using MantenimientoFlota.Application.DTOs.Activo;
 using MantenimientoFlota.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -38,15 +38,10 @@ public sealed class ActivoController : ControllerBase
     {
         if (id <= 0)
         {
-            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "El identificador debe ser mayor que cero."));
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         }
 
         var activo = await _service.GetByIdAsync(id);
-
-        if (activo is null)
-        {
-            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el activo con id {id}."));
-        }
 
         return Ok(activo);
     }
@@ -59,25 +54,10 @@ public sealed class ActivoController : ControllerBase
     {
         var result = await _service.CreateAsync(dto);
 
-        if (result.Status == ActivoOperationStatus.ReservedImageUrl)
-        {
-            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "Las rutas de imágenes administradas solo pueden asignarse mediante la carga de imagen del activo."));
-        }
-
-        if (result.Status == ActivoOperationStatus.CodeAlreadyExists)
-        {
-            return Conflict(ApiErrorFactory.Create(HttpContext, StatusCodes.Status409Conflict, "Ya existe un activo con el código indicado."));
-        }
-
-        if (result.Status == ActivoOperationStatus.CategoryDoesNotExist)
-        {
-            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "No existe una categoría de activo con el identificador indicado."));
-        }
-
         return CreatedAtAction(
             nameof(GetById),
-            new { id = result.Value!.Id },
-            result.Value);
+            new { id = result.Id },
+            result);
     }
 
     [HttpPut("{id:int}")]
@@ -92,35 +72,10 @@ public sealed class ActivoController : ControllerBase
     {
         if (id <= 0)
         {
-            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "El identificador debe ser mayor que cero."));
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         }
 
-        var result = await _service.UpdateAsync(id, dto);
-
-        if (result.Status == ActivoOperationStatus.ReservedImageUrl)
-        {
-            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "Las rutas de imágenes administradas solo pueden asignarse mediante la carga de imagen del activo."));
-        }
-
-        if (result.Status == ActivoOperationStatus.DoesNotExist)
-        {
-            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el activo con id {id}."));
-        }
-
-        if (result.Status == ActivoOperationStatus.CodeAlreadyExists)
-        {
-            return Conflict(ApiErrorFactory.Create(HttpContext, StatusCodes.Status409Conflict, "Ya existe un activo con el código indicado."));
-        }
-
-        if (result.Status == ActivoOperationStatus.CategoryDoesNotExist)
-        {
-            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "No existe una categoría de activo con el identificador indicado."));
-        }
-
-        if (result.Status == ActivoOperationStatus.HasOpenMaintenanceOrders)
-        {
-            return Conflict(ApiErrorFactory.Create(HttpContext, StatusCodes.Status409Conflict, "No se puede cambiar el estado del activo porque tiene órdenes de mantenimiento abiertas."));
-        }
+        await _service.UpdateAsync(id, dto);
 
         return NoContent();
     }
@@ -138,7 +93,7 @@ public sealed class ActivoController : ControllerBase
         CancellationToken cancellationToken)
     {
         if (id <= 0)
-            return BadRequest(ApiErrorFactory.Create(HttpContext, 400, "El identificador debe ser mayor que cero."));
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
 
         var archivo = await ActivoImagenValidator.LeerAsync(dto.Archivo!, cancellationToken);
         if (archivo.Error is not null)
@@ -147,8 +102,7 @@ public sealed class ActivoController : ControllerBase
 
         using var contenido = archivo.Contenido!;
         var result = await _service.ActualizarImagenAsync(id, contenido, archivo.Extension!, cancellationToken);
-        if (result is null)
-            return NotFound(ApiErrorFactory.Create(HttpContext, 404, $"No se encontró el activo con id {id}."));
+
         return Ok(result);
     }
 
@@ -162,24 +116,10 @@ public sealed class ActivoController : ControllerBase
     {
         if (id <= 0)
         {
-            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "El identificador debe ser mayor que cero."));
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         }
 
-        var result = await _service.CambiarEstadoAdministrativoAsync(id, dto);
-        if (result.Status == ActivoOperationStatus.InvalidAdministrativeState)
-        {
-            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "Solo se permite establecer el estado FueraDeServicio o DadoDeBaja."));
-        }
-
-        if (result.Status == ActivoOperationStatus.DoesNotExist)
-        {
-            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el activo con id {id}."));
-        }
-
-        if (result.Status == ActivoOperationStatus.HasOpenMaintenanceOrders)
-        {
-            return Conflict(ApiErrorFactory.Create(HttpContext, StatusCodes.Status409Conflict, "No se puede cambiar el estado del activo porque tiene órdenes de mantenimiento abiertas."));
-        }
+        await _service.CambiarEstadoAdministrativoAsync(id, dto);
 
         return NoContent();
     }
@@ -194,20 +134,10 @@ public sealed class ActivoController : ControllerBase
     {
         if (id <= 0)
         {
-            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "El identificador debe ser mayor que cero."));
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         }
 
-        var result = await _service.DeleteAsync(id);
-
-        if (result.Status == ActivoOperationStatus.DoesNotExist)
-        {
-            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el activo con id {id}."));
-        }
-
-        if (result.Status == ActivoOperationStatus.HasAssociatedMaintenanceOrders)
-        {
-            return Conflict(ApiErrorFactory.Create(HttpContext, StatusCodes.Status409Conflict, "No se puede eliminar el activo porque tiene órdenes de mantenimiento asociadas."));
-        }
+        await _service.DeleteAsync(id);
 
         return NoContent();
     }

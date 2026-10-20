@@ -1,4 +1,3 @@
-using MantenimientoFlota.Application.Common.Results;
 using MantenimientoFlota.Application.DTOs.Activo;
 using MantenimientoFlota.Domain.Enums;
 
@@ -10,17 +9,17 @@ public interface IActivoService
         int? categoriaActivoId = null,
         EstadoActivo? estado = null);
 
-    Task<ActivoDetalleDto?> GetByIdAsync(int id);
+    Task<ActivoDetalleDto> GetByIdAsync(int id);
 
-    Task<ActivoOperationResult> CreateAsync(CrearActivoDto dto);
+    Task<ActivoDto> CreateAsync(CrearActivoDto dto);
 
-    Task<ActivoOperationResult> UpdateAsync(
+    Task UpdateAsync(
         int id,
         ActualizarActivoDto dto);
 
-    Task<ActivoOperationResult> CambiarEstadoAdministrativoAsync(int id, CambiarEstadoActivoDto dto);
+    Task CambiarEstadoAdministrativoAsync(int id, CambiarEstadoActivoDto dto);
 
-    Task<ActivoOperationResult> DeleteAsync(int id);
+    Task DeleteAsync(int id);
 
-    Task<ActivoImagenDto?> ActualizarImagenAsync(int id, Stream contenido, string extension, CancellationToken cancellationToken);
+    Task<ActivoImagenDto> ActualizarImagenAsync(int id, Stream contenido, string extension, CancellationToken cancellationToken);
 }

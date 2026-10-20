@@ -140,7 +140,32 @@ especialidades, filtros individuales/combinados (incluido false), detalle con
 cero/varias asociaciones y fechas límite, validación por campo, éxitos y traceId
 correlacionado con el único cierre Warning.
 
-Los catálogos restantes, órdenes y asociaciones (incluido TecnicoEspecialidad)
+Activo utiliza las excepciones existentes para detalle inexistente, códigos
+duplicados, categoría inexistente, rutas reservadas, baja lógica y estados
+administrativos. Conserva mensajes y prioridades: PUT comprueba existencia,
+ruta, código, categoría y cambio administrativo antes de escribir; PATCH valida
+destino antes de existencia y órdenes abiertas antes de resolver una repetición.
+DELETE sigue rechazando cualquier orden y no escribe al repetir una baja sin
+órdenes. Listado y validación automática de filtros (incluido estado=0), patrón
+del código, detalle y cálculos permanecen intactos. IActivoService devuelve
+ActivoDto al crear, detalle e imagen no nullable y Task para PUT/PATCH/DELETE;
+se retira ActivoOperationResult al no quedar consumidores.
+
+La validación del archivo es validación de entrada: conserva exactamente su
+respuesta por campo mediante la fábrica (400, detail, errors.Archivo e
+INVALID_REQUEST); no es una excepción de negocio pendiente. La ausencia del
+activo se lanza antes de guardar la imagen y fuera del try de SQL. El catch
+exclusivo de ImagenUpdateRejectedException conserva la limpieza de la imagen
+nueva y relanza el fallo técnico; no se convierte a 409. Otros resultados SQL
+inciertos siguen conservando ambos archivos. Solo tras éxito SQL se intenta
+retirar la imagen anterior administrada. Almacenamiento y protección de rutas,
+actualización exclusiva de ImagenUrl y validadores no se modifican.
+Pruebas manuales pendientes: prioridades de 400/404/409, duplicados, categoría,
+filtros, baja y repetición, órdenes abiertas/finales, PATCH/PUT sin cambios
+parciales, éxitos/Location, errores por campo de archivo, carga/reemplazo y
+fallos de persistencia/limpieza sobre un entorno de pruebas.
+
+Los recorridos restantes, órdenes y asociaciones (incluido TecnicoEspecialidad)
 mantienen sus mecanismos actuales: A5 sigue parcial. Pruebas manuales pendientes:
 400 por ID, 404 de detalle/PUT/DELETE, 409 por duplicados o asociaciones,
 actualización conservando el nombre propio, respuestas exitosas y Location,
