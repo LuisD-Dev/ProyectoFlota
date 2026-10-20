@@ -1,6 +1,5 @@
-using MantenimientoFlota.Api.Common;
 using MantenimientoFlota.Api.Contracts;
-using MantenimientoFlota.Application.Common.Results;
+using MantenimientoFlota.Application.Common.Exceptions;
 using MantenimientoFlota.Application.DTOs.TecnicoEspecialidad;
 using MantenimientoFlota.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -41,11 +40,6 @@ public sealed class TecnicoEspecialidadController : ControllerBase
             tecnicoId,
             especialidadId);
 
-        if (tecnicoEspecialidad is null)
-        {
-            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró la relación entre el técnico con id {tecnicoId} y la especialidad con id {especialidadId}."));
-        }
-
         return Ok(tecnicoEspecialidad);
     }
 
@@ -61,25 +55,7 @@ public sealed class TecnicoEspecialidadController : ControllerBase
     {
         var result = await _service.CreateAsync(dto);
 
-        if (result.Status ==
-            TecnicoEspecialidadOperationStatus.TechnicianDoesNotExist)
-        {
-            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el técnico con id {dto.TecnicoId}."));
-        }
-
-        if (result.Status ==
-            TecnicoEspecialidadOperationStatus.SpecialtyDoesNotExist)
-        {
-            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró la especialidad con id {dto.EspecialidadId}."));
-        }
-
-        if (result.Status ==
-            TecnicoEspecialidadOperationStatus.RelationshipAlreadyExists)
-        {
-            return Conflict(ApiErrorFactory.Create(HttpContext, StatusCodes.Status409Conflict, "Ya existe una relación entre el técnico y la especialidad indicados."));
-        }
-
-        var tecnicoEspecialidad = result.Value!;
+        var tecnicoEspecialidad = result;
 
         return CreatedAtAction(
             nameof(GetById),
@@ -100,15 +76,10 @@ public sealed class TecnicoEspecialidadController : ControllerBase
         int especialidadId,
         ActualizarTecnicoEspecialidadDto dto)
     {
-        var result = await _service.UpdateAsync(
+        await _service.UpdateAsync(
             tecnicoId,
             especialidadId,
             dto);
-
-        if (result.Status == TecnicoEspecialidadOperationStatus.DoesNotExist)
-        {
-            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró la relación entre el técnico con id {tecnicoId} y la especialidad con id {especialidadId}."));
-        }
 
         return NoContent();
     }
@@ -120,12 +91,7 @@ public sealed class TecnicoEspecialidadController : ControllerBase
         int tecnicoId,
         int especialidadId)
     {
-        var result = await _service.DeleteAsync(tecnicoId, especialidadId);
-
-        if (result.Status == TecnicoEspecialidadOperationStatus.DoesNotExist)
-        {
-            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró la relación entre el técnico con id {tecnicoId} y la especialidad con id {especialidadId}."));
-        }
+        await _service.DeleteAsync(tecnicoId, especialidadId);
 
         return NoContent();
     }

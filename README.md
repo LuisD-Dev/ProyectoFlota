@@ -165,8 +165,28 @@ filtros, baja y repetición, órdenes abiertas/finales, PATCH/PUT sin cambios
 parciales, éxitos/Location, errores por campo de archivo, carga/reemplazo y
 fallos de persistencia/limpieza sobre un entorno de pruebas.
 
-Los recorridos restantes, órdenes y asociaciones (incluido TecnicoEspecialidad)
-mantienen sus mecanismos actuales: A5 sigue parcial. Pruebas manuales pendientes:
+OrdenMantenimiento, TecnicoEspecialidad y RepuestoProveedor utilizan ahora las
+excepciones existentes. Se retiran sus tres resultados de operaciones sin
+consumidores. Los contratos devuelven el DTO creado y detalle no nullable;
+actualización y eliminación de asociaciones devuelven Task. Órdenes conserva
+únicamente listado, detalle y creación, con código generado, estado Solicitada,
+normalización y cálculo de días intactos.
+
+Se conserva el orden de POST: activo existente para órdenes; técnico, especialidad
+y duplicado para TecnicoEspecialidad; repuesto, proveedor y duplicado para
+RepuestoProveedor. Los mensajes y códigos HTTP no cambian. TecnicoEspecialidad
+no agrega comprobación de claves positivas en rutas: claves sin asociación,
+incluidas cero/negativas, mantienen 404. RepuestoProveedor mantiene 400 por
+claves cero/negativas antes de consultar y 404 por asociación inexistente.
+POST mantiene 201, DTO y Location con sus claves actuales; PUT/DELETE de
+asociaciones mantienen 204. No se alteran consultas, DTO ni datos.
+
+La búsqueda estática global no encuentra traducciones de rechazos de negocio
+en los controladores ni resultados de fallo en servicios. La respuesta por campo
+de validación de archivo en Activo permanece como validación de entrada, al igual
+que la validación automática de DTO. La migración estática de los recorridos
+actuales queda realizada; A5 aún requiere comprobaciones de ejecución antes de
+declararse completamente validado. Pruebas manuales pendientes:
 400 por ID, 404 de detalle/PUT/DELETE, 409 por duplicados o asociaciones,
 actualización conservando el nombre propio, respuestas exitosas y Location,
 validación automática y coincidencia de traceId con el único cierre Warning.

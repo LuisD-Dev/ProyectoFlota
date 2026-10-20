@@ -1,6 +1,5 @@
-using MantenimientoFlota.Api.Common;
 using MantenimientoFlota.Api.Contracts;
-using MantenimientoFlota.Application.Common.Results;
+using MantenimientoFlota.Application.Common.Exceptions;
 using MantenimientoFlota.Application.DTOs.RepuestoProveedor;
 using MantenimientoFlota.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -42,17 +41,12 @@ public sealed class RepuestoProveedorController : ControllerBase
     {
         if (!AreValidIds(repuestoId, proveedorId))
         {
-            return BadRequest(CreateInvalidIdsResponse());
+            throw new InvalidRequestException("Los identificadores de repuesto y proveedor deben ser mayores que cero.");
         }
 
         var repuestoProveedor = await _service.GetByIdAsync(
             repuestoId,
             proveedorId);
-
-        if (repuestoProveedor is null)
-        {
-            return NotFound(CreateNotFoundResponse(repuestoId, proveedorId));
-        }
 
         return Ok(repuestoProveedor);
     }
@@ -69,24 +63,7 @@ public sealed class RepuestoProveedorController : ControllerBase
     {
         var result = await _service.CreateAsync(dto);
 
-        if (result.Status ==
-            RepuestoProveedorOperationStatus.RepuestoDoesNotExist)
-        {
-            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el repuesto con id {dto.RepuestoId}."));
-        }
-
-        if (result.Status ==
-            RepuestoProveedorOperationStatus.ProveedorDoesNotExist)
-        {
-            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el proveedor con id {dto.ProveedorId}."));
-        }
-
-        if (result.Status == RepuestoProveedorOperationStatus.AlreadyExists)
-        {
-            return Conflict(ApiErrorFactory.Create(HttpContext, StatusCodes.Status409Conflict, "Ya existe una relación entre el repuesto y el proveedor indicados."));
-        }
-
-        var repuestoProveedor = result.Value!;
+        var repuestoProveedor = result;
 
         return CreatedAtAction(
             nameof(GetById),
@@ -109,18 +86,13 @@ public sealed class RepuestoProveedorController : ControllerBase
     {
         if (!AreValidIds(repuestoId, proveedorId))
         {
-            return BadRequest(CreateInvalidIdsResponse());
+            throw new InvalidRequestException("Los identificadores de repuesto y proveedor deben ser mayores que cero.");
         }
 
-        var result = await _service.UpdateAsync(
+        await _service.UpdateAsync(
             repuestoId,
             proveedorId,
             dto);
-
-        if (result.Status == RepuestoProveedorOperationStatus.DoesNotExist)
-        {
-            return NotFound(CreateNotFoundResponse(repuestoId, proveedorId));
-        }
 
         return NoContent();
     }
@@ -135,15 +107,10 @@ public sealed class RepuestoProveedorController : ControllerBase
     {
         if (!AreValidIds(repuestoId, proveedorId))
         {
-            return BadRequest(CreateInvalidIdsResponse());
+            throw new InvalidRequestException("Los identificadores de repuesto y proveedor deben ser mayores que cero.");
         }
 
-        var result = await _service.DeleteAsync(repuestoId, proveedorId);
-
-        if (result.Status == RepuestoProveedorOperationStatus.DoesNotExist)
-        {
-            return NotFound(CreateNotFoundResponse(repuestoId, proveedorId));
-        }
+        await _service.DeleteAsync(repuestoId, proveedorId);
 
         return NoContent();
     }
@@ -153,15 +120,4 @@ public sealed class RepuestoProveedorController : ControllerBase
         return repuestoId > 0 && proveedorId > 0;
     }
 
-    private ApiErrorResponse CreateInvalidIdsResponse()
-    {
-        return ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "Los identificadores de repuesto y proveedor deben ser mayores que cero.");
-    }
-
-    private ApiErrorResponse CreateNotFoundResponse(
-        int repuestoId,
-        int proveedorId)
-    {
-        return ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró la relación entre el repuesto con id {repuestoId} y el proveedor con id {proveedorId}.");
-    }
 }

@@ -1,4 +1,3 @@
-using MantenimientoFlota.Application.Common.Results;
 using MantenimientoFlota.Application.DTOs.RepuestoProveedor;
 
 namespace MantenimientoFlota.Application.Interfaces.Services;
@@ -7,19 +6,19 @@ public interface IRepuestoProveedorService
 {
     Task<IReadOnlyList<RepuestoProveedorDto>> GetAllAsync();
 
-    Task<RepuestoProveedorDto?> GetByIdAsync(
+    Task<RepuestoProveedorDto> GetByIdAsync(
         int repuestoId,
         int proveedorId);
 
-    Task<RepuestoProveedorOperationResult> CreateAsync(
+    Task<RepuestoProveedorDto> CreateAsync(
         CrearRepuestoProveedorDto dto);
 
-    Task<RepuestoProveedorOperationResult> UpdateAsync(
+    Task UpdateAsync(
         int repuestoId,
         int proveedorId,
         ActualizarRepuestoProveedorDto dto);
 
-    Task<RepuestoProveedorOperationResult> DeleteAsync(
+    Task DeleteAsync(
         int repuestoId,
         int proveedorId);
 }

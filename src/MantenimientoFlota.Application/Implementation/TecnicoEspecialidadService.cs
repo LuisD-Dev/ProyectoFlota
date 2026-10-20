@@ -1,4 +1,4 @@
-using MantenimientoFlota.Application.Common.Results;
+using MantenimientoFlota.Application.Common.Exceptions;
 using MantenimientoFlota.Application.DTOs.TecnicoEspecialidad;
 using MantenimientoFlota.Application.Interfaces.Services;
 using MantenimientoFlota.Application.Interfaces.Repositories;
@@ -25,7 +25,7 @@ public class TecnicoEspecialidadService : ITecnicoEspecialidadService
             .ToList();
     }
 
-    public async Task<TecnicoEspecialidadDto?> GetByIdAsync(
+    public async Task<TecnicoEspecialidadDto> GetByIdAsync(
         int tecnicoId,
         int especialidadId)
     {
@@ -34,11 +34,11 @@ public class TecnicoEspecialidadService : ITecnicoEspecialidadService
             especialidadId);
 
         return tecnicoEspecialidad is null
-            ? null
+            ? throw new ResourceNotFoundException($"No se encontró la relación entre el técnico con id {tecnicoId} y la especialidad con id {especialidadId}.")
             : MapToDto(tecnicoEspecialidad);
     }
 
-    public async Task<TecnicoEspecialidadOperationResult> CreateAsync(
+    public async Task<TecnicoEspecialidadDto> CreateAsync(
         CrearTecnicoEspecialidadDto dto)
     {
         var tecnicoId = dto.TecnicoId!.Value;
@@ -46,20 +46,17 @@ public class TecnicoEspecialidadService : ITecnicoEspecialidadService
 
         if (!await _repository.TechnicianExistsAsync(tecnicoId))
         {
-            return new(
-                TecnicoEspecialidadOperationStatus.TechnicianDoesNotExist);
+            throw new ResourceNotFoundException($"No se encontró el técnico con id {dto.TecnicoId}.");
         }
 
         if (!await _repository.SpecialtyExistsAsync(especialidadId))
         {
-            return new(
-                TecnicoEspecialidadOperationStatus.SpecialtyDoesNotExist);
+            throw new ResourceNotFoundException($"No se encontró la especialidad con id {dto.EspecialidadId}.");
         }
 
         if (await _repository.ExistsAsync(tecnicoId, especialidadId))
         {
-            return new(
-                TecnicoEspecialidadOperationStatus.RelationshipAlreadyExists);
+            throw new ConflictException("Ya existe una relación entre el técnico y la especialidad indicados.");
         }
 
         var tecnicoEspecialidad = new TecnicoEspecialidad
@@ -76,19 +73,17 @@ public class TecnicoEspecialidadService : ITecnicoEspecialidadService
             relacionCreada.EspecialidadId)
             ?? relacionCreada;
 
-        return new(
-            TecnicoEspecialidadOperationStatus.Succeeded,
-            MapToDto(relacionCompleta));
+        return MapToDto(relacionCompleta);
     }
 
-    public async Task<TecnicoEspecialidadOperationResult> UpdateAsync(
+    public async Task UpdateAsync(
         int tecnicoId,
         int especialidadId,
         ActualizarTecnicoEspecialidadDto dto)
     {
         if (!await _repository.ExistsAsync(tecnicoId, especialidadId))
         {
-            return new(TecnicoEspecialidadOperationStatus.DoesNotExist);
+            throw new ResourceNotFoundException($"No se encontró la relación entre el técnico con id {tecnicoId} y la especialidad con id {especialidadId}.");
         }
 
         var tecnicoEspecialidad = new TecnicoEspecialidad
@@ -101,21 +96,19 @@ public class TecnicoEspecialidadService : ITecnicoEspecialidadService
 
         await _repository.UpdateAsync(tecnicoEspecialidad);
 
-        return new(TecnicoEspecialidadOperationStatus.Succeeded);
     }
 
-    public async Task<TecnicoEspecialidadOperationResult> DeleteAsync(
+    public async Task DeleteAsync(
         int tecnicoId,
         int especialidadId)
     {
         if (!await _repository.ExistsAsync(tecnicoId, especialidadId))
         {
-            return new(TecnicoEspecialidadOperationStatus.DoesNotExist);
+            throw new ResourceNotFoundException($"No se encontró la relación entre el técnico con id {tecnicoId} y la especialidad con id {especialidadId}.");
         }
 
         await _repository.DeleteAsync(tecnicoId, especialidadId);
 
-        return new(TecnicoEspecialidadOperationStatus.Succeeded);
     }
 
     private static TecnicoEspecialidadDto MapToDto(

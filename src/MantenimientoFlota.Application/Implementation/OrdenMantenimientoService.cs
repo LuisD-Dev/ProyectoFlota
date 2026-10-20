@@ -1,4 +1,4 @@
-using MantenimientoFlota.Application.Common.Results;
+using MantenimientoFlota.Application.Common.Exceptions;
 using MantenimientoFlota.Application.DTOs.OrdenMantenimiento;
 using MantenimientoFlota.Application.Interfaces.Services;
 using MantenimientoFlota.Application.Interfaces.Repositories;
@@ -19,17 +19,21 @@ public class OrdenMantenimientoService : IOrdenMantenimientoService
 
     public async Task<IReadOnlyList<OrdenMantenimientoDto>> GetAllAsync(int? activoId = null)
     {
+        if (activoId is <= 0)
+            throw new InvalidRequestException("El identificador del activo debe ser mayor que cero.");
         return await _repository.GetAllAsync(activoId);
     }
 
-    public async Task<OrdenMantenimientoDetalleDto?> GetByIdAsync(int id)
+    public async Task<OrdenMantenimientoDetalleDto> GetByIdAsync(int id)
     {
+        if (id <= 0)
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         var fechaReferencia = DateOnly.FromDateTime(DateTime.UtcNow);
         var orden = await _repository.GetDetalleByIdAsync(id);
 
         if (orden is null)
         {
-            return null;
+            throw new ResourceNotFoundException($"No se encontró la orden de mantenimiento con id {id}.");
         }
 
         // Los componentes almacenados se interpretan como calendario UTC, sin conversión de zona.
@@ -39,15 +43,14 @@ public class OrdenMantenimientoService : IOrdenMantenimientoService
         return orden;
     }
 
-    public async Task<OrdenMantenimientoOperationResult> CreateAsync(
+    public async Task<OrdenMantenimientoDto> CreateAsync(
         CrearOrdenMantenimientoDto dto)
     {
         var activoId = dto.ActivoId!.Value;
 
         if (!await _repository.ActivoExistsAsync(activoId))
         {
-            return new(
-                OrdenMantenimientoOperationStatus.ActivoDoesNotExist);
+            throw new ResourceNotFoundException($"No se encontró el activo con id {dto.ActivoId}.");
         }
 
         var orden = new OrdenMantenimiento
@@ -68,9 +71,7 @@ public class OrdenMantenimientoService : IOrdenMantenimientoService
         var ordenCompleta = await _repository.GetByIdAsync(ordenCreada.Id)
             ?? MapToDto(ordenCreada);
 
-        return new(
-            OrdenMantenimientoOperationStatus.Succeeded,
-            ordenCompleta);
+        return ordenCompleta;
     }
 
     private static OrdenMantenimientoDto MapToDto(

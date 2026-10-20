@@ -1,6 +1,5 @@
-using MantenimientoFlota.Api.Common;
 using MantenimientoFlota.Api.Contracts;
-using MantenimientoFlota.Application.Common.Results;
+using MantenimientoFlota.Application.Common.Exceptions;
 using MantenimientoFlota.Application.DTOs.OrdenMantenimiento;
 using MantenimientoFlota.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -29,10 +28,7 @@ public sealed class OrdenMantenimientoController : ControllerBase
     {
         if (activoId is <= 0)
         {
-            return BadRequest(ApiErrorFactory.Create(
-                HttpContext,
-                StatusCodes.Status400BadRequest,
-                "El identificador del activo debe ser mayor que cero."));
+            throw new InvalidRequestException("El identificador del activo debe ser mayor que cero.");
         }
 
         var ordenes = await _service.GetAllAsync(activoId);
@@ -50,15 +46,10 @@ public sealed class OrdenMantenimientoController : ControllerBase
     {
         if (id <= 0)
         {
-            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "El identificador debe ser mayor que cero."));
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         }
 
         var orden = await _service.GetByIdAsync(id);
-
-        if (orden is null)
-        {
-            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró la orden de mantenimiento con id {id}."));
-        }
 
         return Ok(orden);
     }
@@ -74,13 +65,7 @@ public sealed class OrdenMantenimientoController : ControllerBase
     {
         var result = await _service.CreateAsync(dto);
 
-        if (result.Status ==
-            OrdenMantenimientoOperationStatus.ActivoDoesNotExist)
-        {
-            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el activo con id {dto.ActivoId}."));
-        }
-
-        var orden = result.Value!;
+        var orden = result;
 
         return CreatedAtAction(
             nameof(GetById),

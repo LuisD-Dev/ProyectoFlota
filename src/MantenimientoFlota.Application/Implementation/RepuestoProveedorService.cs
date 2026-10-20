@@ -1,4 +1,4 @@
-using MantenimientoFlota.Application.Common.Results;
+using MantenimientoFlota.Application.Common.Exceptions;
 using MantenimientoFlota.Application.DTOs.RepuestoProveedor;
 using MantenimientoFlota.Application.Interfaces.Services;
 using MantenimientoFlota.Application.Interfaces.Repositories;
@@ -25,20 +25,21 @@ public class RepuestoProveedorService : IRepuestoProveedorService
             .ToList();
     }
 
-    public async Task<RepuestoProveedorDto?> GetByIdAsync(
+    public async Task<RepuestoProveedorDto> GetByIdAsync(
         int repuestoId,
         int proveedorId)
     {
+        ValidarIds(repuestoId, proveedorId);
         var repuestoProveedor = await _repository.GetByIdAsync(
             repuestoId,
             proveedorId);
 
         return repuestoProveedor is null
-            ? null
+            ? throw new ResourceNotFoundException($"No se encontró la relación entre el repuesto con id {repuestoId} y el proveedor con id {proveedorId}.")
             : MapToDto(repuestoProveedor);
     }
 
-    public async Task<RepuestoProveedorOperationResult> CreateAsync(
+    public async Task<RepuestoProveedorDto> CreateAsync(
         CrearRepuestoProveedorDto dto)
     {
         var repuestoId = dto.RepuestoId!.Value;
@@ -46,19 +47,17 @@ public class RepuestoProveedorService : IRepuestoProveedorService
 
         if (!await _repository.RepuestoExistsAsync(repuestoId))
         {
-            return new(
-                RepuestoProveedorOperationStatus.RepuestoDoesNotExist);
+            throw new ResourceNotFoundException($"No se encontró el repuesto con id {dto.RepuestoId}.");
         }
 
         if (!await _repository.ProveedorExistsAsync(proveedorId))
         {
-            return new(
-                RepuestoProveedorOperationStatus.ProveedorDoesNotExist);
+            throw new ResourceNotFoundException($"No se encontró el proveedor con id {dto.ProveedorId}.");
         }
 
         if (await _repository.ExistsAsync(repuestoId, proveedorId))
         {
-            return new(RepuestoProveedorOperationStatus.AlreadyExists);
+            throw new ConflictException("Ya existe una relación entre el repuesto y el proveedor indicados.");
         }
 
         var repuestoProveedor = new RepuestoProveedor
@@ -75,19 +74,18 @@ public class RepuestoProveedorService : IRepuestoProveedorService
             relacionCreada.ProveedorId)
             ?? relacionCreada;
 
-        return new(
-            RepuestoProveedorOperationStatus.Succeeded,
-            MapToDto(relacionCompleta));
+        return MapToDto(relacionCompleta);
     }
 
-    public async Task<RepuestoProveedorOperationResult> UpdateAsync(
+    public async Task UpdateAsync(
         int repuestoId,
         int proveedorId,
         ActualizarRepuestoProveedorDto dto)
     {
+        ValidarIds(repuestoId, proveedorId);
         if (!await _repository.ExistsAsync(repuestoId, proveedorId))
         {
-            return new(RepuestoProveedorOperationStatus.DoesNotExist);
+            throw new ResourceNotFoundException($"No se encontró la relación entre el repuesto con id {repuestoId} y el proveedor con id {proveedorId}.");
         }
 
         var repuestoProveedor = new RepuestoProveedor
@@ -100,21 +98,26 @@ public class RepuestoProveedorService : IRepuestoProveedorService
 
         await _repository.UpdateAsync(repuestoProveedor);
 
-        return new(RepuestoProveedorOperationStatus.Succeeded);
     }
 
-    public async Task<RepuestoProveedorOperationResult> DeleteAsync(
+    public async Task DeleteAsync(
         int repuestoId,
         int proveedorId)
     {
+        ValidarIds(repuestoId, proveedorId);
         if (!await _repository.ExistsAsync(repuestoId, proveedorId))
         {
-            return new(RepuestoProveedorOperationStatus.DoesNotExist);
+            throw new ResourceNotFoundException($"No se encontró la relación entre el repuesto con id {repuestoId} y el proveedor con id {proveedorId}.");
         }
 
         await _repository.DeleteAsync(repuestoId, proveedorId);
 
-        return new(RepuestoProveedorOperationStatus.Succeeded);
+    }
+
+    private static void ValidarIds(int repuestoId, int proveedorId)
+    {
+        if (repuestoId <= 0 || proveedorId <= 0)
+            throw new InvalidRequestException("Los identificadores de repuesto y proveedor deben ser mayores que cero.");
     }
 
     private static RepuestoProveedorDto MapToDto(
