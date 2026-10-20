@@ -10,7 +10,7 @@ public interface IActivoService
         int? categoriaActivoId = null,
         EstadoActivo? estado = null);
 
-    Task<ActivoDto?> GetByIdAsync(int id);
+    Task<ActivoDetalleDto?> GetByIdAsync(int id);
 
     Task<ActivoOperationResult> CreateAsync(CrearActivoDto dto);
 

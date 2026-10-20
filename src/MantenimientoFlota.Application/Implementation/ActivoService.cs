@@ -27,13 +27,34 @@ public class ActivoService : IActivoService
             .ToList();
     }
 
-    public async Task<ActivoDto?> GetByIdAsync(int id)
+    public async Task<ActivoDetalleDto?> GetByIdAsync(int id)
     {
-        var activo = await _repository.GetByIdAsync(id);
+        var fechaReferencia = DateOnly.FromDateTime(DateTime.UtcNow);
+        var activo = await _repository.GetDetalleByIdAsync(id);
 
-        return activo is null
-            ? null
-            : MapToDto(activo);
+        if (activo is null)
+        {
+            return null;
+        }
+
+        activo.AntiguedadAnios = CalcularAntiguedadAnios(activo.FechaAdquisicion, fechaReferencia);
+        return activo;
+    }
+
+    private static int CalcularAntiguedadAnios(DateOnly fechaAdquisicion, DateOnly fechaReferencia)
+    {
+        if (fechaAdquisicion > fechaReferencia)
+        {
+            return 0;
+        }
+
+        var anios = fechaReferencia.Year - fechaAdquisicion.Year;
+        if (fechaAdquisicion.AddYears(anios) > fechaReferencia)
+        {
+            anios--;
+        }
+
+        return anios;
     }
 
     public async Task<ActivoOperationResult> CreateAsync(CrearActivoDto dto)

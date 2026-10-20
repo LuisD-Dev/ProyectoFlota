@@ -1,5 +1,6 @@
 using MantenimientoFlota.Domain.Entities;
 using MantenimientoFlota.Domain.Enums;
+using MantenimientoFlota.Application.DTOs.Activo;
 
 namespace MantenimientoFlota.Application.Interfaces.Repositories;
 
@@ -10,6 +11,8 @@ public interface IActivoRepository
         EstadoActivo? estado = null);
 
     Task<Activo?> GetByIdAsync(int id);
+
+    Task<ActivoDetalleDto?> GetDetalleByIdAsync(int id);
 
     Task<Activo?> AddAsync(Activo activo);
 

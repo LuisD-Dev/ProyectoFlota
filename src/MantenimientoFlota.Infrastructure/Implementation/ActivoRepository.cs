@@ -1,4 +1,5 @@
 using MantenimientoFlota.Application.Interfaces.Repositories;
+using MantenimientoFlota.Application.DTOs.Activo;
 using MantenimientoFlota.Domain.Entities;
 using MantenimientoFlota.Domain.Enums;
 using MantenimientoFlota.Infrastructure.Persistence;
@@ -42,6 +43,49 @@ public class ActivoRepository : IActivoRepository
             .AsNoTracking()
             .Include(activo => activo.CategoriaActivo)
             .FirstOrDefaultAsync(activo => activo.Id == id);
+    }
+
+    public async Task<ActivoDetalleDto?> GetDetalleByIdAsync(int id)
+    {
+        return await _context.Activos
+            .AsNoTracking()
+            .AsSingleQuery()
+            .Where(activo => activo.Id == id)
+            .Select(activo => new ActivoDetalleDto
+            {
+                Id = activo.Id,
+                Codigo = activo.Codigo,
+                Nombre = activo.Nombre,
+                Descripcion = activo.Descripcion,
+                FechaAdquisicion = activo.FechaAdquisicion,
+                ValorReferencia = activo.ValorReferencia,
+                Estado = activo.Estado,
+                ImagenUrl = activo.ImagenUrl,
+                Placa = activo.Placa,
+                KilometrajeActual = activo.KilometrajeActual,
+                CategoriaActivoId = activo.CategoriaActivoId,
+                CategoriaActivoNombre = activo.CategoriaActivo.Nombre,
+                Categoria = new CategoriaActivoResumenDto
+                {
+                    Id = activo.CategoriaActivo.Id,
+                    Nombre = activo.CategoriaActivo.Nombre,
+                    IntervaloMantenimientoKm = activo.CategoriaActivo.IntervaloMantenimientoKm
+                },
+                CantidadOrdenes = activo.OrdenesMantenimiento.Count(),
+                Ordenes = activo.OrdenesMantenimiento
+                    .OrderByDescending(orden => orden.FechaSolicitud)
+                    .ThenByDescending(orden => orden.Id)
+                    .Select(orden => new OrdenMantenimientoResumenDto
+                    {
+                        Codigo = orden.Codigo,
+                        FechaSolicitud = orden.FechaSolicitud,
+                        TipoMantenimiento = orden.TipoMantenimiento,
+                        Prioridad = orden.Prioridad,
+                        EstadoActual = orden.EstadoActual
+                    })
+                    .ToList()
+            })
+            .FirstOrDefaultAsync();
     }
 
     public async Task<Activo?> AddAsync(Activo activo)

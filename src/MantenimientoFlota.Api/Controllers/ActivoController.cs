@@ -31,10 +31,10 @@ public sealed class ActivoController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(ActivoDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ActivoDetalleDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ActivoDto>> GetById(int id)
+    public async Task<ActionResult<ActivoDetalleDto>> GetById(int id)
     {
         if (id <= 0)
         {
