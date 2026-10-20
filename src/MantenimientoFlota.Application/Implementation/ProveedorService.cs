@@ -24,13 +24,9 @@ public class ProveedorService : IProveedorService
             .ToList();
     }
 
-    public async Task<ProveedorDto?> GetByIdAsync(int id)
+    public async Task<ProveedorDetalleDto?> GetByIdAsync(int id)
     {
-        var proveedor = await _repository.GetByIdAsync(id);
-
-        return proveedor is null
-            ? null
-            : MapToDto(proveedor);
+        return await _repository.GetDetalleByIdAsync(id);
     }
 
     public async Task<ProveedorOperationResult> CreateAsync(

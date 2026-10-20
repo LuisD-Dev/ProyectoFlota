@@ -31,10 +31,10 @@ public sealed class ProveedorController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(ProveedorDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProveedorDetalleDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ProveedorDto>> GetById(int id)
+    public async Task<ActionResult<ProveedorDetalleDto>> GetById(int id)
     {
         if (id <= 0)
         {

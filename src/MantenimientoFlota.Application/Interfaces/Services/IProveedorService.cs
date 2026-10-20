@@ -7,7 +7,7 @@ public interface IProveedorService
 {
     Task<IReadOnlyList<ProveedorDto>> GetAllAsync();
 
-    Task<ProveedorDto?> GetByIdAsync(int id);
+    Task<ProveedorDetalleDto?> GetByIdAsync(int id);
 
     Task<ProveedorOperationResult> CreateAsync(CrearProveedorDto dto);
 
