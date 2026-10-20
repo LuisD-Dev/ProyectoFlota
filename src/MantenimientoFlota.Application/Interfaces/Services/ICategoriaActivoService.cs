@@ -7,7 +7,7 @@ public interface ICategoriaActivoService
 {
     Task<IReadOnlyList<CategoriaActivoDto>> GetAllAsync();
 
-    Task<CategoriaActivoDto?> GetByIdAsync(int id);
+    Task<CategoriaActivoDetalleDto?> GetByIdAsync(int id);
 
     Task<CategoriaActivoOperationResult> CreateAsync(
         CrearCategoriaActivoDto dto);

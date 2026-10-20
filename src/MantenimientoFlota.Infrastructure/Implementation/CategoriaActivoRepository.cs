@@ -1,4 +1,5 @@
 using MantenimientoFlota.Application.Interfaces.Repositories;
+using MantenimientoFlota.Application.DTOs.CategoriaActivo;
 using MantenimientoFlota.Domain.Entities;
 using MantenimientoFlota.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -26,6 +27,32 @@ public class CategoriaActivoRepository : ICategoriaActivoRepository
         return await _context.CategoriasActivo
             .AsNoTracking()
             .FirstOrDefaultAsync(categoria => categoria.Id == id);
+    }
+
+    public async Task<CategoriaActivoDetalleDto?> GetDetalleByIdAsync(int id)
+    {
+        return await _context.CategoriasActivo
+            .AsNoTracking()
+            .AsSingleQuery()
+            .Where(categoria => categoria.Id == id)
+            .Select(categoria => new CategoriaActivoDetalleDto
+            {
+                Id = categoria.Id,
+                Nombre = categoria.Nombre,
+                Descripcion = categoria.Descripcion,
+                IntervaloMantenimientoKm = categoria.IntervaloMantenimientoKm,
+                CantidadActivos = categoria.Activos.Count(),
+                Activos = categoria.Activos
+                    .OrderBy(activo => activo.Codigo)
+                    .Select(activo => new ActivoResumenDto
+                    {
+                        Codigo = activo.Codigo,
+                        Nombre = activo.Nombre,
+                        Estado = activo.Estado
+                    })
+                    .ToList()
+            })
+            .FirstOrDefaultAsync();
     }
 
     public async Task<CategoriaActivo?> AddAsync(CategoriaActivo categoria)

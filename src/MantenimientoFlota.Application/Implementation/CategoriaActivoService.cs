@@ -24,13 +24,9 @@ public class CategoriaActivoService : ICategoriaActivoService
             .ToList();
     }
 
-    public async Task<CategoriaActivoDto?> GetByIdAsync(int id)
+    public async Task<CategoriaActivoDetalleDto?> GetByIdAsync(int id)
     {
-        var categoria = await _repository.GetByIdAsync(id);
-
-        return categoria is null
-            ? null
-            : MapToDto(categoria);
+        return await _repository.GetDetalleByIdAsync(id);
     }
 
     public async Task<CategoriaActivoOperationResult> CreateAsync(
