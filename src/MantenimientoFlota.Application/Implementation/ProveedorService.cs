@@ -1,4 +1,4 @@
-using MantenimientoFlota.Application.Common.Results;
+using MantenimientoFlota.Application.Common.Exceptions;
 using MantenimientoFlota.Application.DTOs.Proveedor;
 using MantenimientoFlota.Application.Interfaces.Services;
 using MantenimientoFlota.Application.Interfaces.Repositories;
@@ -24,12 +24,14 @@ public class ProveedorService : IProveedorService
             .ToList();
     }
 
-    public async Task<ProveedorDetalleDto?> GetByIdAsync(int id)
+    public async Task<ProveedorDetalleDto> GetByIdAsync(int id)
     {
-        return await _repository.GetDetalleByIdAsync(id);
+        ValidarId(id);
+        return await _repository.GetDetalleByIdAsync(id)
+            ?? throw new ResourceNotFoundException($"No se encontró el proveedor con id {id}.");
     }
 
-    public async Task<ProveedorOperationResult> CreateAsync(
+    public async Task<ProveedorDto> CreateAsync(
         CrearProveedorDto dto)
     {
         var proveedor = new Proveedor
@@ -42,20 +44,19 @@ public class ProveedorService : IProveedorService
 
         var proveedorCreado = await _repository.AddAsync(proveedor);
 
-        return new(
-            ProveedorOperationStatus.Succeeded,
-            MapToDto(proveedorCreado));
+        return MapToDto(proveedorCreado);
     }
 
-    public async Task<ProveedorOperationResult> UpdateAsync(
+    public async Task UpdateAsync(
         int id,
         ActualizarProveedorDto dto)
     {
+        ValidarId(id);
         var proveedor = await _repository.GetByIdAsync(id);
 
         if (proveedor is null)
         {
-            return new(ProveedorOperationStatus.DoesNotExist);
+            throw new ResourceNotFoundException($"No se encontró el proveedor con id {id}.");
         }
 
         proveedor.Nombre = dto.Nombre.Trim();
@@ -64,27 +65,30 @@ public class ProveedorService : IProveedorService
         proveedor.CondicionesGenerales = dto.CondicionesGenerales?.Trim() ?? string.Empty;
 
         await _repository.UpdateAsync(proveedor);
-
-        return new(ProveedorOperationStatus.Succeeded);
     }
 
-    public async Task<ProveedorOperationResult> DeleteAsync(int id)
+    public async Task DeleteAsync(int id)
     {
+        ValidarId(id);
         var proveedor = await _repository.GetByIdAsync(id);
 
         if (proveedor is null)
         {
-            return new(ProveedorOperationStatus.DoesNotExist);
+            throw new ResourceNotFoundException($"No se encontró el proveedor con id {id}.");
         }
 
         if (await _repository.HasAssociatedPartsAsync(id))
         {
-            return new(ProveedorOperationStatus.HasAssociatedParts);
+            throw new ConflictException("No se puede eliminar el proveedor porque tiene repuestos asociados.");
         }
 
         await _repository.DeleteAsync(proveedor);
+    }
 
-        return new(ProveedorOperationStatus.Succeeded);
+    private static void ValidarId(int id)
+    {
+        if (id <= 0)
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
     }
 
     private static ProveedorDto MapToDto(Proveedor proveedor)

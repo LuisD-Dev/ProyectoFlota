@@ -94,6 +94,19 @@ inexistentes, duplicado en POST/PUT, conservación del nombre propio, eliminaci�
 con/sin activos, detalle con/sin activos, respuestas exitosas y correlación del
 traceId con un único cierre Warning / ExpectedFailure en rechazos.
 
+Proveedor utiliza también las excepciones existentes: InvalidRequestException
+para IDs inválidos, ResourceNotFoundException para detalle/actualización/eliminación
+inexistentes y ConflictException para eliminación con repuestos asociados. No se
+agrega validación de duplicados ni otra regla. Se mantiene la comprobación de
+existencia antes de asociaciones y la normalización Trim() de sus campos.
+IProveedorService devuelve ProveedorDto al crear, detalle no nullable y Task al
+actualizar/eliminar. Se retira ProveedorOperationResult sin consumidores. Listado,
+detalle con repuestos/precios/plazos, DTO, consultas, repositorios y
+RepuestoProveedor permanecen intactos. POST conserva 201 y Location; PUT/DELETE,
+204. Pruebas manuales pendientes: IDs inválidos, 404, eliminación con/sin
+asociaciones, validación por campo, detalle vacío o con repuestos, normalización,
+respuestas exitosas y correlación traceId / cierre Warning.
+
 Los catálogos restantes, órdenes y asociaciones (incluido TecnicoEspecialidad)
 mantienen sus mecanismos actuales: A5 sigue parcial. Pruebas manuales pendientes:
 400 por ID, 404 de detalle/PUT/DELETE, 409 por duplicados o asociaciones,
