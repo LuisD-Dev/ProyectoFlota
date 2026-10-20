@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using MantenimientoFlota.Api.Common;
+using MantenimientoFlota.Application.Common.Exceptions;
 
 namespace MantenimientoFlota.Api.Middleware;
 
@@ -20,6 +21,7 @@ public sealed class GlobalExceptionHandlingMiddleware
     {
         var stopwatch = Stopwatch.StartNew();
         Exception? unexpectedException = null;
+        var businessFailure = false;
         var responseStarted = false;
         _logger.LogInformation(
             "Solicitud iniciada. TraceId={TraceId} Method={Method} Route={Route} Status={Status} DurationMs={DurationMs}",
@@ -32,6 +34,27 @@ public sealed class GlobalExceptionHandlingMiddleware
         try
         {
             await _next(context);
+        }
+        catch (BusinessException exception) when (exception is InvalidRequestException
+            or ResourceNotFoundException or ConflictException)
+        {
+            businessFailure = true;
+            responseStarted = context.Response.HasStarted;
+            if (responseStarted)
+            {
+                throw;
+            }
+
+            var status = exception switch
+            {
+                InvalidRequestException => StatusCodes.Status400BadRequest,
+                ResourceNotFoundException => StatusCodes.Status404NotFound,
+                ConflictException => StatusCodes.Status409Conflict,
+                _ => throw new InvalidOperationException()
+            };
+            context.Response.Clear();
+            context.Response.StatusCode = status;
+            await context.Response.WriteAsJsonAsync(ApiErrorFactory.Create(context, status, exception.Message));
         }
         catch (Exception exception)
         {
@@ -67,6 +90,18 @@ public sealed class GlobalExceptionHandlingMiddleware
                     RequestOutcome.UnexpectedException.ToString(),
                     unexpectedException.GetType().FullName,
                     unexpectedException.StackTrace,
+                    responseStarted);
+            }
+            else if (businessFailure)
+            {
+                _logger.LogWarning(
+                    "Solicitud rechazada. TraceId={TraceId} Method={Method} Route={Route} Status={Status} DurationMs={DurationMs} Outcome={Outcome} ResponseStarted={ResponseStarted}",
+                    context.TraceIdentifier,
+                    context.Request.Method,
+                    GetRouteTemplate(context),
+                    status,
+                    stopwatch.Elapsed.TotalMilliseconds,
+                    RequestOutcome.ExpectedFailure.ToString(),
                     responseStarted);
             }
             else if (status is >= 200 and < 300)

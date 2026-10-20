@@ -1,4 +1,4 @@
-using MantenimientoFlota.Application.Common.Results;
+using MantenimientoFlota.Application.Common.Exceptions;
 using MantenimientoFlota.Application.DTOs.Especialidad;
 using MantenimientoFlota.Application.Interfaces.Services;
 using MantenimientoFlota.Application.Interfaces.Repositories;
@@ -24,19 +24,21 @@ public class EspecialidadService : IEspecialidadService
             .ToList();
     }
 
-    public async Task<EspecialidadDetalleDto?> GetByIdAsync(int id)
+    public async Task<EspecialidadDetalleDto> GetByIdAsync(int id)
     {
-        return await _repository.GetDetalleByIdAsync(id);
+        ValidarId(id);
+        return await _repository.GetDetalleByIdAsync(id)
+            ?? throw new ResourceNotFoundException($"No se encontró la especialidad con id {id}.");
     }
 
-    public async Task<EspecialidadOperationResult> CreateAsync(
+    public async Task<EspecialidadDto> CreateAsync(
         CrearEspecialidadDto dto)
     {
         var nombre = dto.Nombre.Trim();
 
         if (await _repository.ExistsByNameAsync(nombre))
         {
-            return new(EspecialidadOperationStatus.NameAlreadyExists);
+            throw new ConflictException("Ya existe una especialidad con el nombre indicado.");
         }
 
         var especialidad = new Especialidad
@@ -47,54 +49,56 @@ public class EspecialidadService : IEspecialidadService
 
         var especialidadCreada = await _repository.AddAsync(especialidad);
 
-        return new(
-            EspecialidadOperationStatus.Succeeded,
-            MapToDto(especialidadCreada));
+        return MapToDto(especialidadCreada);
     }
 
-    public async Task<EspecialidadOperationResult> UpdateAsync(
+    public async Task UpdateAsync(
         int id,
         ActualizarEspecialidadDto dto)
     {
+        ValidarId(id);
         var especialidad = await _repository.GetByIdAsync(id);
 
         if (especialidad is null)
         {
-            return new(EspecialidadOperationStatus.DoesNotExist);
+            throw new ResourceNotFoundException($"No se encontró la especialidad con id {id}.");
         }
 
         var nombre = dto.Nombre.Trim();
 
         if (await _repository.ExistsByNameAsync(nombre, id))
         {
-            return new(EspecialidadOperationStatus.NameAlreadyExists);
+            throw new ConflictException("Ya existe una especialidad con el nombre indicado.");
         }
 
         especialidad.Nombre = nombre;
         especialidad.Descripcion = dto.Descripcion ?? string.Empty;
 
         await _repository.UpdateAsync(especialidad);
-
-        return new(EspecialidadOperationStatus.Succeeded);
     }
 
-    public async Task<EspecialidadOperationResult> DeleteAsync(int id)
+    public async Task DeleteAsync(int id)
     {
+        ValidarId(id);
         var especialidad = await _repository.GetByIdAsync(id);
 
         if (especialidad is null)
         {
-            return new(EspecialidadOperationStatus.DoesNotExist);
+            throw new ResourceNotFoundException($"No se encontró la especialidad con id {id}.");
         }
 
         if (await _repository.HasAssociatedTechniciansAsync(id))
         {
-            return new(EspecialidadOperationStatus.HasAssociatedTechnicians);
+            throw new ConflictException("No se puede eliminar la especialidad porque tiene técnicos asociados.");
         }
 
         await _repository.DeleteAsync(especialidad);
+    }
 
-        return new(EspecialidadOperationStatus.Succeeded);
+    private static void ValidarId(int id)
+    {
+        if (id <= 0)
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
     }
 
     private static EspecialidadDto MapToDto(Especialidad especialidad)

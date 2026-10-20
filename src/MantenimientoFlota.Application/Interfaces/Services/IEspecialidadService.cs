@@ -1,4 +1,3 @@
-using MantenimientoFlota.Application.Common.Results;
 using MantenimientoFlota.Application.DTOs.Especialidad;
 
 namespace MantenimientoFlota.Application.Interfaces.Services;
@@ -7,13 +6,13 @@ public interface IEspecialidadService
 {
     Task<IReadOnlyList<EspecialidadDto>> GetAllAsync();
 
-    Task<EspecialidadDetalleDto?> GetByIdAsync(int id);
+    Task<EspecialidadDetalleDto> GetByIdAsync(int id);
 
-    Task<EspecialidadOperationResult> CreateAsync(CrearEspecialidadDto dto);
+    Task<EspecialidadDto> CreateAsync(CrearEspecialidadDto dto);
 
-    Task<EspecialidadOperationResult> UpdateAsync(
+    Task UpdateAsync(
         int id,
         ActualizarEspecialidadDto dto);
 
-    Task<EspecialidadOperationResult> DeleteAsync(int id);
+    Task DeleteAsync(int id);
 }

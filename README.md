@@ -48,12 +48,42 @@ No se registran valores de ruta, URL completa, query string, cuerpos ni cabecera
 
 Si la respuesta ya comenzó, se conserva su estado real, se registra
 ResponseStarted=true y se relanza sin reemplazar el cuerpo. El contrato JSON,
-traceId y mensajes de error permanecen intactos. No se implementa A5.
+traceId y mensajes de error permanecen intactos. La migración parcial de A5 se
+describe en la sección siguiente.
 
 Pendiente de verificar en ejecución: inicio y un cierre por TraceId, niveles y
 clasificaciones, duración, coincidencia con el traceId del JSON, y comportamiento
 ante excepciones antes/después de iniciar respuesta. A4 no está completamente
 validado por revisión estática y compilación.
+
+## Excepciones de negocio (A5, primera etapa)
+
+Application define BusinessException abstracta y las excepciones concretas
+InvalidRequestException, ResourceNotFoundException y ConflictException, sin
+dependencias HTTP. Sus mensajes son públicos y controlados; no deben incorporar
+mensajes de proveedores ni detalles técnicos. El único middleware traduce esas
+clases a 400, 404 y 409 mediante ApiErrorFactory, con INVALID_REQUEST,
+RESOURCE_NOT_FOUND y CONFLICT, respectivamente. Conserva todos los campos A6.
+
+Solo Especialidad se migra en esta etapa: IDs inválidos, detalle inexistente,
+duplicados de nombre y actualización/eliminación inexistente o eliminación con
+técnicos asociados. Se conserva Trim(), la exclusión del propio ID y la prioridad
+de existencia antes de duplicados/asociaciones. POST conserva 201, su DTO y
+Location; PUT/DELETE conservan 204. El contrato interno de servicio devuelve el
+DTO creado, detalle no nullable y Task para actualizar/eliminar. Se retira el
+resultado de operaciones de Especialidad al no quedar consumidores.
+
+Los rechazos de negocio tienen un único cierre Warning / ExpectedFailure con
+TraceId y duración. Si la respuesta ya empezó, se registra el estado real y se
+relanza sin sustituirla. Los errores técnicos conservan el tratamiento genérico
+500; no se convierten excepciones de persistencia indiscriminadamente a 409.
+La validación automática por campo permanece intacta como Validation.
+
+Los demás catálogos, órdenes y asociaciones (incluido TecnicoEspecialidad)
+mantienen sus mecanismos actuales: A5 sigue parcial. Pruebas manuales pendientes:
+400 por ID, 404 de detalle/PUT/DELETE, 409 por duplicados o asociaciones,
+actualización conservando el nombre propio, respuestas exitosas y Location,
+validación automática y coincidencia de traceId con el único cierre Warning.
 
 ## Formato de errores (A6)
 
