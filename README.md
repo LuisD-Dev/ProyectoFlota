@@ -24,6 +24,37 @@ Flota vehicular
 - **Infrastructure** implementará persistencia y servicios externos.
 - **Api** expone los endpoints HTTP.
 
+## Ciclo de solicitudes (A4, primera etapa)
+
+El middleware registra un inicio Information y un único cierre propio por
+solicitud que lo atraviesa. Incluye TraceId, método HTTP, plantilla de ruta cuando
+está disponible, estado HTTP y DurationMs medido mediante Stopwatch. En el inicio,
+el estado es el valor actual de la respuesta, no una predicción del resultado;
+la plantilla puede ser nula si todavía no se seleccionó el endpoint.
+
+Los cierres 2xx mantienen Information / Success; la validación automática y los
+rechazos esperados mantienen Warning / Validation y Warning / ExpectedFailure.
+Una excepción inesperada tiene únicamente su cierre Error / UnexpectedException.
+Las demás respuestas tienen cierre Information sin clasificación de negocio.
+Los cierres se emiten exclusivamente desde finally, incluyendo el tiempo de
+construcción del error. Esto no elimina los eventos propios del framework.
+
+En excepciones se registran como campos estructurados únicamente el nombre
+completo del tipo y StackTrace, además de los metadatos de solicitud. No se pasa
+el objeto original al logger ni se registran Message, ToString, Data o
+InnerException. Se omite por tanto la información adicional de excepciones
+internas; el stack trace puede incluir nombres de código y rutas de fuente.
+No se registran valores de ruta, URL completa, query string, cuerpos ni cabeceras.
+
+Si la respuesta ya comenzó, se conserva su estado real, se registra
+ResponseStarted=true y se relanza sin reemplazar el cuerpo. El contrato JSON,
+traceId y mensajes de error permanecen intactos. No se implementa A5.
+
+Pendiente de verificar en ejecución: inicio y un cierre por TraceId, niveles y
+clasificaciones, duración, coincidencia con el traceId del JSON, y comportamiento
+ante excepciones antes/después de iniciar respuesta. A4 no está completamente
+validado por revisión estática y compilación.
+
 ## Formato de errores (A6)
 
 Los errores construidos por la API conservan `isSuccess`, `status`, `title`,

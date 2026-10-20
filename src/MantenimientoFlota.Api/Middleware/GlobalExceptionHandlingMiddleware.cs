@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using MantenimientoFlota.Api.Common;
 
 namespace MantenimientoFlota.Api.Middleware;
@@ -17,22 +18,25 @@ public sealed class GlobalExceptionHandlingMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
+        var stopwatch = Stopwatch.StartNew();
+        Exception? unexpectedException = null;
+        var responseStarted = false;
+        _logger.LogInformation(
+            "Solicitud iniciada. TraceId={TraceId} Method={Method} Route={Route} Status={Status} DurationMs={DurationMs}",
+            context.TraceIdentifier,
+            context.Request.Method,
+            GetRouteTemplate(context),
+            context.Response.StatusCode,
+            stopwatch.Elapsed.TotalMilliseconds);
+
         try
         {
             await _next(context);
         }
         catch (Exception exception)
         {
-            var responseStarted = context.Response.HasStarted;
-            _logger.LogError(
-                "Excepción inesperada. TraceId={TraceId} Method={Method} Route={Route} Status={Status} Outcome={Outcome} ExceptionType={ExceptionType} ResponseStarted={ResponseStarted}",
-                context.TraceIdentifier,
-                context.Request.Method,
-                GetRouteTemplate(context),
-                responseStarted ? context.Response.StatusCode : StatusCodes.Status500InternalServerError,
-                RequestOutcome.UnexpectedException.ToString(),
-                exception.GetType().FullName,
-                responseStarted);
+            unexpectedException = exception;
+            responseStarted = context.Response.HasStarted;
 
             if (responseStarted)
             {
@@ -46,31 +50,60 @@ public sealed class GlobalExceptionHandlingMiddleware
                 context,
                 StatusCodes.Status500InternalServerError,
                 "Ocurrió un error interno en el servidor."));
-            return;
         }
-
-        var status = context.Response.StatusCode;
-        if (status is >= 200 and < 300)
+        finally
         {
-            _logger.LogInformation(
-                "Solicitud completada. TraceId={TraceId} Method={Method} Route={Route} Status={Status} Outcome={Outcome}",
-                context.TraceIdentifier,
-                context.Request.Method,
-                GetRouteTemplate(context),
-                status,
-                RequestOutcome.Success.ToString());
-        }
-        else if (context.Items.TryGetValue(RequestOutcomeMarker.Key, out var marker)
-            && marker is RequestOutcome outcome
-            && outcome is RequestOutcome.Validation or RequestOutcome.ExpectedFailure)
-        {
-            _logger.LogWarning(
-                "Solicitud rechazada. TraceId={TraceId} Method={Method} Route={Route} Status={Status} Outcome={Outcome}",
-                context.TraceIdentifier,
-                context.Request.Method,
-                GetRouteTemplate(context),
-                status,
-                outcome.ToString());
+            stopwatch.Stop();
+            var status = context.Response.StatusCode;
+            if (unexpectedException is not null)
+            {
+                _logger.LogError(
+                    "Excepción inesperada. TraceId={TraceId} Method={Method} Route={Route} Status={Status} DurationMs={DurationMs} Outcome={Outcome} ExceptionType={ExceptionType} StackTrace={StackTrace} ResponseStarted={ResponseStarted}",
+                    context.TraceIdentifier,
+                    context.Request.Method,
+                    GetRouteTemplate(context),
+                    status,
+                    stopwatch.Elapsed.TotalMilliseconds,
+                    RequestOutcome.UnexpectedException.ToString(),
+                    unexpectedException.GetType().FullName,
+                    unexpectedException.StackTrace,
+                    responseStarted);
+            }
+            else if (status is >= 200 and < 300)
+            {
+                _logger.LogInformation(
+                    "Solicitud completada. TraceId={TraceId} Method={Method} Route={Route} Status={Status} DurationMs={DurationMs} Outcome={Outcome}",
+                    context.TraceIdentifier,
+                    context.Request.Method,
+                    GetRouteTemplate(context),
+                    status,
+                    stopwatch.Elapsed.TotalMilliseconds,
+                    RequestOutcome.Success.ToString());
+            }
+            else if (context.Items.TryGetValue(RequestOutcomeMarker.Key, out var marker)
+                && marker is RequestOutcome outcome
+                && outcome is RequestOutcome.Validation or RequestOutcome.ExpectedFailure)
+            {
+                _logger.LogWarning(
+                    "Solicitud rechazada. TraceId={TraceId} Method={Method} Route={Route} Status={Status} DurationMs={DurationMs} Outcome={Outcome}",
+                    context.TraceIdentifier,
+                    context.Request.Method,
+                    GetRouteTemplate(context),
+                    status,
+                    stopwatch.Elapsed.TotalMilliseconds,
+                    outcome.ToString());
+            }
+            else
+            {
+                // Registrar el cierre sin atribuir una clasificación de negocio no establecida.
+                _logger.LogInformation(
+                    "Solicitud finalizada. TraceId={TraceId} Method={Method} Route={Route} Status={Status} DurationMs={DurationMs}",
+                    context.TraceIdentifier,
+                    context.Request.Method,
+                    GetRouteTemplate(context),
+                    status,
+                    stopwatch.Elapsed.TotalMilliseconds);
+            }
         }
     }
 
