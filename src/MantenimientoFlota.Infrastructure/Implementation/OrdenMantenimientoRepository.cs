@@ -40,6 +40,42 @@ public sealed class OrdenMantenimientoRepository : IOrdenMantenimientoRepository
         return await ProjectToDto(query).FirstOrDefaultAsync();
     }
 
+    public async Task<OrdenMantenimientoDetalleDto?> GetDetalleByIdAsync(int id)
+    {
+        return await _context.OrdenesMantenimiento
+            .AsNoTracking()
+            .Where(orden => orden.Id == id)
+            .Select(orden => new OrdenMantenimientoDetalleDto
+            {
+                Id = orden.Id,
+                Codigo = orden.Codigo,
+                ActivoId = orden.ActivoId,
+                ActivoCodigo = orden.Activo.Codigo,
+                ActivoNombre = orden.Activo.Nombre,
+                Motivo = orden.Motivo,
+                TipoMantenimiento = orden.TipoMantenimiento,
+                FechaSolicitud = orden.FechaSolicitud,
+                FechaProgramada = orden.FechaProgramada,
+                FechaCierre = orden.FechaCierre,
+                Prioridad = orden.Prioridad,
+                CostoTotal = orden.CostoTotal,
+                EstadoActual = orden.EstadoActual,
+                Activo = new ActivoOrdenResumenDto
+                {
+                    Id = orden.Activo.Id,
+                    Codigo = orden.Activo.Codigo,
+                    Nombre = orden.Activo.Nombre,
+                    Estado = orden.Activo.Estado,
+                    Categoria = new CategoriaOrdenResumenDto
+                    {
+                        Id = orden.Activo.CategoriaActivo.Id,
+                        Nombre = orden.Activo.CategoriaActivo.Nombre
+                    }
+                }
+            })
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<OrdenMantenimiento> AddAsync(
         OrdenMantenimiento ordenMantenimiento)
     {

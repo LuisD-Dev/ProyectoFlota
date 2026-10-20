@@ -9,6 +9,8 @@ public interface IOrdenMantenimientoRepository
 
     Task<OrdenMantenimientoDto?> GetByIdAsync(int id);
 
+    Task<OrdenMantenimientoDetalleDto?> GetDetalleByIdAsync(int id);
+
     Task<OrdenMantenimiento> AddAsync(
         OrdenMantenimiento ordenMantenimiento);
 

@@ -22,9 +22,21 @@ public class OrdenMantenimientoService : IOrdenMantenimientoService
         return await _repository.GetAllAsync(activoId);
     }
 
-    public async Task<OrdenMantenimientoDto?> GetByIdAsync(int id)
+    public async Task<OrdenMantenimientoDetalleDto?> GetByIdAsync(int id)
     {
-        return await _repository.GetByIdAsync(id);
+        var fechaReferencia = DateOnly.FromDateTime(DateTime.UtcNow);
+        var orden = await _repository.GetDetalleByIdAsync(id);
+
+        if (orden is null)
+        {
+            return null;
+        }
+
+        // Los componentes almacenados se interpretan como calendario UTC, sin conversión de zona.
+        var fechaSolicitud = DateOnly.FromDateTime(orden.FechaSolicitud);
+        orden.DiasTranscurridosDesdeSolicitud = Math.Max(
+            0, fechaReferencia.DayNumber - fechaSolicitud.DayNumber);
+        return orden;
     }
 
     public async Task<OrdenMantenimientoOperationResult> CreateAsync(

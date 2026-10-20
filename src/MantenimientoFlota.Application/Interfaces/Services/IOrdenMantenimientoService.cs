@@ -7,7 +7,7 @@ public interface IOrdenMantenimientoService
 {
     Task<IReadOnlyList<OrdenMantenimientoDto>> GetAllAsync(int? activoId = null);
 
-    Task<OrdenMantenimientoDto?> GetByIdAsync(int id);
+    Task<OrdenMantenimientoDetalleDto?> GetByIdAsync(int id);
 
     Task<OrdenMantenimientoOperationResult> CreateAsync(
         CrearOrdenMantenimientoDto dto);

@@ -42,11 +42,11 @@ public sealed class OrdenMantenimientoController : ControllerBase
 
     [HttpGet("{id:int}")]
     [ProducesResponseType(
-        typeof(OrdenMantenimientoDto),
+        typeof(OrdenMantenimientoDetalleDto),
         StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<OrdenMantenimientoDto>> GetById(int id)
+    public async Task<ActionResult<OrdenMantenimientoDetalleDto>> GetById(int id)
     {
         if (id <= 0)
         {
