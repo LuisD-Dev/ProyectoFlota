@@ -24,6 +24,55 @@ Flota vehicular
 - **Infrastructure** implementará persistencia y servicios externos.
 - **Api** expone los endpoints HTTP.
 
+## Formato de errores (A6)
+
+Los errores construidos por la API conservan `isSuccess`, `status`, `title`,
+`detail`, `data`, `traceId` y `errors`, y agregan:
+
+- `errorCode`: código estable de texto, independiente del estado HTTP y del mensaje.
+- `timestampUtc`: instante de construcción, capturado una sola vez mediante
+  `DateTimeOffset.UtcNow`, en ISO 8601 con offset UTC cero (`+00:00`).
+
+| Código | Uso |
+|---|---|
+| `VALIDATION_ERROR` | Validación automática de DTO, conversión o deserialización |
+| `INVALID_REQUEST` | Rechazo explícito 400, incluso si incluye errores por campo |
+| `RESOURCE_NOT_FOUND` | Recurso inexistente, 404 explícito |
+| `CONFLICT` | Conflicto explícito, 409 |
+| `UNEXPECTED_ERROR` | Error inesperado, 500 con mensaje genérico |
+
+Ejemplo ilustrativo de validación automática:
+
+```json
+{
+  "isSuccess": false,
+  "status": 400,
+  "title": "Error de validación",
+  "detail": "Revise los campos indicados.",
+  "data": null,
+  "traceId": "identificador-de-la-solicitud",
+  "errors": { "Estado": ["El estado es obligatorio."] },
+  "errorCode": "VALIDATION_ERROR",
+  "timestampUtc": "2026-10-20T18:30:00+00:00"
+}
+```
+
+La fábrica selecciona explícitamente el código de validación automática; no lo
+infiere de la presencia de errores por campo. `traceId` conserva exactamente
+`HttpContext.TraceIdentifier`, también utilizado en el log. Los mensajes y claves
+de validación no cambian. Los errores inesperados no exponen mensajes internos,
+SQL, rutas físicas ni trazas de excepción.
+
+El esquema compartido `ApiErrorResponse` documenta ambos campos para Scalar.
+Se conserva la clasificación de logging: Validation y ExpectedFailure como
+Warning, UnexpectedException como Error, y respuestas exitosas como Information /
+Success. Las respuestas exitosas no incorporan estos campos.
+
+Este alcance no incluye errores de enrutamiento, límites del servidor/proxy,
+archivos estáticos ni respuestas ya iniciadas. No implica completar A4 o A5,
+que siguen pendientes. La visualización del esquema, los errores HTTP, el offset
+UTC y la coincidencia del traceId con el log requieren verificación posterior.
+
 ## Imágenes de activos (C13)
 
 `PUT /api/Activo/{id}/imagen` recibe `multipart/form-data` con el campo obligatorio

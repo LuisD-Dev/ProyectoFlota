@@ -10,7 +10,8 @@ public static class ApiErrorFactory
         int status,
         string detail,
         Dictionary<string, string[]>? errors = null,
-        string? title = null)
+        string? title = null,
+        string? errorCode = null)
     {
         if (status is StatusCodes.Status400BadRequest
             or StatusCodes.Status404NotFound
@@ -18,6 +19,8 @@ public static class ApiErrorFactory
         {
             context.Items[RequestOutcomeMarker.Key] = RequestOutcome.ExpectedFailure;
         }
+
+        var timestampUtc = DateTimeOffset.UtcNow;
 
         return new ApiErrorResponse(
             status,
@@ -30,7 +33,15 @@ public static class ApiErrorFactory
             },
             detail,
             context.TraceIdentifier,
-            errors ?? new Dictionary<string, string[]>());
+            errors ?? new Dictionary<string, string[]>(),
+            errorCode ?? status switch
+            {
+                StatusCodes.Status400BadRequest => ApiErrorCodes.InvalidRequest,
+                StatusCodes.Status404NotFound => ApiErrorCodes.ResourceNotFound,
+                StatusCodes.Status409Conflict => ApiErrorCodes.Conflict,
+                _ => ApiErrorCodes.UnexpectedError
+            },
+            timestampUtc);
     }
 
     public static ApiErrorResponse Validation(HttpContext context, ModelStateDictionary modelState)
@@ -45,7 +56,8 @@ public static class ApiErrorFactory
                         : error.ErrorMessage).ToArray());
 
         var response = Create(context, StatusCodes.Status400BadRequest,
-            "Revise los campos indicados.", errors, "Error de validación");
+            "Revise los campos indicados.", errors, "Error de validación",
+            errorCode: ApiErrorCodes.ValidationError);
         context.Items[RequestOutcomeMarker.Key] = RequestOutcome.Validation;
         return response;
     }
