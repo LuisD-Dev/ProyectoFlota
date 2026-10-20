@@ -24,13 +24,9 @@ public class EspecialidadService : IEspecialidadService
             .ToList();
     }
 
-    public async Task<EspecialidadDto?> GetByIdAsync(int id)
+    public async Task<EspecialidadDetalleDto?> GetByIdAsync(int id)
     {
-        var especialidad = await _repository.GetByIdAsync(id);
-
-        return especialidad is null
-            ? null
-            : MapToDto(especialidad);
+        return await _repository.GetDetalleByIdAsync(id);
     }
 
     public async Task<EspecialidadOperationResult> CreateAsync(

@@ -7,7 +7,7 @@ public interface IEspecialidadService
 {
     Task<IReadOnlyList<EspecialidadDto>> GetAllAsync();
 
-    Task<EspecialidadDto?> GetByIdAsync(int id);
+    Task<EspecialidadDetalleDto?> GetByIdAsync(int id);
 
     Task<EspecialidadOperationResult> CreateAsync(CrearEspecialidadDto dto);
 

@@ -1,4 +1,5 @@
 using MantenimientoFlota.Application.Interfaces.Repositories;
+using MantenimientoFlota.Application.DTOs.Especialidad;
 using MantenimientoFlota.Domain.Entities;
 using MantenimientoFlota.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -27,6 +28,32 @@ public class EspecialidadRepository : IEspecialidadRepository
         return await _context.Especialidades
             .AsNoTracking()
             .FirstOrDefaultAsync(especialidad => especialidad.Id == id);
+    }
+
+    public async Task<EspecialidadDetalleDto?> GetDetalleByIdAsync(int id)
+    {
+        return await _context.Especialidades
+            .AsNoTracking()
+            .AsSingleQuery()
+            .Where(especialidad => especialidad.Id == id)
+            .Select(especialidad => new EspecialidadDetalleDto
+            {
+                Id = especialidad.Id,
+                Nombre = especialidad.Nombre,
+                Descripcion = especialidad.Descripcion,
+                Tecnicos = especialidad.TecnicoEspecialidades
+                    .OrderBy(relacion => relacion.Tecnico.NombreCompleto)
+                    .ThenBy(relacion => relacion.TecnicoId)
+                    .Select(relacion => new TecnicoEspecialidadResumenDto
+                    {
+                        TecnicoId = relacion.TecnicoId,
+                        NombreCompleto = relacion.Tecnico.NombreCompleto,
+                        NivelCertificacion = relacion.NivelCertificacion,
+                        Disponible = relacion.Tecnico.Disponible
+                    })
+                    .ToList()
+            })
+            .FirstOrDefaultAsync();
     }
 
     public async Task<Especialidad> AddAsync(Especialidad especialidad)

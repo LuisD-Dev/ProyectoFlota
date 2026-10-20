@@ -31,10 +31,10 @@ public sealed class EspecialidadController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(EspecialidadDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(EspecialidadDetalleDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<EspecialidadDto>> GetById(int id)
+    public async Task<ActionResult<EspecialidadDetalleDto>> GetById(int id)
     {
         if (id <= 0)
         {
