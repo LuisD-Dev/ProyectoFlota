@@ -1,4 +1,6 @@
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using MantenimientoFlota.Application.Common.Validation;
 using MantenimientoFlota.Domain.Enums;
 
 namespace MantenimientoFlota.Application.DTOs.Activo;
@@ -7,6 +9,8 @@ public sealed class CrearActivoDto
 {
     [Required(ErrorMessage = "El código es obligatorio.")]
     [MaxLength(50, ErrorMessage = "El código no puede superar los 50 caracteres.")]
+    [CodigoActivo]
+    [Description("Código único: VEH-, segmentos opcionales de letras ASCII mayúsculas separados por guiones y tres dígitos finales (incluido 000). Ejemplos: VEH-001 y VEH-QA-BAJA-001. Se aceptan espacios exteriores y se eliminan al guardar; máximo 50 caracteres en la entrada, incluidos esos espacios. No se convierten minúsculas.")]
     public string Codigo { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "El nombre es obligatorio.")]
