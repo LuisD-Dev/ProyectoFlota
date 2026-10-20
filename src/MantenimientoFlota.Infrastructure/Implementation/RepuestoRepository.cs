@@ -1,4 +1,5 @@
 using MantenimientoFlota.Application.Interfaces.Repositories;
+using MantenimientoFlota.Application.DTOs.Repuesto;
 using MantenimientoFlota.Domain.Entities;
 using MantenimientoFlota.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -31,6 +32,40 @@ public class RepuestoRepository : IRepuestoRepository
         return await _context.Repuestos
             .AsNoTracking()
             .FirstOrDefaultAsync(repuesto => repuesto.Id == id);
+    }
+
+    public async Task<RepuestoDetalleDto?> GetDetalleByIdAsync(int id)
+    {
+        return await _context.Repuestos
+            .AsNoTracking()
+            .AsSingleQuery()
+            .Where(repuesto => repuesto.Id == id)
+            .Select(repuesto => new RepuestoDetalleDto
+            {
+                Id = repuesto.Id,
+                Codigo = repuesto.Codigo,
+                Nombre = repuesto.Nombre,
+                UnidadMedida = repuesto.UnidadMedida,
+                StockActual = repuesto.StockActual,
+                StockMinimo = repuesto.StockMinimo,
+                StockBajo = repuesto.StockActual < repuesto.StockMinimo,
+                FaltanteStockMinimo = repuesto.StockActual < repuesto.StockMinimo
+                    ? repuesto.StockMinimo - repuesto.StockActual
+                    : 0m,
+                CantidadProveedores = repuesto.RepuestoProveedores.Count(),
+                Proveedores = repuesto.RepuestoProveedores
+                    .OrderBy(relacion => relacion.Proveedor.Nombre)
+                    .ThenBy(relacion => relacion.ProveedorId)
+                    .Select(relacion => new ProveedorRepuestoResumenDto
+                    {
+                        ProveedorId = relacion.ProveedorId,
+                        Nombre = relacion.Proveedor.Nombre,
+                        PrecioOfrecido = relacion.PrecioOfrecido,
+                        TiempoEntregaDias = relacion.TiempoEntregaDias
+                    })
+                    .ToList()
+            })
+            .FirstOrDefaultAsync();
     }
 
     public async Task<Repuesto?> AddAsync(Repuesto repuesto)

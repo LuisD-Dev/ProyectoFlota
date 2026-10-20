@@ -7,7 +7,7 @@ public interface IRepuestoService
 {
     Task<IReadOnlyList<RepuestoDto>> GetAllAsync(bool stockBajo = false);
 
-    Task<RepuestoDto?> GetByIdAsync(int id);
+    Task<RepuestoDetalleDto?> GetByIdAsync(int id);
 
     Task<RepuestoOperationResult> CreateAsync(CrearRepuestoDto dto);
 

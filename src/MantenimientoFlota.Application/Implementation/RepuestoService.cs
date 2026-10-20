@@ -24,13 +24,9 @@ public class RepuestoService : IRepuestoService
             .ToList();
     }
 
-    public async Task<RepuestoDto?> GetByIdAsync(int id)
+    public async Task<RepuestoDetalleDto?> GetByIdAsync(int id)
     {
-        var repuesto = await _repository.GetByIdAsync(id);
-
-        return repuesto is null
-            ? null
-            : MapToDto(repuesto);
+        return await _repository.GetDetalleByIdAsync(id);
     }
 
     public async Task<RepuestoOperationResult> CreateAsync(

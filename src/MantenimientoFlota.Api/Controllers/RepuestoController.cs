@@ -31,10 +31,10 @@ public sealed class RepuestoController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(RepuestoDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RepuestoDetalleDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<RepuestoDto>> GetById(int id)
+    public async Task<ActionResult<RepuestoDetalleDto>> GetById(int id)
     {
         if (id <= 0)
         {
