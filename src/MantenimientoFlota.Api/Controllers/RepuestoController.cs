@@ -1,6 +1,5 @@
-using MantenimientoFlota.Api.Common;
 using MantenimientoFlota.Api.Contracts;
-using MantenimientoFlota.Application.Common.Results;
+using MantenimientoFlota.Application.Common.Exceptions;
 using MantenimientoFlota.Application.DTOs.Repuesto;
 using MantenimientoFlota.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -38,15 +37,10 @@ public sealed class RepuestoController : ControllerBase
     {
         if (id <= 0)
         {
-            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "El identificador debe ser mayor que cero."));
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         }
 
         var repuesto = await _service.GetByIdAsync(id);
-
-        if (repuesto is null)
-        {
-            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el repuesto con id {id}."));
-        }
 
         return Ok(repuesto);
     }
@@ -59,16 +53,10 @@ public sealed class RepuestoController : ControllerBase
     {
         var result = await _service.CreateAsync(dto);
 
-        if (result.Status == RepuestoOperationStatus.CodeAlreadyExists)
-        {
-            return Conflict(ApiErrorFactory.Create(HttpContext, StatusCodes.Status409Conflict,
-                "Ya existe un repuesto con el código indicado."));
-        }
-
         return CreatedAtAction(
             nameof(GetById),
-            new { id = result.Value!.Id },
-            result.Value);
+            new { id = result.Id },
+            result);
     }
 
     [HttpPut("{id:int}")]
@@ -80,21 +68,10 @@ public sealed class RepuestoController : ControllerBase
     {
         if (id <= 0)
         {
-            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "El identificador debe ser mayor que cero."));
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         }
 
-        var result = await _service.UpdateAsync(id, dto);
-
-        if (result.Status == RepuestoOperationStatus.DoesNotExist)
-        {
-            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el repuesto con id {id}."));
-        }
-
-        if (result.Status == RepuestoOperationStatus.CodeAlreadyExists)
-        {
-            return Conflict(ApiErrorFactory.Create(HttpContext, StatusCodes.Status409Conflict,
-                "Ya existe un repuesto con el código indicado."));
-        }
+        await _service.UpdateAsync(id, dto);
 
         return NoContent();
     }
@@ -108,20 +85,10 @@ public sealed class RepuestoController : ControllerBase
     {
         if (id <= 0)
         {
-            return BadRequest(ApiErrorFactory.Create(HttpContext, StatusCodes.Status400BadRequest, "El identificador debe ser mayor que cero."));
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         }
 
-        var result = await _service.DeleteAsync(id);
-
-        if (result.Status == RepuestoOperationStatus.DoesNotExist)
-        {
-            return NotFound(ApiErrorFactory.Create(HttpContext, StatusCodes.Status404NotFound, $"No se encontró el repuesto con id {id}."));
-        }
-
-        if (result.Status == RepuestoOperationStatus.HasAssociatedSuppliers)
-        {
-            return Conflict(ApiErrorFactory.Create(HttpContext, StatusCodes.Status409Conflict, "No se puede eliminar el repuesto porque tiene proveedores asociados."));
-        }
+        await _service.DeleteAsync(id);
 
         return NoContent();
     }

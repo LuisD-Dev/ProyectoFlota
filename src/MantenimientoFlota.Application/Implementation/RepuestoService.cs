@@ -1,4 +1,4 @@
-using MantenimientoFlota.Application.Common.Results;
+using MantenimientoFlota.Application.Common.Exceptions;
 using MantenimientoFlota.Application.DTOs.Repuesto;
 using MantenimientoFlota.Application.Interfaces.Services;
 using MantenimientoFlota.Application.Interfaces.Repositories;
@@ -24,19 +24,21 @@ public class RepuestoService : IRepuestoService
             .ToList();
     }
 
-    public async Task<RepuestoDetalleDto?> GetByIdAsync(int id)
+    public async Task<RepuestoDetalleDto> GetByIdAsync(int id)
     {
-        return await _repository.GetDetalleByIdAsync(id);
+        ValidarId(id);
+        return await _repository.GetDetalleByIdAsync(id)
+            ?? throw new ResourceNotFoundException($"No se encontró el repuesto con id {id}.");
     }
 
-    public async Task<RepuestoOperationResult> CreateAsync(
+    public async Task<RepuestoDto> CreateAsync(
         CrearRepuestoDto dto)
     {
         var codigo = dto.Codigo.Trim();
 
         if (await _repository.ExistsByCodigoAsync(codigo))
         {
-            return new(RepuestoOperationStatus.CodeAlreadyExists);
+            throw new ConflictException("Ya existe un repuesto con el código indicado.");
         }
 
         var repuesto = new Repuesto
@@ -50,27 +52,26 @@ public class RepuestoService : IRepuestoService
 
         var repuestoCreado = await _repository.AddAsync(repuesto) ?? repuesto;
 
-        return new(
-            RepuestoOperationStatus.Succeeded,
-            MapToDto(repuestoCreado));
+        return MapToDto(repuestoCreado);
     }
 
-    public async Task<RepuestoOperationResult> UpdateAsync(
+    public async Task UpdateAsync(
         int id,
         ActualizarRepuestoDto dto)
     {
+        ValidarId(id);
         var repuesto = await _repository.GetByIdAsync(id);
 
         if (repuesto is null)
         {
-            return new(RepuestoOperationStatus.DoesNotExist);
+            throw new ResourceNotFoundException($"No se encontró el repuesto con id {id}.");
         }
 
         var codigo = dto.Codigo.Trim();
 
         if (await _repository.ExistsByCodigoAsync(codigo, id))
         {
-            return new(RepuestoOperationStatus.CodeAlreadyExists);
+            throw new ConflictException("Ya existe un repuesto con el código indicado.");
         }
 
         repuesto.Codigo = codigo;
@@ -80,27 +81,30 @@ public class RepuestoService : IRepuestoService
         repuesto.StockMinimo = dto.StockMinimo;
 
         _repository.Update(repuesto);
-
-        return new(RepuestoOperationStatus.Succeeded);
     }
 
-    public async Task<RepuestoOperationResult> DeleteAsync(int id)
+    public async Task DeleteAsync(int id)
     {
+        ValidarId(id);
         var repuesto = await _repository.GetByIdAsync(id);
 
         if (repuesto is null)
         {
-            return new(RepuestoOperationStatus.DoesNotExist);
+            throw new ResourceNotFoundException($"No se encontró el repuesto con id {id}.");
         }
 
         if (await _repository.HasAssociatedSuppliersAsync(id))
         {
-            return new(RepuestoOperationStatus.HasAssociatedSuppliers);
+            throw new ConflictException("No se puede eliminar el repuesto porque tiene proveedores asociados.");
         }
 
         _repository.Delete(id);
+    }
 
-        return new(RepuestoOperationStatus.Succeeded);
+    private static void ValidarId(int id)
+    {
+        if (id <= 0)
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
     }
 
     private static RepuestoDto MapToDto(Repuesto repuesto)

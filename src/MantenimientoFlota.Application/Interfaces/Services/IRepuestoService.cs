@@ -1,4 +1,3 @@
-using MantenimientoFlota.Application.Common.Results;
 using MantenimientoFlota.Application.DTOs.Repuesto;
 
 namespace MantenimientoFlota.Application.Interfaces.Services;
@@ -7,13 +6,13 @@ public interface IRepuestoService
 {
     Task<IReadOnlyList<RepuestoDto>> GetAllAsync(bool stockBajo = false);
 
-    Task<RepuestoDetalleDto?> GetByIdAsync(int id);
+    Task<RepuestoDetalleDto> GetByIdAsync(int id);
 
-    Task<RepuestoOperationResult> CreateAsync(CrearRepuestoDto dto);
+    Task<RepuestoDto> CreateAsync(CrearRepuestoDto dto);
 
-    Task<RepuestoOperationResult> UpdateAsync(
+    Task UpdateAsync(
         int id,
         ActualizarRepuestoDto dto);
 
-    Task<RepuestoOperationResult> DeleteAsync(int id);
+    Task DeleteAsync(int id);
 }

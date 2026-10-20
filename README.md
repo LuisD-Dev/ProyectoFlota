@@ -107,6 +107,23 @@ RepuestoProveedor permanecen intactos. POST conserva 201 y Location; PUT/DELETE,
 asociaciones, validación por campo, detalle vacío o con repuestos, normalización,
 respuestas exitosas y correlación traceId / cierre Warning.
 
+Repuesto utiliza las mismas excepciones: InvalidRequestException para IDs
+inválidos, ResourceNotFoundException para detalle/actualización/eliminación
+inexistentes y ConflictException para código duplicado o eliminación con
+proveedores asociados. POST/PUT conservan el código recortado con Trim() para
+comprobar y guardar; PUT excluye el propio ID y comprueba existencia antes del
+duplicado. Se conservan exactamente mensajes y códigos HTTP. No se traducen
+fallos técnicos ni colisiones concurrentes de SQL a 409 en esta migración.
+IRepuestoService devuelve RepuestoDto al crear, detalle no nullable y Task al
+actualizar/eliminar; RepuestoOperationResult se retira sin consumidores.
+Listado, filtro stockBajo, detalle con proveedores/conteos/indicadores, DTO,
+repositorios, índice y RepuestoProveedor permanecen intactos. POST conserva 201
+y Location; PUT/DELETE, 204. Pruebas manuales pendientes: IDs inválidos, 404,
+duplicado en POST/PUT (incluidos espacios exteriores), PUT con código propio,
+404 prioritario al actualizar un ID inexistente con código ajeno, eliminación
+con/sin proveedores, validación por campo, éxitos, listado/filtro/detalle y
+coincidencia del traceId con el cierre Warning.
+
 Los catálogos restantes, órdenes y asociaciones (incluido TecnicoEspecialidad)
 mantienen sus mecanismos actuales: A5 sigue parcial. Pruebas manuales pendientes:
 400 por ID, 404 de detalle/PUT/DELETE, 409 por duplicados o asociaciones,
