@@ -226,7 +226,7 @@ internal static class DemoData
             Codigo = "REP-001",
             Nombre = "Filtro de aceite",
             UnidadMedida = "Unidad",
-            StockActual = 35m,
+            StockActual = 5m,
             StockMinimo = 10m
         },
         new()

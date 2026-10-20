@@ -24,6 +24,71 @@ Flota vehicular
 - **Infrastructure** implementará persistencia y servicios externos.
 - **Api** expone los endpoints HTTP.
 
+## Inicialización de Development y prueba desde cero
+
+Antes de aceptar solicitudes, únicamente en Development, Program crea un scope
+y ejecuta MigrateAsync sobre MantenimientoFlotaDbContext. Esto crea la base si
+no existe, aplica las migraciones pendientes e invoca el callback UseAsyncSeeding
+ya registrado. No se llama además al seeder ni se usa EnsureCreated/EnsureDeleted.
+Production no ejecuta migraciones ni datos demo automáticamente.
+
+Si la inicialización falla, el arranque se detiene. El registro propio informa
+únicamente el tipo de excepción, sin mensaje interno, cadena de conexión ni
+credenciales. Un nuevo arranque podrá aplicar las migraciones pendientes: las
+migraciones y el lote del seeder no constituyen una única transacción global.
+
+El seeder conserva su transacción y marcador OM-DEMO-001. En un segundo arranque,
+con el marcador presente, no reinserta ni actualiza los datos. No reconcilia bases
+existentes: si falta el marcador en una base parcialmente poblada puede intentar
+insertar duplicados y fallar; si existe, no repone otros registros faltantes.
+Ante esos casos hay que detenerse y revisar, sin borrar, renombrar ni fusionar
+datos automáticamente. Cambiar DemoData no actualiza registros ya sembrados.
+REP-001 se inicializa con StockActual=5 y StockMinimo=10; códigos, asociaciones,
+precios y cantidades de registros permanecen iguales.
+
+Prueba manual pendiente, desde la raíz del repositorio, en una terminal PowerShell
+dedicada. Primero comprobar mediante una conexión de solo lectura al servidor
+que MantenimientoFlotaDb_Avance1_QA no existe; si ya existe, detenerse. No se
+propone reutilizarla, eliminarla ni sobrescribir MantenimientoFlotaDb.
+
+Configurar variables temporales del proceso, sin editar appsettings. El ejemplo
+usa autenticación integrada y no contiene credenciales; ajustar Server a la
+instancia de pruebas si corresponde:
+
+```powershell
+$env:ASPNETCORE_ENVIRONMENT = "Development"
+$env:DOTNET_ENVIRONMENT = "Development"
+$env:ConnectionStrings__DefaultConnection = "Server=.;Database=MantenimientoFlotaDb_Avance1_QA;Integrated Security=True;TrustServerCertificate=True;"
+$env:ActivoImagenes__Directorio = "App_Data/imagenes-activos-avance1-qa"
+dotnet build MantenimientoFlota.sln --no-restore
+```
+
+Las variables no modifican bases y la compilación solo genera archivos locales.
+Si faltan dependencias o hay archivos bloqueados, detenerse. El siguiente comando
+sí inicia la API y crea/modifica exclusivamente la base QA configurada mediante
+migraciones y seeding; no hace falta un database update previo:
+
+```powershell
+dotnet run --project src/MantenimientoFlota.Api --no-launch-profile --no-build --no-restore --urls https://localhost:7090
+```
+
+Abrir https://localhost:7090/scalar después de completar el inicio. Comprobar con
+GET los seis catálogos y órdenes (10 registros iniciales cada uno), las dos
+asociaciones (15 cada una), /api/Repuesto?stockBajo=true (REP-001), activos no
+operativos y un técnico con varias especialidades. No asumir IDs numéricos.
+Opcionalmente usar SELECT en QA para confirmar DB_NAME(), las cinco entradas de
+__EFMigrationsHistory y los conteos. Estas consultas y los GET son comprobaciones
+de lectura. Detener manualmente y repetir el mismo arranque, que puede ejecutar
+migraciones pendientes y el callback: comparar conteos, IDs y contenido para
+comprobar que se conservan. No efectuar escrituras de prueba en esta verificación.
+
+Para comprobar Production posteriormente, usar variables temporales y
+--no-launch-profile, manteniendo la conexión explícita a QA: el bloque de
+inicialización no debe ejecutarse y Scalar no se publica. No probar este caso
+cambiando la conexión a la base actual. Cerrar la terminal dedicada al terminar
+descarta las variables temporales. Este procedimiento está documentado, no
+ejecutado; reproducibilidad y segundo arranque requieren comprobación real.
+
 ## Ciclo de solicitudes (A4, primera etapa)
 
 El middleware registra un inicio Information y un único cierre propio por

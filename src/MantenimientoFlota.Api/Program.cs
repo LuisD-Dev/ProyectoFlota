@@ -7,6 +7,8 @@ using Scalar.AspNetCore;
 using MantenimientoFlota.Application.Interfaces.Services;
 using MantenimientoFlota.Infrastructure.Implementation;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.EntityFrameworkCore;
+using MantenimientoFlota.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +29,22 @@ builder.Services.AddInfrastructure(
     builder.Environment.IsDevelopment());
 
 var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    var context = scope.ServiceProvider.GetRequiredService<MantenimientoFlotaDbContext>();
+    try
+    {
+        await context.Database.MigrateAsync();
+    }
+    catch (Exception exception)
+    {
+        app.Logger.LogCritical("Falló la inicialización de Development. ExceptionType={ExceptionType}",
+            exception.GetType().FullName);
+        throw new InvalidOperationException("No se pudo inicializar la base de Development. El inicio se ha detenido.");
+    }
+}
 
 app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
