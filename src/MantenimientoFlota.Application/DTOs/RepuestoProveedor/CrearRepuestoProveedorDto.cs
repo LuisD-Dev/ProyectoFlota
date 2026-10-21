@@ -5,9 +5,11 @@ namespace MantenimientoFlota.Application.DTOs.RepuestoProveedor;
 public sealed class CrearRepuestoProveedorDto
 {
     [Required(ErrorMessage = "El repuesto es obligatorio.")]
+    [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")]
     public int? RepuestoId { get; set; }
 
     [Required(ErrorMessage = "El proveedor es obligatorio.")]
+    [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")]
     public int? ProveedorId { get; set; }
 
     [Required(ErrorMessage = "El precio ofrecido es obligatorio.")]

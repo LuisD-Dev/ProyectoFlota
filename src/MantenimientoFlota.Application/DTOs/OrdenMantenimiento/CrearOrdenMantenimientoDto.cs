@@ -5,6 +5,7 @@ namespace MantenimientoFlota.Application.DTOs.OrdenMantenimiento;
 public sealed class CrearOrdenMantenimientoDto
 {
     [Required(ErrorMessage = "El activo es obligatorio.")]
+    [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")]
     public int? ActivoId { get; set; }
 
     [Required(ErrorMessage = "El motivo es obligatorio.")]

@@ -1,5 +1,6 @@
+using System.ComponentModel.DataAnnotations;
 using MantenimientoFlota.Api.Contracts;
-using MantenimientoFlota.Application.Common.Exceptions;
+
 using MantenimientoFlota.Application.DTOs.CategoriaActivo;
 using MantenimientoFlota.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -18,40 +19,47 @@ public sealed class CategoriaActivoController : ControllerBase
         _service = service;
     }
 
+    [EndpointSummary("Listar categorías de activo")]
     [HttpGet]
     [ProducesResponseType(
         typeof(IEnumerable<CategoriaActivoDto>),
         StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<CategoriaActivoDto>>> GetAllAsync()
+    public async Task<ActionResult<IEnumerable<CategoriaActivoDto>>> GetAllAsync(
+        [FromServices] ILogger<CategoriaActivoController> logger)
     {
+        logger.LogInformation("Operación invocada. Operation={Operation}", "CategoriaActivo.GetAllAsync");
         var categorias = await _service.GetAllAsync();
 
         return Ok(categorias);
     }
 
+    [EndpointSummary("Consultar detalle de categorías de activo")]
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(CategoriaActivoDetalleDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<CategoriaActivoDetalleDto>> GetById(int id)
+    public async Task<ActionResult<CategoriaActivoDetalleDto>> GetById(
+        [FromServices] ILogger<CategoriaActivoController> logger,
+        [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")] int id)
     {
-        if (id <= 0)
-        {
-            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
-        }
+        logger.LogInformation("Operación invocada. Operation={Operation}", "CategoriaActivo.GetById");
 
         var categoria = await _service.GetByIdAsync(id);
 
         return Ok(categoria);
     }
 
+    [EndpointSummary("Registrar categorías de activo")]
     [HttpPost]
     [ProducesResponseType(typeof(CategoriaActivoDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status415UnsupportedMediaType)]
     public async Task<ActionResult<CategoriaActivoDto>> CreateAsync(
+        [FromServices] ILogger<CategoriaActivoController> logger,
         CrearCategoriaActivoDto dto)
     {
+        logger.LogInformation("Operación invocada. Operation={Operation}", "CategoriaActivo.CreateAsync");
         var result = await _service.CreateAsync(dto);
 
         return CreatedAtAction(
@@ -60,36 +68,36 @@ public sealed class CategoriaActivoController : ControllerBase
             result);
     }
 
+    [EndpointSummary("Actualizar categorías de activo")]
     [HttpPut("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status415UnsupportedMediaType)]
     public async Task<IActionResult> UpdateAsync(
-        int id,
+        [FromServices] ILogger<CategoriaActivoController> logger,
+        [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")] int id,
         ActualizarCategoriaActivoDto dto)
     {
-        if (id <= 0)
-        {
-            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
-        }
+        logger.LogInformation("Operación invocada. Operation={Operation}", "CategoriaActivo.UpdateAsync");
 
         await _service.UpdateAsync(id, dto);
 
         return NoContent();
     }
 
+    [EndpointSummary("Eliminar categorías de activo")]
     [HttpDelete("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> DeleteAsync(int id)
+    public async Task<IActionResult> DeleteAsync(
+        [FromServices] ILogger<CategoriaActivoController> logger,
+        [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")] int id)
     {
-        if (id <= 0)
-        {
-            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
-        }
+        logger.LogInformation("Operación invocada. Operation={Operation}", "CategoriaActivo.DeleteAsync");
 
         await _service.DeleteAsync(id);
 

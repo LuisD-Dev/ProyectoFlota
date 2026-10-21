@@ -1,5 +1,6 @@
+using System.ComponentModel.DataAnnotations;
 using MantenimientoFlota.Api.Contracts;
-using MantenimientoFlota.Application.Common.Exceptions;
+
 using MantenimientoFlota.Application.DTOs.TecnicoEspecialidad;
 using MantenimientoFlota.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -18,24 +19,31 @@ public sealed class TecnicoEspecialidadController : ControllerBase
         _service = service;
     }
 
+    [EndpointSummary("Listar asociaciones técnico-especialidad")]
     [HttpGet]
     [ProducesResponseType(
         typeof(IEnumerable<TecnicoEspecialidadDto>),
         StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<TecnicoEspecialidadDto>>> GetAllAsync()
+    public async Task<ActionResult<IEnumerable<TecnicoEspecialidadDto>>> GetAllAsync(
+        [FromServices] ILogger<TecnicoEspecialidadController> logger)
     {
+        logger.LogInformation("Operación invocada. Operation={Operation}", "TecnicoEspecialidad.GetAllAsync");
         var tecnicoEspecialidades = await _service.GetAllAsync();
 
         return Ok(tecnicoEspecialidades);
     }
 
+    [EndpointSummary("Consultar detalle de asociaciones técnico-especialidad")]
     [HttpGet("{tecnicoId:int}/{especialidadId:int}")]
     [ProducesResponseType(typeof(TecnicoEspecialidadDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<TecnicoEspecialidadDto>> GetById(
-        int tecnicoId,
-        int especialidadId)
+        [FromServices] ILogger<TecnicoEspecialidadController> logger,
+        [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")] int tecnicoId,
+        [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")] int especialidadId)
     {
+        logger.LogInformation("Operación invocada. Operation={Operation}", "TecnicoEspecialidad.GetById");
         var tecnicoEspecialidad = await _service.GetByIdAsync(
             tecnicoId,
             especialidadId);
@@ -43,6 +51,7 @@ public sealed class TecnicoEspecialidadController : ControllerBase
         return Ok(tecnicoEspecialidad);
     }
 
+    [EndpointSummary("Registrar asociaciones técnico-especialidad")]
     [HttpPost]
     [ProducesResponseType(
         typeof(TecnicoEspecialidadDto),
@@ -50,9 +59,12 @@ public sealed class TecnicoEspecialidadController : ControllerBase
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status415UnsupportedMediaType)]
     public async Task<ActionResult<TecnicoEspecialidadDto>> CreateAsync(
+        [FromServices] ILogger<TecnicoEspecialidadController> logger,
         CrearTecnicoEspecialidadDto dto)
     {
+        logger.LogInformation("Operación invocada. Operation={Operation}", "TecnicoEspecialidad.CreateAsync");
         var result = await _service.CreateAsync(dto);
 
         var tecnicoEspecialidad = result;
@@ -67,15 +79,19 @@ public sealed class TecnicoEspecialidadController : ControllerBase
             tecnicoEspecialidad);
     }
 
+    [EndpointSummary("Actualizar asociaciones técnico-especialidad")]
     [HttpPut("{tecnicoId:int}/{especialidadId:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status415UnsupportedMediaType)]
     public async Task<IActionResult> UpdateAsync(
-        int tecnicoId,
-        int especialidadId,
+        [FromServices] ILogger<TecnicoEspecialidadController> logger,
+        [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")] int tecnicoId,
+        [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")] int especialidadId,
         ActualizarTecnicoEspecialidadDto dto)
     {
+        logger.LogInformation("Operación invocada. Operation={Operation}", "TecnicoEspecialidad.UpdateAsync");
         await _service.UpdateAsync(
             tecnicoId,
             especialidadId,
@@ -84,13 +100,17 @@ public sealed class TecnicoEspecialidadController : ControllerBase
         return NoContent();
     }
 
+    [EndpointSummary("Eliminar asociaciones técnico-especialidad")]
     [HttpDelete("{tecnicoId:int}/{especialidadId:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> DeleteAsync(
-        int tecnicoId,
-        int especialidadId)
+        [FromServices] ILogger<TecnicoEspecialidadController> logger,
+        [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")] int tecnicoId,
+        [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")] int especialidadId)
     {
+        logger.LogInformation("Operación invocada. Operation={Operation}", "TecnicoEspecialidad.DeleteAsync");
         await _service.DeleteAsync(tecnicoId, especialidadId);
 
         return NoContent();

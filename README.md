@@ -24,6 +24,99 @@ Flota vehicular
 - **Infrastructure** implementará persistencia y servicios externos.
 - **Api** expone los endpoints HTTP.
 
+## Documentación, anotaciones y logging por operación
+
+Las 45 acciones de los nueve controladores tienen EndpointSummary, esquemas de
+éxito/error y metadatos de respuesta; 204 no tiene cuerpo. Las escrituras también
+documentan 415 por contenido no admitido, sin prometer que ese rechazo externo
+use el contrato común. La imagen conserva el 413 posible antes del controlador.
+
+Cada acción recibe [FromServices] ILogger de su controlador y emite Information
+con Operation como nombre fijo de operación. Ese evento no registra parámetros,
+cuerpos, URLs, cabeceras ni datos personales y no representa inicio/cierre. El
+middleware sigue siendo el único propietario del ciclo. FromServices declara
+binding de DI, no entrada del cliente; verificar en OpenAPI que logger no aparece
+como parámetro ni esquema de solicitud. La validación automática puede impedir
+que se ejecute la acción y su evento de operación, conservando el ciclo del middleware.
+
+IDs de ruta y claves compuestas usan Range(1, int.MaxValue). Los filtros opcionales
+activoId y especialidadId conservan nulabilidad y usan el mismo rango. Los cinco
+IDs nullable de creación de OrdenMantenimiento, TecnicoEspecialidad y
+RepuestoProveedor conservan Required y agregan Range. Cero/negativo produce ahora
+400 VALIDATION_ERROR con errors por campo y cierre Warning / Validation. Un ID
+positivo inexistente mantiene 404. Esto reemplaza los antiguos rechazos manuales
+400 INVALID_REQUEST y el 404 anterior de claves no positivas de TecnicoEspecialidad.
+Los textos no convertibles en rutas con restricción :int pueden no coincidir y
+producir un 404 de enrutamiento fuera del contrato común. Los tipos no convertibles
+en query o cuerpo conservan validación automática.
+
+Estado=0 y disponible=false siguen siendo filtros efectivos. Stock e intervalo
+permiten cero y omisión con su valor predeterminado, tanto en creación como en
+actualización; negativos siguen siendo inválidos. Unicidad permanece en
+Application con 409, sin SQL en atributos. La validación de contenido binario
+(firma, extensión y tamaño real) complementa las anotaciones de entrada y conserva
+errors.Archivo; no es una regla de negocio ni se reduce a DataAnnotations.
+
+### Guion único de pruebas manuales sobre QA (pendiente)
+
+1. Usar exclusivamente MantenimientoFlotaDb_Avance1_QA con las variables temporales
+   de la sección siguiente. No iniciar con la conexión de la base habitual.
+   Este guion incluye escrituras deliberadas solo en QA; no ha sido ejecutado.
+2. Abrir Scalar y /openapi/v1.json. Contar 45 operaciones; comprobar summary no
+   vacío, rutas/verbo, entrada JSON o multipart, esquema de éxito, 400/404/409 donde
+   corresponda y 500 heredado. logger no debe figurar entre parámetros ni schemas
+   de entrada; comprobar los campos calculados de los detalles y de sus resúmenes.
+3. Consultar los nueve listados para elegir IDs reales y pares asociados/no asociados.
+   Para cada ruta con ID, probar cero, negativo, positivo inexistente y texto.
+   Probar cada componente de claves compuestas por separado. Para PUT usar un
+   cuerpo válido obtenido de sus campos de entrada, no copiar campos calculados.
+   Esperar 400 por campo para cero/negativo, 404 para positivo inexistente y el
+   posible 404 de enrutamiento para texto. Comprobar errors, VALIDATION_ERROR,
+   timestampUtc con offset cero y traceId idéntico al log.
+4. Comparar /api/Activo sin filtros, con categoriaActivoId y estado=0 y ambos;
+   /api/Tecnico con disponible=false, true, especialidadId y combinados;
+   /api/OrdenMantenimiento con/sin activoId; /api/Repuesto con stockBajo=true/false.
+   Probar filtros positivos sin coincidencias (200 []), cero/negativo (solo IDs),
+   y valores no convertibles (400 automático). No consultar existencia previa.
+5. Probar POST de órdenes con el cuerpo siguiente, sustituyendo activoId por un
+   ID real: {"activoId":1,"motivo":"Revisión QA","tipoMantenimiento":"Preventivo","prioridad":"Alta"}.
+   Probar omisión/null/cero/negativo (400 por campo), positivo inexistente (404)
+   y válido (201 con Location y Solicitada). No intentar PUT/DELETE de órdenes.
+6. Probar POST /api/TecnicoEspecialidad con
+   {"tecnicoId":1,"especialidadId":1,"nivelCertificacion":"Avanzado","fechaObtencion":"2025-01-15"}.
+   Usar IDs reales: faltante/null/cero/negativo en cada ID da 400; técnico o
+   especialidad inexistente da 404 en ese orden; par existente da 409. Un par
+   nuevo da 201 y Location. PUT del par con
+   {"nivelCertificacion":"Intermedio","fechaObtencion":"2025-02-01"} da 204;
+   consultar y después desasociar solo el par QA creado (DELETE 204).
+7. Repetir en /api/RepuestoProveedor con
+   {"repuestoId":1,"proveedorId":1,"precioOfrecido":125.50,"tiempoEntregaDias":3}.
+   Se comprueba primero repuesto, luego proveedor, luego duplicado. PUT del par:
+   {"precioOfrecido":130.25,"tiempoEntregaDias":5}. Verificar GET, 201/Location,
+   204 y 400/404/409; DELETE solo del par QA creado. Los IDs deben elegirse de
+   listados y no suponerse iguales a los ejemplos.
+8. En /api/Repuesto probar POST con
+   {"codigo":"REP-QA-FINAL","nombre":"Repuesto QA","unidadMedida":"Unidad"}:
+   stocks omitidos quedan cero. Reenviar en PUT agregando stocks cero y luego
+   negativos, cada campo por separado: cero/omisión admitidos, negativo 400 por
+   campo. En /api/CategoriaActivo repetir con {"nombre":"Categoría QA final"}
+   e intervaloMantenimientoKm omitido, cero y negativo. Probar duplicado 409 y
+   conservar código/nombre propio en PUT. Guardar IDs creados y no eliminar datos
+   iniciales para limpiar estas pruebas.
+9. Verificar por GET los detalles de activos, categorías, técnicos, especialidades,
+   repuestos, proveedores y órdenes. Comparar conteos con colecciones; revisar
+   antigüedad, días, stockBajo y faltante decimal, sin campos calculados en entradas.
+10. Regresión de Activo: usar registros QA sin/con órdenes para baja lógica,
+    repetición y restricciones administrativas ya documentadas. Cargar/reemplazar
+    JPEG/PNG mediante Archivo; probar vacío, firma incompatible y exceso de 2 MiB.
+    Debe conservar 400 con errors.Archivo y INVALID_REQUEST. PUT conserva la ruta
+    administrada, y listado/detalle y URL pública conservan su comportamiento.
+11. Para acciones válidas que se ejecutan, observar un evento de operación y un
+    solo inicio/cierre del middleware. Rechazos automáticos pueden no tener evento
+    de acción. Comprobar niveles y que los eventos de operación solo contienen el
+    nombre fijo. No provocar fallos de infraestructura para probar Error; ese
+    recorrido y Response.HasStarted requieren una prueba aislada posterior.
+
 ## Inicialización de Development y prueba desde cero
 
 Antes de aceptar solicitudes, únicamente en Development, Program crea un scope
@@ -240,9 +333,9 @@ normalización y cálculo de días intactos.
 Se conserva el orden de POST: activo existente para órdenes; técnico, especialidad
 y duplicado para TecnicoEspecialidad; repuesto, proveedor y duplicado para
 RepuestoProveedor. Los mensajes y códigos HTTP no cambian. TecnicoEspecialidad
-no agrega comprobación de claves positivas en rutas: claves sin asociación,
-incluidas cero/negativas, mantienen 404. RepuestoProveedor mantiene 400 por
-claves cero/negativas antes de consultar y 404 por asociación inexistente.
+conservaba 404 para claves no positivas antes del lote de anotaciones. Actualmente
+las claves cero/negativas de ambas asociaciones producen 400 automático por campo;
+claves positivas sin asociación mantienen 404.
 POST mantiene 201, DTO y Location con sus claves actuales; PUT/DELETE de
 asociaciones mantienen 204. No se alteran consultas, DTO ni datos.
 

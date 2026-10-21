@@ -1,5 +1,6 @@
+using System.ComponentModel.DataAnnotations;
 using MantenimientoFlota.Api.Contracts;
-using MantenimientoFlota.Application.Common.Exceptions;
+
 using MantenimientoFlota.Application.DTOs.OrdenMantenimiento;
 using MantenimientoFlota.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -18,51 +19,54 @@ public sealed class OrdenMantenimientoController : ControllerBase
         _service = service;
     }
 
+    [EndpointSummary("Listar órdenes de mantenimiento")]
     [HttpGet]
     [ProducesResponseType(
         typeof(IReadOnlyList<OrdenMantenimientoDto>),
         StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyList<OrdenMantenimientoDto>>> GetAllAsync(
-        [FromQuery] int? activoId = null)
+        [FromServices] ILogger<OrdenMantenimientoController> logger,
+        [FromQuery] [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")] int? activoId = null)
     {
-        if (activoId is <= 0)
-        {
-            throw new InvalidRequestException("El identificador del activo debe ser mayor que cero.");
-        }
+        logger.LogInformation("Operación invocada. Operation={Operation}", "OrdenMantenimiento.GetAllAsync");
 
         var ordenes = await _service.GetAllAsync(activoId);
 
         return Ok(ordenes);
     }
 
+    [EndpointSummary("Consultar detalle de órdenes de mantenimiento")]
     [HttpGet("{id:int}")]
     [ProducesResponseType(
         typeof(OrdenMantenimientoDetalleDto),
         StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<OrdenMantenimientoDetalleDto>> GetById(int id)
+    public async Task<ActionResult<OrdenMantenimientoDetalleDto>> GetById(
+        [FromServices] ILogger<OrdenMantenimientoController> logger,
+        [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")] int id)
     {
-        if (id <= 0)
-        {
-            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
-        }
+        logger.LogInformation("Operación invocada. Operation={Operation}", "OrdenMantenimiento.GetById");
 
         var orden = await _service.GetByIdAsync(id);
 
         return Ok(orden);
     }
 
+    [EndpointSummary("Registrar órdenes de mantenimiento")]
     [HttpPost]
     [ProducesResponseType(
         typeof(OrdenMantenimientoDto),
         StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status415UnsupportedMediaType)]
     public async Task<ActionResult<OrdenMantenimientoDto>> CreateAsync(
+        [FromServices] ILogger<OrdenMantenimientoController> logger,
         CrearOrdenMantenimientoDto dto)
     {
+        logger.LogInformation("Operación invocada. Operation={Operation}", "OrdenMantenimiento.CreateAsync");
         var result = await _service.CreateAsync(dto);
 
         var orden = result;

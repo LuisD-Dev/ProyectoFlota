@@ -5,9 +5,11 @@ namespace MantenimientoFlota.Application.DTOs.TecnicoEspecialidad;
 public sealed class CrearTecnicoEspecialidadDto
 {
     [Required(ErrorMessage = "El técnico es obligatorio.")]
+    [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")]
     public int? TecnicoId { get; set; }
 
     [Required(ErrorMessage = "La especialidad es obligatoria.")]
+    [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")]
     public int? EspecialidadId { get; set; }
 
     [Required(ErrorMessage = "El nivel de certificación es obligatorio.")]
