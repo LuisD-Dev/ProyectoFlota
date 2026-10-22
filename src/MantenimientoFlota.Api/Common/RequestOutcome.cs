@@ -1,11 +1,11 @@
 namespace MantenimientoFlota.Api.Common;
 
-internal enum RequestOutcome
+internal static class RequestOutcome
 {
-    Success,
-    Validation,
-    ExpectedFailure,
-    UnexpectedException
+    internal const string Success = "Success";
+    internal const string Validation = "Validation";
+    internal const string ExpectedFailure = "ExpectedFailure";
+    internal const string UnexpectedException = "UnexpectedException";
 }
 
 internal static class RequestOutcomeMarker

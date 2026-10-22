@@ -1,16 +1,23 @@
+using Serilog;
+using MantenimientoFlota.Api.Exceptions;
 using MantenimientoFlota.Application;
 using MantenimientoFlota.Api.Common;
 using Microsoft.AspNetCore.Mvc;
 using MantenimientoFlota.Api.Middleware;
 using MantenimientoFlota.Infrastructure;
 using Scalar.AspNetCore;
-using MantenimientoFlota.Application.Interfaces.Services;
-using MantenimientoFlota.Infrastructure.Implementation;
+using MantenimientoFlota.Application.Interfaces;
+using MantenimientoFlota.Application.Implementation;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.EntityFrameworkCore;
-using MantenimientoFlota.Infrastructure.Persistence;
+using MantenimientoFlota.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddSerilog((services, logConfig) => logConfig.ConfigureApiLogging(
+    Path.GetFullPath(builder.Configuration["ApiLogs:Directorio"] ?? "logs", builder.Environment.ContentRootPath)));
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 var imagenRoot = Path.GetFullPath(builder.Configuration["ActivoImagenes:Directorio"] ?? "App_Data/imagenes-activos",
     builder.Environment.ContentRootPath);
@@ -33,7 +40,7 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     await using var scope = app.Services.CreateAsyncScope();
-    var context = scope.ServiceProvider.GetRequiredService<MantenimientoFlotaDbContext>();
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     try
     {
         await context.Database.MigrateAsync();
@@ -46,7 +53,9 @@ if (app.Environment.IsDevelopment())
     }
 }
 
-app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
+app.UseApiRequestLogging();
+app.UseMiddleware<RequestLoggingMiddleware>();
+app.UseExceptionHandler(new ExceptionHandlerOptions { SuppressDiagnosticsCallback = _ => true });
 
 if (app.Environment.IsDevelopment())
 {

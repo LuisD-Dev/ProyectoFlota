@@ -1,8 +1,10 @@
+using MantenimientoFlota.Domain.DTO.PatternResult;
+using MantenimientoFlota.Api.Common;
 using System.ComponentModel.DataAnnotations;
 using MantenimientoFlota.Api.Contracts;
 
-using MantenimientoFlota.Application.DTOs.CategoriaActivo;
-using MantenimientoFlota.Application.Interfaces.Services;
+using MantenimientoFlota.Domain.DTO.CategoriaActivo;
+using MantenimientoFlota.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MantenimientoFlota.Api.Controllers;
@@ -22,23 +24,23 @@ public sealed class CategoriaActivoController : ControllerBase
     [EndpointSummary("Listar categorías de activo")]
     [HttpGet]
     [ProducesResponseType(
-        typeof(IEnumerable<CategoriaActivoDto>),
+        typeof(Result<IEnumerable<CategoriaActivoDto>>),
         StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<CategoriaActivoDto>>> GetAllAsync(
+    public async Task<ActionResult<Result<IEnumerable<CategoriaActivoDto>>>> GetAllAsync(
         [FromServices] ILogger<CategoriaActivoController> logger)
     {
         logger.LogInformation("Operación invocada. Operation={Operation}", "CategoriaActivo.GetAllAsync");
         var categorias = await _service.GetAllAsync();
 
-        return Ok(categorias);
+        return this.FromResult(categorias);
     }
 
     [EndpointSummary("Consultar detalle de categorías de activo")]
     [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(CategoriaActivoDetalleDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Result<CategoriaActivoDetalleDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<CategoriaActivoDetalleDto>> GetById(
+    public async Task<ActionResult<Result<CategoriaActivoDetalleDto>>> GetById(
         [FromServices] ILogger<CategoriaActivoController> logger,
         [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")] int id)
     {
@@ -46,25 +48,27 @@ public sealed class CategoriaActivoController : ControllerBase
 
         var categoria = await _service.GetByIdAsync(id);
 
-        return Ok(categoria);
+        return this.FromResult(categoria);
     }
 
     [EndpointSummary("Registrar categorías de activo")]
     [HttpPost]
-    [ProducesResponseType(typeof(CategoriaActivoDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(Result<CategoriaActivoDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status415UnsupportedMediaType)]
-    public async Task<ActionResult<CategoriaActivoDto>> CreateAsync(
+    public async Task<ActionResult<Result<CategoriaActivoDto>>> CreateAsync(
         [FromServices] ILogger<CategoriaActivoController> logger,
         CrearCategoriaActivoDto dto)
     {
         logger.LogInformation("Operación invocada. Operation={Operation}", "CategoriaActivo.CreateAsync");
         var result = await _service.CreateAsync(dto);
 
+        if (!result.IsSuccess) return this.FromResult(result);
+
         return CreatedAtAction(
             nameof(GetById),
-            new { id = result.Id },
+            new { id = result.Data!.Id },
             result);
     }
 
@@ -82,9 +86,9 @@ public sealed class CategoriaActivoController : ControllerBase
     {
         logger.LogInformation("Operación invocada. Operation={Operation}", "CategoriaActivo.UpdateAsync");
 
-        await _service.UpdateAsync(id, dto);
+        var result = await _service.UpdateAsync(id, dto);
 
-        return NoContent();
+        return this.FromResult(result);
     }
 
     [EndpointSummary("Eliminar categorías de activo")]
@@ -99,8 +103,8 @@ public sealed class CategoriaActivoController : ControllerBase
     {
         logger.LogInformation("Operación invocada. Operation={Operation}", "CategoriaActivo.DeleteAsync");
 
-        await _service.DeleteAsync(id);
+        var result = await _service.DeleteAsync(id);
 
-        return NoContent();
+        return this.FromResult(result);
     }
 }

@@ -487,3 +487,6 @@ $RECYCLE.BIN/
 *.swp
 # Imágenes cargadas localmente (datos de ejecución)
 **/App_Data/imagenes-activos/
+
+# Serilog runtime files
+**/logs/

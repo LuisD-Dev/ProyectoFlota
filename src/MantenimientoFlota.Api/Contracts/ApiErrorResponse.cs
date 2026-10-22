@@ -1,21 +1,27 @@
 using System.ComponentModel;
-using System.Text.Json.Serialization;
+using MantenimientoFlota.Domain.DTO.PatternResult;
 
 namespace MantenimientoFlota.Api.Contracts;
 
-public sealed record ApiErrorResponse(
-    int Status,
-    string Title,
-    string Detail,
-    string TraceId,
-    Dictionary<string, string[]> Errors,
-    [property: JsonPropertyName("errorCode")]
-    [property: Description("Código estable del error, independiente del estado HTTP: VALIDATION_ERROR, INVALID_REQUEST, RESOURCE_NOT_FOUND, CONFLICT o UNEXPECTED_ERROR.")]
-    string ErrorCode,
-    [property: JsonPropertyName("timestampUtc")]
-    [property: Description("Instante de construcción de la respuesta en UTC, con formato ISO 8601 y offset cero (+00:00).")]
-    DateTimeOffset TimestampUtc)
+public sealed class ApiErrorResponse : Result<object?>
 {
-    public bool IsSuccess => false;
-    public object? Data => null;
+    public string TraceId { get; }
+    public Dictionary<string, string[]> Errors { get; }
+    [Description("Código estable del error, independiente del estado HTTP.")]
+    public string ErrorCode { get; }
+    [Description("Instante UTC de construcción de la respuesta, en ISO 8601.")]
+    public DateTimeOffset TimestampUtc { get; }
+
+    public ApiErrorResponse(int status, string title, string detail, string traceId,
+        Dictionary<string, string[]> errors, string errorCode, DateTimeOffset timestampUtc)
+    {
+        IsSuccess = false;
+        Status = status;
+        Title = title;
+        Detail = detail;
+        TraceId = traceId;
+        Errors = errors;
+        ErrorCode = errorCode;
+        TimestampUtc = timestampUtc;
+    }
 }

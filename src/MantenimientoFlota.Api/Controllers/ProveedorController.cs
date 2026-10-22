@@ -1,8 +1,10 @@
+using MantenimientoFlota.Domain.DTO.PatternResult;
+using MantenimientoFlota.Api.Common;
 using System.ComponentModel.DataAnnotations;
 using MantenimientoFlota.Api.Contracts;
 
-using MantenimientoFlota.Application.DTOs.Proveedor;
-using MantenimientoFlota.Application.Interfaces.Services;
+using MantenimientoFlota.Domain.DTO.Proveedor;
+using MantenimientoFlota.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MantenimientoFlota.Api.Controllers;
@@ -24,21 +26,21 @@ public sealed class ProveedorController : ControllerBase
     [ProducesResponseType(
         typeof(IReadOnlyList<ProveedorDto>),
         StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<ProveedorDto>>> GetAllAsync(
+    public async Task<ActionResult<Result<IReadOnlyList<ProveedorDto>>>> GetAllAsync(
         [FromServices] ILogger<ProveedorController> logger)
     {
         logger.LogInformation("Operación invocada. Operation={Operation}", "Proveedor.GetAllAsync");
         var proveedores = await _service.GetAllAsync();
 
-        return Ok(proveedores);
+        return this.FromResult(proveedores);
     }
 
     [EndpointSummary("Consultar detalle de proveedores")]
     [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(ProveedorDetalleDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Result<ProveedorDetalleDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ProveedorDetalleDto>> GetById(
+    public async Task<ActionResult<Result<ProveedorDetalleDto>>> GetById(
         [FromServices] ILogger<ProveedorController> logger,
         [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")] int id)
     {
@@ -46,24 +48,26 @@ public sealed class ProveedorController : ControllerBase
 
         var proveedor = await _service.GetByIdAsync(id);
 
-        return Ok(proveedor);
+        return this.FromResult(proveedor);
     }
 
     [EndpointSummary("Registrar proveedores")]
     [HttpPost]
-    [ProducesResponseType(typeof(ProveedorDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(Result<ProveedorDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status415UnsupportedMediaType)]
-    public async Task<ActionResult<ProveedorDto>> CreateAsync(
+    public async Task<ActionResult<Result<ProveedorDto>>> CreateAsync(
         [FromServices] ILogger<ProveedorController> logger,
         CrearProveedorDto dto)
     {
         logger.LogInformation("Operación invocada. Operation={Operation}", "Proveedor.CreateAsync");
         var result = await _service.CreateAsync(dto);
 
+        if (!result.IsSuccess) return this.FromResult(result);
+
         return CreatedAtAction(
             nameof(GetById),
-            new { id = result.Id },
+            new { id = result.Data!.Id },
             result);
     }
 
@@ -80,9 +84,9 @@ public sealed class ProveedorController : ControllerBase
     {
         logger.LogInformation("Operación invocada. Operation={Operation}", "Proveedor.UpdateAsync");
 
-        await _service.UpdateAsync(id, dto);
+        var result = await _service.UpdateAsync(id, dto);
 
-        return NoContent();
+        return this.FromResult(result);
     }
 
     [EndpointSummary("Eliminar proveedores")]
@@ -97,8 +101,8 @@ public sealed class ProveedorController : ControllerBase
     {
         logger.LogInformation("Operación invocada. Operation={Operation}", "Proveedor.DeleteAsync");
 
-        await _service.DeleteAsync(id);
+        var result = await _service.DeleteAsync(id);
 
-        return NoContent();
+        return this.FromResult(result);
     }
 }

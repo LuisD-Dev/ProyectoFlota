@@ -1,9 +1,10 @@
-using System.ComponentModel.DataAnnotations;
+using MantenimientoFlota.Domain.DTO.PatternResult;
 using MantenimientoFlota.Api.Common;
+using System.ComponentModel.DataAnnotations;
 using MantenimientoFlota.Api.Contracts;
 
-using MantenimientoFlota.Application.DTOs.Activo;
-using MantenimientoFlota.Application.Interfaces.Services;
+using MantenimientoFlota.Domain.DTO.Activo;
+using MantenimientoFlota.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MantenimientoFlota.Api.Controllers;
@@ -22,24 +23,24 @@ public sealed class ActivoController : ControllerBase
 
     [EndpointSummary("Listar activos")]
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<ActivoDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Result<IEnumerable<ActivoDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<IEnumerable<ActivoDto>>> GetAllAsync(
+    public async Task<ActionResult<Result<IEnumerable<ActivoDto>>>> GetAllAsync(
         [FromServices] ILogger<ActivoController> logger,
         [FromQuery] ConsultarActivosDto consulta)
     {
         logger.LogInformation("Operación invocada. Operation={Operation}", "Activo.GetAllAsync");
         var activos = await _service.GetAllAsync(consulta.CategoriaActivoId, consulta.Estado);
 
-        return Ok(activos);
+        return this.FromResult(activos);
     }
 
     [EndpointSummary("Consultar detalle de activos")]
     [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(ActivoDetalleDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Result<ActivoDetalleDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ActivoDetalleDto>> GetById(
+    public async Task<ActionResult<Result<ActivoDetalleDto>>> GetById(
         [FromServices] ILogger<ActivoController> logger,
         [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")] int id)
     {
@@ -47,25 +48,27 @@ public sealed class ActivoController : ControllerBase
 
         var activo = await _service.GetByIdAsync(id);
 
-        return Ok(activo);
+        return this.FromResult(activo);
     }
 
     [EndpointSummary("Registrar activos")]
     [HttpPost]
-    [ProducesResponseType(typeof(ActivoDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(Result<ActivoDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status415UnsupportedMediaType)]
-    public async Task<ActionResult<ActivoDto>> CreateAsync(
+    public async Task<ActionResult<Result<ActivoDto>>> CreateAsync(
         [FromServices] ILogger<ActivoController> logger,
         CrearActivoDto dto)
     {
         logger.LogInformation("Operación invocada. Operation={Operation}", "Activo.CreateAsync");
         var result = await _service.CreateAsync(dto);
 
+        if (!result.IsSuccess) return this.FromResult(result);
+
         return CreatedAtAction(
             nameof(GetById),
-            new { id = result.Id },
+            new { id = result.Data!.Id },
             result);
     }
 
@@ -84,9 +87,9 @@ public sealed class ActivoController : ControllerBase
     {
         logger.LogInformation("Operación invocada. Operation={Operation}", "Activo.UpdateAsync");
 
-        await _service.UpdateAsync(id, dto);
+        var result = await _service.UpdateAsync(id, dto);
 
-        return NoContent();
+        return this.FromResult(result);
     }
 
     [EndpointSummary("Cargar o reemplazar imagen de activo")]
@@ -95,7 +98,7 @@ public sealed class ActivoController : ControllerBase
     [RequestSizeLimit(3 * 1024 * 1024)]
     [RequestFormLimits(MultipartBodyLengthLimit = 3 * 1024 * 1024)]
     [EndpointDescription("Carga o reemplaza una imagen JPEG/PNG de máximo 2 MiB. Valida extensión y firma, sin decodificación completa. Límites del servidor pueden producir 413 antes del controlador.")]
-    [ProducesResponseType(typeof(ActivoImagenDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Result<ActivoImagenDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
@@ -115,7 +118,7 @@ public sealed class ActivoController : ControllerBase
         using var contenido = archivo.Contenido!;
         var result = await _service.ActualizarImagenAsync(id, contenido, archivo.Extension!, cancellationToken);
 
-        return Ok(result);
+        return this.FromResult(result);
     }
 
     [EndpointSummary("Cambiar estado administrativo del activo")]
@@ -133,9 +136,9 @@ public sealed class ActivoController : ControllerBase
     {
         logger.LogInformation("Operación invocada. Operation={Operation}", "Activo.CambiarEstadoAdministrativoAsync");
 
-        await _service.CambiarEstadoAdministrativoAsync(id, dto);
+        var result = await _service.CambiarEstadoAdministrativoAsync(id, dto);
 
-        return NoContent();
+        return this.FromResult(result);
     }
 
     [EndpointSummary("Dar de baja lógica un activo")]
@@ -151,8 +154,8 @@ public sealed class ActivoController : ControllerBase
     {
         logger.LogInformation("Operación invocada. Operation={Operation}", "Activo.DeleteAsync");
 
-        await _service.DeleteAsync(id);
+        var result = await _service.DeleteAsync(id);
 
-        return NoContent();
+        return this.FromResult(result);
     }
 }
