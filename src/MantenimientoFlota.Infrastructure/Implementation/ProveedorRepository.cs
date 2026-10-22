@@ -1,16 +1,15 @@
-using MantenimientoFlota.Application.Interfaces.Repositories;
-using MantenimientoFlota.Application.DTOs.Proveedor;
+using MantenimientoFlota.Infrastructure.Interfaces;
 using MantenimientoFlota.Domain.Entities;
-using MantenimientoFlota.Infrastructure.Persistence;
+using MantenimientoFlota.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace MantenimientoFlota.Infrastructure.Implementation;
 
 public class ProveedorRepository : IProveedorRepository
 {
-    private readonly MantenimientoFlotaDbContext _context;
+    private readonly AppDbContext _context;
 
-    public ProveedorRepository(MantenimientoFlotaDbContext context)
+    public ProveedorRepository(AppDbContext context)
     {
         _context = context;
     }
@@ -23,6 +22,9 @@ public class ProveedorRepository : IProveedorRepository
             .ToListAsync();
     }
 
+    public Task<Proveedor?> GetForUpdateAsync(int id) =>
+        _context.Proveedores.FirstOrDefaultAsync(entidad => entidad.Id == id);
+
     public async Task<Proveedor?> GetByIdAsync(int id)
     {
         return await _context.Proveedores
@@ -30,33 +32,14 @@ public class ProveedorRepository : IProveedorRepository
             .FirstOrDefaultAsync(proveedor => proveedor.Id == id);
     }
 
-    public async Task<ProveedorDetalleDto?> GetDetalleByIdAsync(int id)
+    public async Task<Proveedor?> GetDetalleByIdAsync(int id)
     {
         return await _context.Proveedores
             .AsNoTracking()
             .AsSingleQuery()
-            .Where(proveedor => proveedor.Id == id)
-            .Select(proveedor => new ProveedorDetalleDto
-            {
-                Id = proveedor.Id,
-                Nombre = proveedor.Nombre,
-                Contacto = proveedor.Contacto,
-                Direccion = proveedor.Direccion,
-                CondicionesGenerales = proveedor.CondicionesGenerales,
-                Repuestos = proveedor.RepuestoProveedores
-                    .OrderBy(relacion => relacion.Repuesto.Codigo)
-                    .ThenBy(relacion => relacion.RepuestoId)
-                    .Select(relacion => new RepuestoProveedorResumenDto
-                    {
-                        RepuestoId = relacion.RepuestoId,
-                        Codigo = relacion.Repuesto.Codigo,
-                        Nombre = relacion.Repuesto.Nombre,
-                        PrecioOfrecido = relacion.PrecioOfrecido,
-                        TiempoEntregaDias = relacion.TiempoEntregaDias
-                    })
-                    .ToList()
-            })
-            .FirstOrDefaultAsync();
+            .Include(entidad => entidad.RepuestoProveedores)
+            .ThenInclude(relacion => relacion.Repuesto)
+            .FirstOrDefaultAsync(entidad => entidad.Id == id);
     }
 
     public async Task<Proveedor> AddAsync(Proveedor proveedor)
@@ -69,7 +52,8 @@ public class ProveedorRepository : IProveedorRepository
 
     public async Task UpdateAsync(Proveedor proveedor)
     {
-        _context.Proveedores.Update(proveedor);
+        if (_context.Entry(proveedor).State == EntityState.Detached)
+            _context.Proveedores.Update(proveedor);
         await _context.SaveChangesAsync();
     }
 

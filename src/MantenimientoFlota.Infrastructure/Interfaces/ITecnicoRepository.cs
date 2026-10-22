@@ -1,7 +1,6 @@
 using MantenimientoFlota.Domain.Entities;
-using MantenimientoFlota.Application.DTOs.Tecnico;
 
-namespace MantenimientoFlota.Application.Interfaces.Repositories;
+namespace MantenimientoFlota.Infrastructure.Interfaces;
 
 public interface ITecnicoRepository
 {
@@ -9,15 +8,17 @@ public interface ITecnicoRepository
         bool? disponible = null,
         int? especialidadId = null);
 
+    Task<Tecnico?> GetForUpdateAsync(int id);
+
     Task<Tecnico?> GetByIdAsync(int id);
 
-    Task<TecnicoDetalleDto?> GetDetalleByIdAsync(int id);
+    Task<Tecnico?> GetDetalleByIdAsync(int id);
 
     Task<Tecnico?> AddAsync(Tecnico tecnico);
 
-    void Update(Tecnico tecnico);
+    Task UpdateAsync(Tecnico tecnico);
 
-    void Delete(int id);
+    Task DeleteAsync(int id);
 
     Task<bool> HasAssociatedSpecialtiesAsync(int tecnicoId);
 }

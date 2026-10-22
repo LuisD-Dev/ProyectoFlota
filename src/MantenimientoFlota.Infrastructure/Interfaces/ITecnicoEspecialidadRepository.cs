@@ -1,10 +1,12 @@
 using MantenimientoFlota.Domain.Entities;
 
-namespace MantenimientoFlota.Application.Interfaces.Repositories;
+namespace MantenimientoFlota.Infrastructure.Interfaces;
 
 public interface ITecnicoEspecialidadRepository
 {
-    Task<IReadOnlyList<TecnicoEspecialidad>> GetAllAsync();
+    Task<IReadOnlyList<TecnicoEspecialidad>> GetAllAsync(int tecnicoId);
+
+    Task<TecnicoEspecialidad?> GetForUpdateAsync(int tecnicoId, int especialidadId);
 
     Task<TecnicoEspecialidad?> GetByIdAsync(
         int tecnicoId,

@@ -1,16 +1,15 @@
-using MantenimientoFlota.Application.Interfaces.Repositories;
-using MantenimientoFlota.Application.DTOs.Especialidad;
+using MantenimientoFlota.Infrastructure.Interfaces;
 using MantenimientoFlota.Domain.Entities;
-using MantenimientoFlota.Infrastructure.Persistence;
+using MantenimientoFlota.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace MantenimientoFlota.Infrastructure.Implementation;
 
 public class EspecialidadRepository : IEspecialidadRepository
 {
-    private readonly MantenimientoFlotaDbContext _context;
+    private readonly AppDbContext _context;
 
-    public EspecialidadRepository(MantenimientoFlotaDbContext context)
+    public EspecialidadRepository(AppDbContext context)
     {
         _context = context;
     }
@@ -23,6 +22,9 @@ public class EspecialidadRepository : IEspecialidadRepository
             .ToListAsync();
     }
 
+    public Task<Especialidad?> GetForUpdateAsync(int id) =>
+        _context.Especialidades.FirstOrDefaultAsync(entidad => entidad.Id == id);
+
     public async Task<Especialidad?> GetByIdAsync(int id)
     {
         return await _context.Especialidades
@@ -30,30 +32,14 @@ public class EspecialidadRepository : IEspecialidadRepository
             .FirstOrDefaultAsync(especialidad => especialidad.Id == id);
     }
 
-    public async Task<EspecialidadDetalleDto?> GetDetalleByIdAsync(int id)
+    public async Task<Especialidad?> GetDetalleByIdAsync(int id)
     {
         return await _context.Especialidades
             .AsNoTracking()
             .AsSingleQuery()
-            .Where(especialidad => especialidad.Id == id)
-            .Select(especialidad => new EspecialidadDetalleDto
-            {
-                Id = especialidad.Id,
-                Nombre = especialidad.Nombre,
-                Descripcion = especialidad.Descripcion,
-                Tecnicos = especialidad.TecnicoEspecialidades
-                    .OrderBy(relacion => relacion.Tecnico.NombreCompleto)
-                    .ThenBy(relacion => relacion.TecnicoId)
-                    .Select(relacion => new TecnicoEspecialidadResumenDto
-                    {
-                        TecnicoId = relacion.TecnicoId,
-                        NombreCompleto = relacion.Tecnico.NombreCompleto,
-                        NivelCertificacion = relacion.NivelCertificacion,
-                        Disponible = relacion.Tecnico.Disponible
-                    })
-                    .ToList()
-            })
-            .FirstOrDefaultAsync();
+            .Include(entidad => entidad.TecnicoEspecialidades)
+            .ThenInclude(relacion => relacion.Tecnico)
+            .FirstOrDefaultAsync(entidad => entidad.Id == id);
     }
 
     public async Task<Especialidad> AddAsync(Especialidad especialidad)
@@ -66,7 +52,8 @@ public class EspecialidadRepository : IEspecialidadRepository
 
     public async Task UpdateAsync(Especialidad especialidad)
     {
-        _context.Especialidades.Update(especialidad);
+        if (_context.Entry(especialidad).State == EntityState.Detached)
+            _context.Especialidades.Update(especialidad);
         await _context.SaveChangesAsync();
     }
 

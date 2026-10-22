@@ -1,21 +1,22 @@
 using MantenimientoFlota.Domain.Entities;
-using MantenimientoFlota.Application.DTOs.Repuesto;
 
-namespace MantenimientoFlota.Application.Interfaces.Repositories;
+namespace MantenimientoFlota.Infrastructure.Interfaces;
 
 public interface IRepuestoRepository
 {
     Task<IEnumerable<Repuesto>> GetAllAsync(bool stockBajo = false);
 
+    Task<Repuesto?> GetForUpdateAsync(int id);
+
     Task<Repuesto?> GetByIdAsync(int id);
 
-    Task<RepuestoDetalleDto?> GetDetalleByIdAsync(int id);
+    Task<Repuesto?> GetDetalleByIdAsync(int id);
 
     Task<Repuesto?> AddAsync(Repuesto repuesto);
 
-    void Update(Repuesto repuesto);
+    Task UpdateAsync(Repuesto repuesto);
 
-    void Delete(int id);
+    Task DeleteAsync(int id);
 
     Task<bool> ExistsByCodigoAsync(string codigo, int? idExcluir = null);
 

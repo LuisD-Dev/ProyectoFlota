@@ -1,24 +1,25 @@
 using MantenimientoFlota.Domain.Entities;
-using MantenimientoFlota.Domain.Enums;
-using MantenimientoFlota.Application.DTOs.Activo;
+using MantenimientoFlota.Domain.Constants;
 
-namespace MantenimientoFlota.Application.Interfaces.Repositories;
+namespace MantenimientoFlota.Infrastructure.Interfaces;
 
 public interface IActivoRepository
 {
     Task<IEnumerable<Activo>> GetAllAsync(
         int? categoriaActivoId = null,
-        EstadoActivo? estado = null);
+        int? estado = null);
+
+    Task<Activo?> GetForUpdateAsync(int id);
 
     Task<Activo?> GetByIdAsync(int id);
 
-    Task<ActivoDetalleDto?> GetDetalleByIdAsync(int id);
+    Task<Activo?> GetDetalleByIdAsync(int id);
 
     Task<Activo?> AddAsync(Activo activo);
 
-    void Update(Activo activo);
+    Task UpdateAsync(Activo activo);
 
-    void UpdateEstado(Activo activo);
+    Task UpdateEstadoAsync(Activo activo);
 
     Task ActualizarImagenUrlAsync(int id, string imagenUrl, CancellationToken cancellationToken);
 

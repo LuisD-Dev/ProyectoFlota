@@ -1,16 +1,15 @@
-using MantenimientoFlota.Application.Interfaces.Repositories;
-using MantenimientoFlota.Application.DTOs.Tecnico;
+using MantenimientoFlota.Infrastructure.Interfaces;
 using MantenimientoFlota.Domain.Entities;
-using MantenimientoFlota.Infrastructure.Persistence;
+using MantenimientoFlota.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace MantenimientoFlota.Infrastructure.Implementation;
 
 public class TecnicoRepository : ITecnicoRepository
 {
-    private readonly MantenimientoFlotaDbContext _context;
+    private readonly AppDbContext _context;
 
-    public TecnicoRepository(MantenimientoFlotaDbContext context)
+    public TecnicoRepository(AppDbContext context)
     {
         _context = context;
     }
@@ -38,6 +37,9 @@ public class TecnicoRepository : ITecnicoRepository
             .ToListAsync();
     }
 
+    public Task<Tecnico?> GetForUpdateAsync(int id) =>
+        _context.Tecnicos.FirstOrDefaultAsync(entidad => entidad.Id == id);
+
     public async Task<Tecnico?> GetByIdAsync(int id)
     {
         return await _context.Tecnicos
@@ -45,35 +47,14 @@ public class TecnicoRepository : ITecnicoRepository
             .FirstOrDefaultAsync(tecnico => tecnico.Id == id);
     }
 
-    public async Task<TecnicoDetalleDto?> GetDetalleByIdAsync(int id)
+    public async Task<Tecnico?> GetDetalleByIdAsync(int id)
     {
         return await _context.Tecnicos
             .AsNoTracking()
             .AsSingleQuery()
-            .Where(tecnico => tecnico.Id == id)
-            .Select(tecnico => new TecnicoDetalleDto
-            {
-                Id = tecnico.Id,
-                NombreCompleto = tecnico.NombreCompleto,
-                Identificacion = tecnico.Identificacion,
-                Telefono = tecnico.Telefono,
-                Correo = tecnico.Correo,
-                Disponible = tecnico.Disponible,
-                TarifaPorHora = tecnico.TarifaPorHora,
-                CantidadEspecialidades = tecnico.TecnicoEspecialidades.Count(),
-                Especialidades = tecnico.TecnicoEspecialidades
-                    .OrderBy(relacion => relacion.Especialidad.Nombre)
-                    .ThenBy(relacion => relacion.EspecialidadId)
-                    .Select(relacion => new EspecialidadTecnicoResumenDto
-                    {
-                        EspecialidadId = relacion.EspecialidadId,
-                        Nombre = relacion.Especialidad.Nombre,
-                        NivelCertificacion = relacion.NivelCertificacion,
-                        FechaObtencion = relacion.FechaObtencion
-                    })
-                    .ToList()
-            })
-            .FirstOrDefaultAsync();
+            .Include(entidad => entidad.TecnicoEspecialidades)
+            .ThenInclude(relacion => relacion.Especialidad)
+            .FirstOrDefaultAsync(entidad => entidad.Id == id);
     }
 
     public async Task<Tecnico?> AddAsync(Tecnico tecnico)
@@ -84,15 +65,16 @@ public class TecnicoRepository : ITecnicoRepository
         return tecnico;
     }
 
-    public void Update(Tecnico tecnico)
+    public async Task UpdateAsync(Tecnico tecnico)
     {
-        _context.Tecnicos.Update(tecnico);
-        _context.SaveChanges();
+        if (_context.Entry(tecnico).State == EntityState.Detached)
+            _context.Tecnicos.Update(tecnico);
+        await _context.SaveChangesAsync();
     }
 
-    public void Delete(int id)
+    public async Task DeleteAsync(int id)
     {
-        var tecnico = _context.Tecnicos.Find(id);
+        var tecnico = await _context.Tecnicos.FindAsync(id);
 
         if (tecnico is null)
         {
@@ -100,7 +82,7 @@ public class TecnicoRepository : ITecnicoRepository
         }
 
         _context.Tecnicos.Remove(tecnico);
-        _context.SaveChanges();
+        await _context.SaveChangesAsync();
     }
 
     public async Task<bool> HasAssociatedSpecialtiesAsync(int tecnicoId)

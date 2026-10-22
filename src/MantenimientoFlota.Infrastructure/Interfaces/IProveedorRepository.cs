@@ -1,15 +1,16 @@
 using MantenimientoFlota.Domain.Entities;
-using MantenimientoFlota.Application.DTOs.Proveedor;
 
-namespace MantenimientoFlota.Application.Interfaces.Repositories;
+namespace MantenimientoFlota.Infrastructure.Interfaces;
 
 public interface IProveedorRepository
 {
     Task<IEnumerable<Proveedor>> GetAllAsync();
 
+    Task<Proveedor?> GetForUpdateAsync(int id);
+
     Task<Proveedor?> GetByIdAsync(int id);
 
-    Task<ProveedorDetalleDto?> GetDetalleByIdAsync(int id);
+    Task<Proveedor?> GetDetalleByIdAsync(int id);
 
     Task<Proveedor> AddAsync(Proveedor proveedor);
 

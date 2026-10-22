@@ -1,21 +1,20 @@
-using MantenimientoFlota.Application.Interfaces.Repositories;
-using MantenimientoFlota.Application.DTOs.OrdenMantenimiento;
+using MantenimientoFlota.Infrastructure.Interfaces;
 using MantenimientoFlota.Domain.Entities;
-using MantenimientoFlota.Infrastructure.Persistence;
+using MantenimientoFlota.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace MantenimientoFlota.Infrastructure.Implementation;
 
 public sealed class OrdenMantenimientoRepository : IOrdenMantenimientoRepository
 {
-    private readonly MantenimientoFlotaDbContext _context;
+    private readonly AppDbContext _context;
 
-    public OrdenMantenimientoRepository(MantenimientoFlotaDbContext context)
+    public OrdenMantenimientoRepository(AppDbContext context)
     {
         _context = context;
     }
 
-    public async Task<IReadOnlyList<OrdenMantenimientoDto>> GetAllAsync(int? activoId = null)
+    public async Task<IReadOnlyList<OrdenMantenimiento>> GetAllAsync(int? activoId = null)
     {
         IQueryable<OrdenMantenimiento> query = _context.OrdenesMantenimiento
             .AsNoTracking();
@@ -25,55 +24,29 @@ public sealed class OrdenMantenimientoRepository : IOrdenMantenimientoRepository
             query = query.Where(orden => orden.ActivoId == activoId.Value);
         }
 
-        return await ProjectToDto(query)
+        return await query.Include(orden => orden.Activo)
             .OrderByDescending(orden => orden.FechaSolicitud)
             .ThenByDescending(orden => orden.Id)
             .ToListAsync();
     }
 
-    public async Task<OrdenMantenimientoDto?> GetByIdAsync(int id)
+    public async Task<OrdenMantenimiento?> GetByIdAsync(int id)
     {
         IQueryable<OrdenMantenimiento> query = _context.OrdenesMantenimiento
             .AsNoTracking()
             .Where(orden => orden.Id == id);
 
-        return await ProjectToDto(query).FirstOrDefaultAsync();
+        return await query.Include(orden => orden.Activo).FirstOrDefaultAsync();
     }
 
-    public async Task<OrdenMantenimientoDetalleDto?> GetDetalleByIdAsync(int id)
+    public async Task<OrdenMantenimiento?> GetDetalleByIdAsync(int id)
     {
         return await _context.OrdenesMantenimiento
             .AsNoTracking()
-            .Where(orden => orden.Id == id)
-            .Select(orden => new OrdenMantenimientoDetalleDto
-            {
-                Id = orden.Id,
-                Codigo = orden.Codigo,
-                ActivoId = orden.ActivoId,
-                ActivoCodigo = orden.Activo.Codigo,
-                ActivoNombre = orden.Activo.Nombre,
-                Motivo = orden.Motivo,
-                TipoMantenimiento = orden.TipoMantenimiento,
-                FechaSolicitud = orden.FechaSolicitud,
-                FechaProgramada = orden.FechaProgramada,
-                FechaCierre = orden.FechaCierre,
-                Prioridad = orden.Prioridad,
-                CostoTotal = orden.CostoTotal,
-                EstadoActual = orden.EstadoActual,
-                Activo = new ActivoOrdenResumenDto
-                {
-                    Id = orden.Activo.Id,
-                    Codigo = orden.Activo.Codigo,
-                    Nombre = orden.Activo.Nombre,
-                    Estado = orden.Activo.Estado,
-                    Categoria = new CategoriaOrdenResumenDto
-                    {
-                        Id = orden.Activo.CategoriaActivo.Id,
-                        Nombre = orden.Activo.CategoriaActivo.Nombre
-                    }
-                }
-            })
-            .FirstOrDefaultAsync();
+            .AsSingleQuery()
+            .Include(entidad => entidad.Activo)
+            .ThenInclude(activo => activo.CategoriaActivo)
+            .FirstOrDefaultAsync(entidad => entidad.Id == id);
     }
 
     public async Task<OrdenMantenimiento> AddAsync(
@@ -91,26 +64,5 @@ public sealed class OrdenMantenimientoRepository : IOrdenMantenimientoRepository
             .AsNoTracking()
             .Where(activo => activo.Id == activoId)
             .AnyAsync();
-    }
-
-    private static IQueryable<OrdenMantenimientoDto> ProjectToDto(
-        IQueryable<OrdenMantenimiento> query)
-    {
-        return query.Select(orden => new OrdenMantenimientoDto
-        {
-            Id = orden.Id,
-            Codigo = orden.Codigo,
-            ActivoId = orden.ActivoId,
-            ActivoCodigo = orden.Activo.Codigo,
-            ActivoNombre = orden.Activo.Nombre,
-            Motivo = orden.Motivo,
-            TipoMantenimiento = orden.TipoMantenimiento,
-            FechaSolicitud = orden.FechaSolicitud,
-            FechaProgramada = orden.FechaProgramada,
-            FechaCierre = orden.FechaCierre,
-            Prioridad = orden.Prioridad,
-            CostoTotal = orden.CostoTotal,
-            EstadoActual = orden.EstadoActual
-        });
     }
 }

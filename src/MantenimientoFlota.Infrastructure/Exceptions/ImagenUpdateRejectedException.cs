@@ -1,4 +1,4 @@
-namespace MantenimientoFlota.Application.Common.Results;
+namespace MantenimientoFlota.Infrastructure.Exceptions;
 
 // El repositorio solo utiliza esta excepción cuando SQL ha rechazado la escritura.
 public sealed class ImagenUpdateRejectedException(Exception innerException)

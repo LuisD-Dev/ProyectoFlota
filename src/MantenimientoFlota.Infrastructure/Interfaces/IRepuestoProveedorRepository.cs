@@ -1,10 +1,12 @@
 using MantenimientoFlota.Domain.Entities;
 
-namespace MantenimientoFlota.Application.Interfaces.Repositories;
+namespace MantenimientoFlota.Infrastructure.Interfaces;
 
 public interface IRepuestoProveedorRepository
 {
-    Task<IReadOnlyList<RepuestoProveedor>> GetAllAsync();
+    Task<IReadOnlyList<RepuestoProveedor>> GetAllAsync(int repuestoId);
+
+    Task<RepuestoProveedor?> GetForUpdateAsync(int repuestoId, int proveedorId);
 
     Task<RepuestoProveedor?> GetByIdAsync(
         int repuestoId,

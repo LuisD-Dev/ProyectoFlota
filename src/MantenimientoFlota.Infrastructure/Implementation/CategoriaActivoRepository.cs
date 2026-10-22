@@ -1,16 +1,15 @@
-using MantenimientoFlota.Application.Interfaces.Repositories;
-using MantenimientoFlota.Application.DTOs.CategoriaActivo;
+using MantenimientoFlota.Infrastructure.Interfaces;
 using MantenimientoFlota.Domain.Entities;
-using MantenimientoFlota.Infrastructure.Persistence;
+using MantenimientoFlota.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace MantenimientoFlota.Infrastructure.Implementation;
 
 public class CategoriaActivoRepository : ICategoriaActivoRepository
 {
-    private readonly MantenimientoFlotaDbContext _context;
+    private readonly AppDbContext _context;
 
-    public CategoriaActivoRepository(MantenimientoFlotaDbContext context)
+    public CategoriaActivoRepository(AppDbContext context)
     {
         _context = context;
     }
@@ -22,6 +21,9 @@ public class CategoriaActivoRepository : ICategoriaActivoRepository
             .ToListAsync();
     }
 
+    public Task<CategoriaActivo?> GetForUpdateAsync(int id) =>
+        _context.CategoriasActivo.FirstOrDefaultAsync(entidad => entidad.Id == id);
+
     public async Task<CategoriaActivo?> GetByIdAsync(int id)
     {
         return await _context.CategoriasActivo
@@ -29,30 +31,13 @@ public class CategoriaActivoRepository : ICategoriaActivoRepository
             .FirstOrDefaultAsync(categoria => categoria.Id == id);
     }
 
-    public async Task<CategoriaActivoDetalleDto?> GetDetalleByIdAsync(int id)
+    public async Task<CategoriaActivo?> GetDetalleByIdAsync(int id)
     {
         return await _context.CategoriasActivo
             .AsNoTracking()
             .AsSingleQuery()
-            .Where(categoria => categoria.Id == id)
-            .Select(categoria => new CategoriaActivoDetalleDto
-            {
-                Id = categoria.Id,
-                Nombre = categoria.Nombre,
-                Descripcion = categoria.Descripcion,
-                IntervaloMantenimientoKm = categoria.IntervaloMantenimientoKm,
-                CantidadActivos = categoria.Activos.Count(),
-                Activos = categoria.Activos
-                    .OrderBy(activo => activo.Codigo)
-                    .Select(activo => new ActivoResumenDto
-                    {
-                        Codigo = activo.Codigo,
-                        Nombre = activo.Nombre,
-                        Estado = activo.Estado
-                    })
-                    .ToList()
-            })
-            .FirstOrDefaultAsync();
+            .Include(entidad => entidad.Activos)
+            .FirstOrDefaultAsync(entidad => entidad.Id == id);
     }
 
     public async Task<CategoriaActivo?> AddAsync(CategoriaActivo categoria)
@@ -63,15 +48,16 @@ public class CategoriaActivoRepository : ICategoriaActivoRepository
         return categoria;
     }
 
-    public void Update(CategoriaActivo categoria)
+    public async Task UpdateAsync(CategoriaActivo categoria)
     {
-        _context.CategoriasActivo.Update(categoria);
-        _context.SaveChanges();
+        if (_context.Entry(categoria).State == EntityState.Detached)
+            _context.CategoriasActivo.Update(categoria);
+        await _context.SaveChangesAsync();
     }
 
-    public void Delete(int id)
+    public async Task DeleteAsync(int id)
     {
-        var categoria = _context.CategoriasActivo.Find(id);
+        var categoria = await _context.CategoriasActivo.FindAsync(id);
 
         if (categoria is null)
         {
@@ -79,7 +65,7 @@ public class CategoriaActivoRepository : ICategoriaActivoRepository
         }
 
         _context.CategoriasActivo.Remove(categoria);
-        _context.SaveChanges();
+        await _context.SaveChangesAsync();
     }
 
     public async Task<bool> ExistsByNameAsync(

@@ -1,26 +1,25 @@
-using MantenimientoFlota.Application.Interfaces.Repositories;
-using MantenimientoFlota.Application.DTOs.Activo;
+using MantenimientoFlota.Infrastructure.Interfaces;
 using MantenimientoFlota.Domain.Entities;
-using MantenimientoFlota.Domain.Enums;
-using MantenimientoFlota.Infrastructure.Persistence;
+using MantenimientoFlota.Domain.Constants;
+using MantenimientoFlota.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.SqlClient;
-using MantenimientoFlota.Application.Common.Results;
+using MantenimientoFlota.Infrastructure.Exceptions;
 
 namespace MantenimientoFlota.Infrastructure.Implementation;
 
 public class ActivoRepository : IActivoRepository
 {
-    private readonly MantenimientoFlotaDbContext _context;
+    private readonly AppDbContext _context;
 
-    public ActivoRepository(MantenimientoFlotaDbContext context)
+    public ActivoRepository(AppDbContext context)
     {
         _context = context;
     }
 
     public async Task<IEnumerable<Activo>> GetAllAsync(
         int? categoriaActivoId = null,
-        EstadoActivo? estado = null)
+        int? estado = null)
     {
         IQueryable<Activo> query = _context.Activos
             .AsNoTracking()
@@ -39,6 +38,9 @@ public class ActivoRepository : IActivoRepository
         return await query.ToListAsync();
     }
 
+    public Task<Activo?> GetForUpdateAsync(int id) =>
+        _context.Activos.FirstOrDefaultAsync(entidad => entidad.Id == id);
+
     public async Task<Activo?> GetByIdAsync(int id)
     {
         return await _context.Activos
@@ -47,47 +49,14 @@ public class ActivoRepository : IActivoRepository
             .FirstOrDefaultAsync(activo => activo.Id == id);
     }
 
-    public async Task<ActivoDetalleDto?> GetDetalleByIdAsync(int id)
+    public async Task<Activo?> GetDetalleByIdAsync(int id)
     {
         return await _context.Activos
             .AsNoTracking()
             .AsSingleQuery()
-            .Where(activo => activo.Id == id)
-            .Select(activo => new ActivoDetalleDto
-            {
-                Id = activo.Id,
-                Codigo = activo.Codigo,
-                Nombre = activo.Nombre,
-                Descripcion = activo.Descripcion,
-                FechaAdquisicion = activo.FechaAdquisicion,
-                ValorReferencia = activo.ValorReferencia,
-                Estado = activo.Estado,
-                ImagenUrl = activo.ImagenUrl,
-                Placa = activo.Placa,
-                KilometrajeActual = activo.KilometrajeActual,
-                CategoriaActivoId = activo.CategoriaActivoId,
-                CategoriaActivoNombre = activo.CategoriaActivo.Nombre,
-                Categoria = new CategoriaActivoResumenDto
-                {
-                    Id = activo.CategoriaActivo.Id,
-                    Nombre = activo.CategoriaActivo.Nombre,
-                    IntervaloMantenimientoKm = activo.CategoriaActivo.IntervaloMantenimientoKm
-                },
-                CantidadOrdenes = activo.OrdenesMantenimiento.Count(),
-                Ordenes = activo.OrdenesMantenimiento
-                    .OrderByDescending(orden => orden.FechaSolicitud)
-                    .ThenByDescending(orden => orden.Id)
-                    .Select(orden => new OrdenMantenimientoResumenDto
-                    {
-                        Codigo = orden.Codigo,
-                        FechaSolicitud = orden.FechaSolicitud,
-                        TipoMantenimiento = orden.TipoMantenimiento,
-                        Prioridad = orden.Prioridad,
-                        EstadoActual = orden.EstadoActual
-                    })
-                    .ToList()
-            })
-            .FirstOrDefaultAsync();
+            .Include(activo => activo.CategoriaActivo)
+            .Include(activo => activo.OrdenesMantenimiento)
+            .FirstOrDefaultAsync(activo => activo.Id == id);
     }
 
     public async Task<Activo?> AddAsync(Activo activo)
@@ -98,16 +67,17 @@ public class ActivoRepository : IActivoRepository
         return activo;
     }
 
-    public void Update(Activo activo)
+    public async Task UpdateAsync(Activo activo)
     {
-        _context.Activos.Update(activo);
-        _context.SaveChanges();
+        if (_context.Entry(activo).State == EntityState.Detached)
+            _context.Activos.Update(activo);
+        await _context.SaveChangesAsync();
     }
 
-    public void UpdateEstado(Activo activo)
+    public async Task UpdateEstadoAsync(Activo activo)
     {
         _context.Entry(activo).Property(entidad => entidad.Estado).IsModified = true;
-        _context.SaveChanges();
+        await _context.SaveChangesAsync();
     }
 
     public async Task ActualizarImagenUrlAsync(int id, string imagenUrl, CancellationToken cancellationToken)

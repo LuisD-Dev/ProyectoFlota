@@ -1,21 +1,22 @@
 using MantenimientoFlota.Domain.Entities;
-using MantenimientoFlota.Application.DTOs.CategoriaActivo;
 
-namespace MantenimientoFlota.Application.Interfaces.Repositories;
+namespace MantenimientoFlota.Infrastructure.Interfaces;
 
 public interface ICategoriaActivoRepository
 {
     Task<IEnumerable<CategoriaActivo>> GetAllAsync();
 
+    Task<CategoriaActivo?> GetForUpdateAsync(int id);
+
     Task<CategoriaActivo?> GetByIdAsync(int id);
 
-    Task<CategoriaActivoDetalleDto?> GetDetalleByIdAsync(int id);
+    Task<CategoriaActivo?> GetDetalleByIdAsync(int id);
 
     Task<CategoriaActivo?> AddAsync(CategoriaActivo categoria);
 
-    void Update(CategoriaActivo categoria);
+    Task UpdateAsync(CategoriaActivo categoria);
 
-    void Delete(int id);
+    Task DeleteAsync(int id);
 
     Task<bool> ExistsByNameAsync(string nombre, int? idExcluir = null);
 

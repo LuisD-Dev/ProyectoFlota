@@ -1,29 +1,33 @@
-using MantenimientoFlota.Application.Interfaces.Repositories;
+using MantenimientoFlota.Infrastructure.Interfaces;
 using MantenimientoFlota.Domain.Entities;
-using MantenimientoFlota.Infrastructure.Persistence;
+using MantenimientoFlota.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace MantenimientoFlota.Infrastructure.Implementation;
 
 public sealed class TecnicoEspecialidadRepository : ITecnicoEspecialidadRepository
 {
-    private readonly MantenimientoFlotaDbContext _context;
+    private readonly AppDbContext _context;
 
-    public TecnicoEspecialidadRepository(MantenimientoFlotaDbContext context)
+    public TecnicoEspecialidadRepository(AppDbContext context)
     {
         _context = context;
     }
 
-    public async Task<IReadOnlyList<TecnicoEspecialidad>> GetAllAsync()
+    public async Task<IReadOnlyList<TecnicoEspecialidad>> GetAllAsync(int tecnicoId)
     {
         return await _context.TecnicoEspecialidades
             .AsNoTracking()
+            .Where(relacion => relacion.TecnicoId == tecnicoId)
             .Include(tecnicoEspecialidad => tecnicoEspecialidad.Tecnico)
             .Include(tecnicoEspecialidad => tecnicoEspecialidad.Especialidad)
             .OrderBy(tecnicoEspecialidad => tecnicoEspecialidad.Tecnico.NombreCompleto)
             .ThenBy(tecnicoEspecialidad => tecnicoEspecialidad.Especialidad.Nombre)
             .ToListAsync();
     }
+
+    public Task<TecnicoEspecialidad?> GetForUpdateAsync(int tecnicoId, int especialidadId) =>
+        _context.TecnicoEspecialidades.FirstOrDefaultAsync(entidad => entidad.TecnicoId == tecnicoId && entidad.EspecialidadId == especialidadId);
 
     public async Task<TecnicoEspecialidad?> GetByIdAsync(
         int tecnicoId,
@@ -50,7 +54,8 @@ public sealed class TecnicoEspecialidadRepository : ITecnicoEspecialidadReposito
 
     public async Task UpdateAsync(TecnicoEspecialidad tecnicoEspecialidad)
     {
-        _context.Entry(tecnicoEspecialidad).State = EntityState.Modified;
+        if (_context.Entry(tecnicoEspecialidad).State == EntityState.Detached)
+            _context.Entry(tecnicoEspecialidad).State = EntityState.Modified;
         await _context.SaveChangesAsync();
     }
 

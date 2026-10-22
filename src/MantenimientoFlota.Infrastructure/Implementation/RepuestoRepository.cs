@@ -1,16 +1,15 @@
-using MantenimientoFlota.Application.Interfaces.Repositories;
-using MantenimientoFlota.Application.DTOs.Repuesto;
+using MantenimientoFlota.Infrastructure.Interfaces;
 using MantenimientoFlota.Domain.Entities;
-using MantenimientoFlota.Infrastructure.Persistence;
+using MantenimientoFlota.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace MantenimientoFlota.Infrastructure.Implementation;
 
 public class RepuestoRepository : IRepuestoRepository
 {
-    private readonly MantenimientoFlotaDbContext _context;
+    private readonly AppDbContext _context;
 
-    public RepuestoRepository(MantenimientoFlotaDbContext context)
+    public RepuestoRepository(AppDbContext context)
     {
         _context = context;
     }
@@ -27,6 +26,9 @@ public class RepuestoRepository : IRepuestoRepository
         return await query.ToListAsync();
     }
 
+    public Task<Repuesto?> GetForUpdateAsync(int id) =>
+        _context.Repuestos.FirstOrDefaultAsync(entidad => entidad.Id == id);
+
     public async Task<Repuesto?> GetByIdAsync(int id)
     {
         return await _context.Repuestos
@@ -34,38 +36,14 @@ public class RepuestoRepository : IRepuestoRepository
             .FirstOrDefaultAsync(repuesto => repuesto.Id == id);
     }
 
-    public async Task<RepuestoDetalleDto?> GetDetalleByIdAsync(int id)
+    public async Task<Repuesto?> GetDetalleByIdAsync(int id)
     {
         return await _context.Repuestos
             .AsNoTracking()
             .AsSingleQuery()
-            .Where(repuesto => repuesto.Id == id)
-            .Select(repuesto => new RepuestoDetalleDto
-            {
-                Id = repuesto.Id,
-                Codigo = repuesto.Codigo,
-                Nombre = repuesto.Nombre,
-                UnidadMedida = repuesto.UnidadMedida,
-                StockActual = repuesto.StockActual,
-                StockMinimo = repuesto.StockMinimo,
-                StockBajo = repuesto.StockActual < repuesto.StockMinimo,
-                FaltanteStockMinimo = repuesto.StockActual < repuesto.StockMinimo
-                    ? repuesto.StockMinimo - repuesto.StockActual
-                    : 0m,
-                CantidadProveedores = repuesto.RepuestoProveedores.Count(),
-                Proveedores = repuesto.RepuestoProveedores
-                    .OrderBy(relacion => relacion.Proveedor.Nombre)
-                    .ThenBy(relacion => relacion.ProveedorId)
-                    .Select(relacion => new ProveedorRepuestoResumenDto
-                    {
-                        ProveedorId = relacion.ProveedorId,
-                        Nombre = relacion.Proveedor.Nombre,
-                        PrecioOfrecido = relacion.PrecioOfrecido,
-                        TiempoEntregaDias = relacion.TiempoEntregaDias
-                    })
-                    .ToList()
-            })
-            .FirstOrDefaultAsync();
+            .Include(entidad => entidad.RepuestoProveedores)
+            .ThenInclude(relacion => relacion.Proveedor)
+            .FirstOrDefaultAsync(entidad => entidad.Id == id);
     }
 
     public async Task<Repuesto?> AddAsync(Repuesto repuesto)
@@ -76,15 +54,16 @@ public class RepuestoRepository : IRepuestoRepository
         return repuesto;
     }
 
-    public void Update(Repuesto repuesto)
+    public async Task UpdateAsync(Repuesto repuesto)
     {
-        _context.Repuestos.Update(repuesto);
-        _context.SaveChanges();
+        if (_context.Entry(repuesto).State == EntityState.Detached)
+            _context.Repuestos.Update(repuesto);
+        await _context.SaveChangesAsync();
     }
 
-    public void Delete(int id)
+    public async Task DeleteAsync(int id)
     {
-        var repuesto = _context.Repuestos.Find(id);
+        var repuesto = await _context.Repuestos.FindAsync(id);
 
         if (repuesto is null)
         {
@@ -92,7 +71,7 @@ public class RepuestoRepository : IRepuestoRepository
         }
 
         _context.Repuestos.Remove(repuesto);
-        _context.SaveChanges();
+        await _context.SaveChangesAsync();
     }
 
     public async Task<bool> ExistsByCodigoAsync(string codigo, int? idExcluir = null)

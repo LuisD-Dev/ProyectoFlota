@@ -1,29 +1,33 @@
-using MantenimientoFlota.Application.Interfaces.Repositories;
+using MantenimientoFlota.Infrastructure.Interfaces;
 using MantenimientoFlota.Domain.Entities;
-using MantenimientoFlota.Infrastructure.Persistence;
+using MantenimientoFlota.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace MantenimientoFlota.Infrastructure.Implementation;
 
 public sealed class RepuestoProveedorRepository : IRepuestoProveedorRepository
 {
-    private readonly MantenimientoFlotaDbContext _context;
+    private readonly AppDbContext _context;
 
-    public RepuestoProveedorRepository(MantenimientoFlotaDbContext context)
+    public RepuestoProveedorRepository(AppDbContext context)
     {
         _context = context;
     }
 
-    public async Task<IReadOnlyList<RepuestoProveedor>> GetAllAsync()
+    public async Task<IReadOnlyList<RepuestoProveedor>> GetAllAsync(int repuestoId)
     {
         return await _context.RepuestoProveedores
             .AsNoTracking()
+            .Where(relacion => relacion.RepuestoId == repuestoId)
             .Include(repuestoProveedor => repuestoProveedor.Repuesto)
             .Include(repuestoProveedor => repuestoProveedor.Proveedor)
             .OrderBy(repuestoProveedor => repuestoProveedor.Repuesto.Nombre)
             .ThenBy(repuestoProveedor => repuestoProveedor.Proveedor.Nombre)
             .ToListAsync();
     }
+
+    public Task<RepuestoProveedor?> GetForUpdateAsync(int repuestoId, int proveedorId) =>
+        _context.RepuestoProveedores.FirstOrDefaultAsync(entidad => entidad.RepuestoId == repuestoId && entidad.ProveedorId == proveedorId);
 
     public async Task<RepuestoProveedor?> GetByIdAsync(
         int repuestoId,
@@ -50,7 +54,8 @@ public sealed class RepuestoProveedorRepository : IRepuestoProveedorRepository
 
     public async Task UpdateAsync(RepuestoProveedor repuestoProveedor)
     {
-        _context.Entry(repuestoProveedor).State = EntityState.Modified;
+        if (_context.Entry(repuestoProveedor).State == EntityState.Detached)
+            _context.Entry(repuestoProveedor).State = EntityState.Modified;
         await _context.SaveChangesAsync();
     }
 
