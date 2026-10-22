@@ -1,4 +1,4 @@
-using MantenimientoFlota.Domain.Enums;
+using MantenimientoFlota.Domain.Constants;
 
 namespace MantenimientoFlota.Domain.Entities;
 
@@ -16,7 +16,7 @@ public class Activo
 
     public decimal ValorReferencia { get; set; }
 
-    public EstadoActivo Estado { get; set; }
+    public int Estado { get; set; }
 
     public string ImagenUrl { get; set; } = string.Empty;
 

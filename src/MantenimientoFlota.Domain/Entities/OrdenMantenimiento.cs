@@ -1,4 +1,4 @@
-using MantenimientoFlota.Domain.Enums;
+using MantenimientoFlota.Domain.Constants;
 
 namespace MantenimientoFlota.Domain.Entities;
 
@@ -26,6 +26,6 @@ public class OrdenMantenimiento
 
     public decimal CostoTotal { get; set; }
 
-    public EstadoOrdenMantenimiento EstadoActual { get; set; } =
+    public int EstadoActual { get; set; } =
         EstadoOrdenMantenimiento.Solicitada;
 }
