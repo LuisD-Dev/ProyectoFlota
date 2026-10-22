@@ -1,5 +1,330 @@
 # Sistema de Gestión de Mantenimiento de Flota Vehicular
 
+## Relaciones integradas en Técnico y Repuesto (vigente)
+
+Las tablas intermedias se mantienen en EF con sus claves compuestas y atributos,
+pero ya no tienen controladores propios. TecnicoController administra sus
+especialidades y RepuestoController sus proveedores, como en la organización
+mostrada en clase. Los servicios y repositorios internos de asociaciones
+conservan su lógica y responsabilidades; no se reemplazan las relaciones por
+listas de IDs que perderían sus atributos.
+
+| Operación | Técnico | Repuesto |
+| --- | --- | --- |
+| Listar del propietario | GET /api/Tecnico/{tecnicoId}/especialidades | GET /api/Repuesto/{repuestoId}/proveedores |
+| Asociar | POST /api/Tecnico/{tecnicoId}/especialidades | POST /api/Repuesto/{repuestoId}/proveedores |
+| Consultar una relación | GET /api/Tecnico/{tecnicoId}/especialidades/{especialidadId} | GET /api/Repuesto/{repuestoId}/proveedores/{proveedorId} |
+| Actualizar atributos | PUT /api/Tecnico/{tecnicoId}/especialidades/{especialidadId} | PUT /api/Repuesto/{repuestoId}/proveedores/{proveedorId} |
+| Desasociar | DELETE /api/Tecnico/{tecnicoId}/especialidades/{especialidadId} | DELETE /api/Repuesto/{repuestoId}/proveedores/{proveedorId} |
+
+POST de especialidad (el técnico se toma exclusivamente de la ruta):
+
+```json
+{
+  "especialidadId": 3,
+  "nivelCertificacion": "Avanzado",
+  "fechaObtencion": "2020-01-15"
+}
+```
+
+POST de proveedor (el repuesto se toma exclusivamente de la ruta):
+
+```json
+{
+  "proveedorId": 2,
+  "precioOfrecido": 1250,
+  "tiempoEntregaDias": 3
+}
+```
+
+Los números son ejemplos: seleccionar identificadores existentes. PUT recibe
+solo certificación/fecha o precio/plazo, como antes. POST conserva 201 y un
+Location que apunta al GET anidado; PUT y DELETE conservan 204. Se mantienen
+400 por campo, 404 por inexistencia y 409 por duplicado/asociaciones. GET de
+colección distingue propietario inexistente (404) de existente sin relaciones
+(200 con data=[]). Los detalles de Técnico, Especialidad, Repuesto y Proveedor
+siguen mostrando las relaciones y sus cálculos.
+
+Las rutas antiguas /api/TecnicoEspecialidad y /api/RepuestoProveedor se retiran;
+no quedan aliases ni grupos de controladores intermedios en Scalar. El documento
+OpenAPI conserva 45 operaciones agrupadas en siete controladores. Esta sección
+reemplaza las rutas de asociaciones mencionadas en los guiones históricos.
+
+Verificación: 119 comprobaciones HTTP específicas de rutas anidadas y otras 308
+de regresión, todas correctas sobre SQLite en memoria con controladores y
+repositorios reales. Incluyen Location, aislamiento por propietario, protección
+del ID de ruta, atributos, duplicados, bloqueos y desasociación. El esquema EF
+no cambia por esta reorganización y no requiere una nueva migración. Pendiente
+regresión SQL Server QA. Actualizar esos dos bloques en tabla y video antes de
+entregar; no cambian sus requisitos de tablas puente ni atributos.
+
+## Cierre del código acordado — 22/10/2026
+
+Implementados: DTO en Domain, interfaces distribuidas como en el ejercicio,
+Mapster en nueve módulos, Result, estados sin enums, catálogos HasData,
+Usuario/Rol, seeders maestro y demo, IExceptionHandler, Serilog, escrituras
+asíncronas y entidades con seguimiento. AppDbContext está en Infrastructure/Data,
+con Seed y Migrations dentro de Data; ModelBuilder configura las 13 entidades
+directamente en OnModelCreating. Los IDs y operaciones Up/Down de las seis
+migraciones se conservan, aunque se actualizaron rutas y namespaces.
+
+La variante síncrona de DevelopmentSeeder ahora utiliza operaciones síncronas
+reales, sin bloquear sobre tareas. Result incluye el método reutilizable Paged
+y sus metadatos opcionales, omitidos en respuestas no paginadas; los listados
+actuales no cambian a paginación. Los nueve servicios reciben ILogger y registran
+operaciones de negocio sin datos personales; las lecturas usan Debug y las
+escrituras exitosas Information. El inicio/cierre HTTP conserva su propietario
+único y los eventos de servicio no son cierres adicionales.
+
+Regresión del código final: 308 comprobaciones sobre HTTP real contra los nueve
+controladores con repositorios reales y SQLite en memoria. Incluye CRUD,
+Location, validación, relaciones, calculados, filtros, estado inicial,
+protección de campos, baja lógica y carga/reemplazo/lectura de imágenes PNG.
+OpenAPI generado: 45 operaciones con summaries, esquemas de Result, respuestas
+y ausencia de logger como entrada; calculados ausentes de DTO de escritura.
+También pasan 23 comprobaciones de seeding, 57 de persistencia/seguimiento y
+49 de estados, modelo y Result.Paged. El handler y los logs cuentan además con
+pruebas HTTP aisladas de errores técnicos y respuestas iniciadas.
+
+Estos resultados NO equivalen a migraciones ni pruebas sobre SQL Server. Quedan
+pendientes en QA: base nueva y copia de base anterior, ambas variantes de
+seeding, regresión sobre SQL Server y revisión visual de Scalar. La tabla, ZIP,
+hash/tag de entrega y video todavía deben actualizarse tras validar esa versión.
+No se ejecutaron migraciones en SQL Server ni se crearon commits o push.
+
+## DbContext y ModelBuilder como en el ejercicio (vigente)
+
+El DbContext se llama `AppDbContext` y está en
+`Infrastructure/Data/AppDbContext.cs`, con Seed dentro de Data, como en el ejercicio.
+No es una clase AppDbConfig adicional. Contiene los DbSet y configura las 13
+entidades directamente dentro de `OnModelCreating`, con `modelBuilder.Entity<T>`.
+Allí se declaran tablas, claves, índices, propiedades, relaciones, restricciones
+CHECK y reglas de borrado, igual que en el ejemplo de la profesora.
+
+Se retiraron los archivos IEntityTypeConfiguration separados y su registro
+ApplyConfigurationsFromAssembly. `modelBuilder.SeedCatalogs()` permanece al
+final de OnModelCreating, como en el ejercicio. El traslado conserva el modelo:
+la comparación contra el snapshot vigente produce cero operaciones de migración.
+No se renombraron tablas, columnas ni valores de estados, y no se generó una
+migración adicional para este traslado. La migración de catálogos previamente
+generada sigue pendiente de aplicación en SQL Server.
+
+## Escrituras asíncronas y seguimiento (vigente)
+
+Los repositorios ejecutan las escrituras con SaveChangesAsync; los servicios
+esperan UpdateAsync, UpdateEstadoAsync y DeleteAsync. Los borrados por ID usan
+FindAsync. No quedan SaveChanges ni Find síncronos en los repositorios de negocio.
+Las variantes síncronas de los seeders se conservan para las herramientas EF.
+
+GetByIdAsync y los detalles mantienen lecturas sin seguimiento. GetForUpdateAsync
+recupera con seguimiento las entidades que se van a modificar o eliminar. Los
+PUT mapean sobre esa misma entidad y protegen claves y navegaciones. Los campos
+que no cambian no se marcan como modificados por una actualización del grafo
+completo. Se conserva una ruta de compatibilidad para entidades desconectadas
+en UpdateAsync. PATCH/baja de Activo persisten solo su propiedad Estado.
+
+Activo conserva su baja lógica, imagen administrada y restricciones por órdenes;
+los demás borrados mantienen sus reglas anteriores. Las asociaciones conservan
+ambas claves y actualizan sus atributos. No se añade borrado lógico general ni
+flujo de estados de órdenes fuera del alcance del Avance 1.
+
+Verificación: 57 comprobaciones SQLite en memoria de lecturas, seguimiento,
+actualización y persistencia en los ocho módulos, claves, imagen, borrados y
+baja lógica. Un interceptor rechaza SaveChanges síncrono durante la prueba.
+Además pasan 40 comprobaciones de estados y modelo. Queda pendiente la
+regresión con SQL Server en una base QA aislada.
+
+## Catálogos y seeders según el ejercicio (vigente)
+
+Se separan tres responsabilidades:
+
+- `CatalogSeeder.SeedCatalogs`: HasData de estados de Activo (4), estados de
+  Orden (8) y roles (3). IDs técnicos fijos y no cero. Los códigos públicos de
+  estado conservan 0–3 y 0–7. Las columnas existentes Estado/EstadoActual ahora
+  referencian Codigo mediante FK, sin renumerar ni sustituir sus valores.
+- `MasterSeeder`: crea una única cuenta `admin` con rol Administrador, hash
+  PBKDF2 con salt aleatorio mediante PasswordHasher, estado activo y fecha UTC.
+  Tiene variantes síncrona y asíncrona. Si el login ya existe, no modifica la
+  contraseña, el rol, las fechas ni el estado de la cuenta.
+- `DevelopmentSeeder`: conserva los diez registros por tabla principal, las
+  asociaciones, el stock bajo, la transacción y el marcador existentes. Solo
+  se invoca en Development, después del seeder maestro.
+
+Los callbacks UseSeeding/UseAsyncSeeding registran MasterSeeder en todos los
+ambientes; los datos demo se agregan únicamente en Development. El arranque
+sigue ejecutando MigrateAsync solo en Development. En Production las migraciones
+se aplican mediante despliegue controlado; registrar callbacks no las ejecuta.
+
+Los roles son los del enunciado: Administrador, Coordinador/Técnico y
+Solicitante/Consulta. Usuario/Rol constituyen la base del administrador inicial;
+este lote no incorpora login, JWT, autorización ni CRUD de usuarios del Avance 2.
+Las categorías y especialidades editables siguen siendo datos demo, no HasData,
+para no convertir el CRUD del Avance 1 en catálogos fijos.
+
+### Configuración del administrador antes del primer arranque
+
+Se requiere `Seed:Admin:Password` (variable de entorno `Seed__Admin__Password`)
+con al menos 12 caracteres cuando todavía no existe admin. No hay contraseña
+predeterminada ni contraseña/hash fijo en código, configuración o migraciones.
+Si ya existe la cuenta, la clave de bootstrap puede retirarse. No restaura una
+cuenta desactivada ni cambia credenciales de una cuenta existente.
+
+Para cargar una contraseña propia en una terminal PowerShell dedicada, sin
+mostrarla en pantalla ni escribir su contenido en el historial:
+
+```powershell
+$seedPasswordInput = Read-Host "Contraseña inicial del administrador (mínimo 12 caracteres)" -AsSecureString
+$seedPasswordPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($seedPasswordInput)
+try {
+    $env:Seed__Admin__Password = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($seedPasswordPointer)
+} finally {
+    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($seedPasswordPointer)
+    $seedPasswordInput.Dispose()
+    Remove-Variable seedPasswordInput, seedPasswordPointer
+}
+```
+
+Después, en esa misma terminal, configurar Development y la conexión de una
+base QA aislada según las instrucciones de ejecución. Esta variable complementa
+las de entorno y conexión; no arranca la API. Tras finalizar las pruebas y
+detener la aplicación, se puede retirar con `Remove-Item Env:Seed__Admin__Password`.
+Usar un gestor de secretos en despliegues. No guardar claves en archivos versionados.
+
+### Migración y validación pendientes de SQL Server
+
+Se generó `20261022195435_AddCatalogosYAdministrador`: añade cuatro tablas,
+15 filas de catálogo, índices y claves foráneas. No cambia las columnas ni los
+datos de negocio existentes. Las cinco migraciones anteriores se conservan.
+No contiene la cuenta admin ni hashes: estos se generan en tiempo de ejecución.
+
+La migración no se ha aplicado a ninguna base SQL Server. Antes de arrancar la
+nueva versión, seleccionar una base QA aislada y configurar el secreto. En una
+copia de una base anterior, los valores de estado deben pertenecer a los
+catálogos; un valor desconocido hará fallar la creación de la FK y deberá
+investigarse, sin corregir ni borrar datos automáticamente.
+
+Pruebas realizadas: 23 comprobaciones en SQLite en memoria, incluidas ambas
+variantes de los callbacks, idempotencia del admin y demo, hash verificable,
+rechazo de claves ausentes/cortas, ausencia de reactivación y FK de estado.
+Además se revisaron las operaciones de migración y se generó su script SQL
+sin conectarse a SQL Server. Estas pruebas no equivalen a aplicar migraciones
+en SQL Server: quedan pendientes base nueva, copia de base anterior y HTTP.
+
+Impacto en entrega: actualizar evidencias de inicialización, catálogos, roles y
+administrador, sin mostrar la contraseña ni su hash. Mantener pendientes esas
+comprobaciones en la tabla hasta ejecutarlas sobre SQL Server.
+
+## Estados numéricos sin enums (contrato vigente)
+
+Las entidades y DTO utilizan `int` o `int?` para los estados. Las constantes de
+`Domain/Constants` conservan los valores persistidos y evitan números dispersos:
+
+| Activo | Valor | Orden de mantenimiento | Valor |
+| --- | --- | --- | --- |
+| Operativo | 0 | Solicitada | 0 |
+| EnMantenimiento | 1 | Diagnosticada | 1 |
+| FueraDeServicio | 2 | Aprobada | 2 |
+| DadoDeBaja | 3 | Rechazada | 3 |
+| | | EnEjecucion | 4 |
+| | | EnEsperaDeRepuesto | 5 |
+| | | Completada | 6 |
+| | | Cancelada | 7 |
+
+En JSON y filtros se envían números, no nombres de estado. Crear/actualizar
+Activo exige estado entre 0 y 3 mediante Required y Range; el filtro admite
+omisión y conserva `estado=0`. PATCH conserva su regla adicional: solo 2 o 3.
+Crear una orden sigue asignando Solicitada (0) en el servidor. No se agregan
+operaciones de cambio de estado de órdenes al alcance del Avance 1.
+
+El marcador interno de logging también usa constantes de texto, sin enum.
+Verificación: 40 comprobaciones de tipos, validación, JSON y modelo EF. La
+comparación con el snapshot existente produjo cero operaciones de migración;
+las dos columnas siguen siendo SQL int. No se ejecutaron consultas SQL,
+migraciones ni cambios de datos. Las 140 comparaciones de servicios y 93
+comprobaciones de controladores/logging también pasan con estados numéricos.
+
+La tabla debe reflejar constantes y campos numéricos en vez de enums. Los
+números usados en la guía del video se mantienen. Los catálogos y seeders de
+clase se incorporan en el apartado vigente anterior.
+
+## Result según el ejercicio de clase (contrato vigente)
+
+`Domain/DTO/PatternResult` contiene `BaseResult` y `Result<T>`. Los nueve servicios
+retornan Result: los rechazos esperados usan Failure con 400, 404 o 409 y no
+lanzan excepciones de negocio. Las reglas y su orden se conservan. Se retiró
+la jerarquía anterior de excepciones de negocio y su traducción en middleware.
+
+Las respuestas JSON exitosas 200 y 201 ahora contienen `isSuccess`, `status`,
+`title`, `detail` y `data`. Las listas están en `data`; el identificador creado
+se consulta en `data.id`. POST conserva 201 y Location; PUT/PATCH/DELETE
+conservan 204 sin cuerpo. Scalar declara el envoltorio Result en sus esquemas.
+
+Los errores HTTP son `ApiErrorResponse : Result<object?>`: conservan traceId,
+errors por campo, errorCode, timestampUtc y data null. La fábrica enriquece los
+fallos de servicio en la frontera HTTP y mantiene el cierre Warning único de
+solicitud. Las excepciones inesperadas se clasifican en el handler global;
+la limpieza de imágenes ante rechazo de persistencia no cambia.
+
+Verificación: 140 comparaciones en memoria con los servicios previos a Result,
+y comprobaciones directas de controladores y logging. Pendientes las pruebas
+HTTP/SQL y la inspección de OpenAPI generado. Estas pruebas no ejecutan SQL.
+Las secciones históricas de A5 que describen excepciones quedan reemplazadas
+por este contrato vigente.
+
+Impacto en entrega: actualizar la tabla y las capturas del video para mostrar
+`data`, el Result de los servicios y la ausencia de excepciones de negocio.
+No se declara la entrega revalidada hasta completar las pruebas en ejecución.
+
+IExceptionHandler y Serilog están integrados; su comportamiento vigente se
+describe en el apartado de logging. Pendiente regresión completa en SQL Server.
+
+## Mapper de los nueve módulos
+
+Application registra Mapster 10.0.13 e `IMapper` por inyección de dependencias,
+como en el ejercicio. `Mapper/MapsterConfig.cs` centraliza 42 configuraciones
+para Activo, Categoría, Especialidad, Técnico, Proveedor, Repuesto, Orden de
+Mantenimiento y las dos asociaciones. Los servicios realizan la transformación
+entre entidades y DTO; los repositorios devuelven entidades.
+
+Los detalles cargan sus relaciones mediante consultas sin seguimiento y una
+sola consulta SQL por operación. Esto carga más columnas que las proyecciones
+anteriores. Los criterios de orden de las colecciones se aplican en el mapper;
+la comparación de texto ahora se realiza en memoria y puede diferir de la
+intercalación de SQL Server para algunos caracteres.
+
+Los mapeos de actualización protegen IDs y navegaciones; las claves compuestas
+se conservan explícitamente. Activo mantiene la gestión de ImagenUrl y la
+compensación de archivos. Orden conserva la generación de código, fecha UTC y
+estado inicial en el servicio. Antigüedades y días transcurridos usan una fecha
+de referencia capturada por operación. Stock bajo, faltantes y conteos conservan
+sus cálculos.
+
+Verificación del lote: 110 comparaciones en memoria de los ocho módulos
+migrados frente a las implementaciones anteriores. Incluyen detalles anidados,
+normalización, campos protegidos y rechazos de servicio. No sustituyen las
+pruebas HTTP ni la comprobación de consultas y ordenación en SQL Server.
+
+## Organización de capas según el ejercicio de clase
+
+Los DTO de negocio se encuentran en `MantenimientoFlota.Domain/DTO` y las
+validaciones reutilizables en `Domain/Validations`. Las interfaces de servicios
+viven en `Application/Interfaces`; las de repositorios, en
+`Infrastructure/Interfaces`. Application referencia Domain e Infrastructure;
+Infrastructure referencia únicamente Domain. La API compone las dependencias.
+
+El almacenamiento local de imágenes y su interfaz están en Application, como en
+el ejercicio. Se conservan la configuración de directorio, las rutas públicas,
+la validación del archivo y la compensación ante fallos de persistencia.
+`ImagenUpdateRejectedException` pertenece a `Infrastructure/Exceptions`, ya que
+expresa un rechazo de persistencia que Application distingue al compensar.
+
+Los contratos específicos de HTTP (`ApiErrorResponse` y el formulario con
+`IFormFile`) permanecen en API; no introducen dependencias de ASP.NET Core en
+Domain. Esta reorganización no cambia propiedades JSON, rutas ni códigos HTTP.
+Mapster, estados numéricos y seeders están integrados. Las nuevas migraciones
+quedan pendientes de aplicación y validación en SQL Server. Las migraciones existentes y los datos no cambian en esta etapa.
+
+
 ## Curso
 
 ISW-621 Programación en Ambiente Web II
@@ -34,7 +359,7 @@ use el contrato común. La imagen conserva el 413 posible antes del controlador.
 Cada acción recibe [FromServices] ILogger de su controlador y emite Information
 con Operation como nombre fijo de operación. Ese evento no registra parámetros,
 cuerpos, URLs, cabeceras ni datos personales y no representa inicio/cierre. El
-middleware sigue siendo el único propietario del ciclo. FromServices declara
+ciclo se registra mediante Serilog y RequestLoggingMiddleware, con un cierre único. FromServices declara
 binding de DI, no entrada del cliente; verificar en OpenAPI que logger no aparece
 como parámetro ni esquema de solicitud. La validación automática puede impedir
 que se ejecute la acción y su evento de operación, conservando el ciclo del middleware.
@@ -120,7 +445,7 @@ errors.Archivo; no es una regla de negocio ni se reduce a DataAnnotations.
 ## Inicialización de Development y prueba desde cero
 
 Antes de aceptar solicitudes, únicamente en Development, Program crea un scope
-y ejecuta MigrateAsync sobre MantenimientoFlotaDbContext. Esto crea la base si
+y ejecuta MigrateAsync sobre AppDbContext. Esto crea la base si
 no existe, aplica las migraciones pendientes e invoca el callback UseAsyncSeeding
 ya registrado. No se llama además al seeder ni se usa EnsureCreated/EnsureDeleted.
 Production no ejecuta migraciones ni datos demo automáticamente.
@@ -182,172 +507,71 @@ cambiando la conexión a la base actual. Cerrar la terminal dedicada al terminar
 descarta las variables temporales. Este procedimiento está documentado, no
 ejecutado; reproducibilidad y segundo arranque requieren comprobación real.
 
-## Ciclo de solicitudes (A4, primera etapa)
+## Logging y excepciones inesperadas (A4/A5, vigente)
 
-El middleware registra un inicio Information y un único cierre propio por
-solicitud que lo atraviesa. Incluye TraceId, método HTTP, plantilla de ruta cuando
-está disponible, estado HTTP y DurationMs medido mediante Stopwatch. En el inicio,
-el estado es el valor actual de la respuesta, no una predicción del resultado;
-la plantilla puede ser nula si todavía no se seleccionó el endpoint.
+La integración sigue la presentación Clase 6-1: `AddExceptionHandler` registra
+`GlobalExceptionHandler : IExceptionHandler`; `AddProblemDetails` habilita la
+infraestructura y `UseExceptionHandler` protege los endpoints. Los fallos
+esperados continúan como Result.Failure en los servicios, sin excepciones de
+negocio. La jerarquía antigua y GlobalExceptionHandlingMiddleware se retiraron.
 
-Los cierres 2xx mantienen Information / Success; la validación automática y los
-rechazos esperados mantienen Warning / Validation y Warning / ExpectedFailure.
-Una excepción inesperada tiene únicamente su cierre Error / UnexpectedException.
-Las demás respuestas tienen cierre Information sin clasificación de negocio.
-Los cierres se emiten exclusivamente desde finally, incluyendo el tiempo de
-construcción del error. Esto no elimina los eventos propios del framework.
+Serilog.AspNetCore 10.0.0 reemplaza al proveedor de logging anterior. La
+configuración central está en `Api/Common/ApiLoggingConfiguration.cs`. Se
+registran consola y archivo diario `logs/serilog-AAAAMMDD.txt` bajo ContentRoot;
+`ApiLogs:Directorio` permite cambiar el directorio. Hay rotación diaria y por
+10 MiB, retención máxima de 14 archivos y escritura compartida. Los archivos
+runtime quedan excluidos de Git. Los niveles se configuran en ese componente;
+la sección anterior Logging de appsettings ya no se usa.
 
-En excepciones se registran como campos estructurados únicamente el nombre
-completo del tipo y StackTrace, además de los metadatos de solicitud. No se pasa
-el objeto original al logger ni se registran Message, ToString, Data o
-InnerException. Se omite por tanto la información adicional de excepciones
-internas; el stack trace puede incluir nombres de código y rutas de fuente.
-No se registran valores de ruta, URL completa, query string, cuerpos ni cabeceras.
+Orden de ejecución: UseSerilogRequestLogging (mediante UseApiRequestLogging),
+RequestLoggingMiddleware, UseExceptionHandler y los endpoints. Serilog mide
+la duración hasta que termina el manejador de errores y emite un solo cierre.
+RequestLoggingMiddleware registra el inicio y conserva el TraceId en el scope.
+El cierre contiene TraceId, método, plantilla de ruta, Status y DurationMs:
 
-Si la respuesta ya comenzó, se conserva su estado real, se registra
-ResponseStarted=true y se relanza sin reemplazar el cuerpo. El contrato JSON,
-traceId y mensajes de error permanecen intactos. La migración parcial de A5 se
-describe en la sección siguiente.
+- 2xx: Information / Success.
+- Validación y rechazos esperados 400/404/409: Warning / Validation o ExpectedFailure.
+- Error técnico 500: Error / UnexpectedException.
+- Otras respuestas: Information / Unclassified, sin atribuir una causa de negocio.
 
-Pendiente de verificar en ejecución: inicio y un cierre por TraceId, niveles y
-clasificaciones, duración, coincidencia con el traceId del JSON, y comportamiento
-ante excepciones antes/después de iniciar respuesta. A4 no está completamente
-validado por revisión estática y compilación.
+El texto de cierre es `Solicitud finalizada`; buscar el TraceId del JSON y
+comprobar Status=200 con INF o un rechazo con WRN. Los logs de operación de los
+controladores se conservan. Un error manejado añade un evento de diagnóstico
+`Excepción procesada` con tipo y StackTrace; ese evento no es un segundo cierre.
 
-## Excepciones de negocio (A5, primera etapa)
+El handler conserva ApiErrorResponse (derivado de Result), traceId, errorCode,
+errors, timestampUtc y el mensaje público genérico. Concurrencia y conflictos
+SQL Server identificados (547, 2601 y 2627 dentro de DbUpdateException) producen
+409 con mensaje genérico. ImagenUpdateRejectedException se inspecciona sin
+alterar su compensación. Un DbUpdateException sin causa identificable o que
+envuelve una caída de infraestructura conserva 500: no se clasifica cualquier
+fallo de guardado como conflicto. Esto precisa la clasificación simplificada
+del ejemplo de clase.
 
-Application define BusinessException abstracta y las excepciones concretas
-InvalidRequestException, ResourceNotFoundException y ConflictException, sin
-dependencias HTTP. Sus mensajes son públicos y controlados; no deben incorporar
-mensajes de proveedores ni detalles técnicos. El único middleware traduce esas
-clases a 400, 404 y 409 mediante ApiErrorFactory, con INVALID_REQUEST,
-RESOURCE_NOT_FOUND y CONFLICT, respectivamente. Conserva todos los campos A6.
+No se pasan excepciones originales a nuestros loggers ni se imprimen Message,
+ToString, Data o excepciones internas. Se conservan tipo completo y StackTrace;
+las trazas pueden incluir nombres de código y rutas de fuente. Se suprimen los
+diagnósticos duplicados del middleware estándar para errores manejados. El
+filtro de Serilog también excluye eventos Microsoft con objeto Exception y
+el evento de error EF Update, cuyo texto puede incluir la excepción completa.
+Los comandos SQL siguen en Information, con datos sensibles de EF desactivados.
+Estos filtros limitan detalle diagnóstico del framework deliberadamente.
+No habilitar EnableSensitiveDataLogging con datos o credenciales reales.
 
-Especialidad se migró en la primera etapa: IDs inválidos, detalle inexistente,
-duplicados de nombre y actualización/eliminación inexistente o eliminación con
-técnicos asociados. Se conserva Trim(), la exclusión del propio ID y la prioridad
-de existencia antes de duplicados/asociaciones. POST conserva 201, su DTO y
-Location; PUT/DELETE conservan 204. El contrato interno de servicio devuelve el
-DTO creado, detalle no nullable y Task para actualizar/eliminar. Se retira el
-resultado de operaciones de Especialidad al no quedar consumidores.
+Si la respuesta ya comenzó, no se reemplaza su cuerpo: la excepción se relanza
+y se registra un único cierre `Solicitud interrumpida` con estado real,
+ResponseStarted, tipo y traza segura. Ese caso suprime el cierre adicional de
+Serilog para no volver a registrar la excepción original.
 
-Los rechazos de negocio tienen un único cierre Warning / ExpectedFailure con
-TraceId y duración. Si la respuesta ya empezó, se registra el estado real y se
-relanza sin sustituirla. Los errores técnicos conservan el tratamiento genérico
-500; no se convierten excepciones de persistencia indiscriminadamente a 409.
-La validación automática por campo permanece intacta como Validation.
+Verificación del lote: 14 comprobaciones con HTTP real contra un servidor
+temporal sin SQL. Incluyen 200/400/404/409/500, concurrencia, restricciones SQL
+simuladas, caída simulada, rechazo de imagen, respuesta iniciada, correlación,
+niveles, cierre único y escritura a archivo sin el secreto sintético de prueba.
+Además pasan las 88 comprobaciones directas de controladores. Queda pendiente
+la regresión completa con SQL Server en QA y la inspección de Scalar/OpenAPI.
 
-Categoría de Activo utiliza ahora la misma jerarquía existente: ID inválido
-produce InvalidRequestException; detalle, actualización y eliminación inexistentes
-producen ResourceNotFoundException; nombre duplicado y eliminación con activos
-asociados producen ConflictException. Conserva exactamente los mensajes, Trim(),
-la exclusión del propio ID y la comprobación de existencia antes del duplicado o
-de las asociaciones. El controlador ya no traduce resultados ni null a errores.
-El contrato interno devuelve CategoriaActivoDto al crear, detalle no nullable y
-Task al actualizar/eliminar; se retira CategoriaActivoOperationResult sin
-consumidores. Se conservan listado, detalle con activos y cantidad, POST 201 con
-Location, PUT/DELETE 204, DTO, repositorios y validación automática por campo.
-Pruebas manuales pendientes para Categoría: ID cero/negativo, detalle/PUT/DELETE
-inexistentes, duplicado en POST/PUT, conservación del nombre propio, eliminación
-con/sin activos, detalle con/sin activos, respuestas exitosas y correlación del
-traceId con un único cierre Warning / ExpectedFailure en rechazos.
-
-Proveedor utiliza también las excepciones existentes: InvalidRequestException
-para IDs inválidos, ResourceNotFoundException para detalle/actualización/eliminación
-inexistentes y ConflictException para eliminación con repuestos asociados. No se
-agrega validación de duplicados ni otra regla. Se mantiene la comprobación de
-existencia antes de asociaciones y la normalización Trim() de sus campos.
-IProveedorService devuelve ProveedorDto al crear, detalle no nullable y Task al
-actualizar/eliminar. Se retira ProveedorOperationResult sin consumidores. Listado,
-detalle con repuestos/precios/plazos, DTO, consultas, repositorios y
-RepuestoProveedor permanecen intactos. POST conserva 201 y Location; PUT/DELETE,
-204. Pruebas manuales pendientes: IDs inválidos, 404, eliminación con/sin
-asociaciones, validación por campo, detalle vacío o con repuestos, normalización,
-respuestas exitosas y correlación traceId / cierre Warning.
-
-Repuesto utiliza las mismas excepciones: InvalidRequestException para IDs
-inválidos, ResourceNotFoundException para detalle/actualización/eliminación
-inexistentes y ConflictException para código duplicado o eliminación con
-proveedores asociados. POST/PUT conservan el código recortado con Trim() para
-comprobar y guardar; PUT excluye el propio ID y comprueba existencia antes del
-duplicado. Se conservan exactamente mensajes y códigos HTTP. No se traducen
-fallos técnicos ni colisiones concurrentes de SQL a 409 en esta migración.
-IRepuestoService devuelve RepuestoDto al crear, detalle no nullable y Task al
-actualizar/eliminar; RepuestoOperationResult se retira sin consumidores.
-Listado, filtro stockBajo, detalle con proveedores/conteos/indicadores, DTO,
-repositorios, índice y RepuestoProveedor permanecen intactos. POST conserva 201
-y Location; PUT/DELETE, 204. Pruebas manuales pendientes: IDs inválidos, 404,
-duplicado en POST/PUT (incluidos espacios exteriores), PUT con código propio,
-404 prioritario al actualizar un ID inexistente con código ajeno, eliminación
-con/sin proveedores, validación por campo, éxitos, listado/filtro/detalle y
-coincidencia del traceId con el cierre Warning.
-
-Técnico utiliza también las excepciones existentes: InvalidRequestException para
-IDs o especialidadId cero/negativos, ResourceNotFoundException para detalle,
-actualización o eliminación inexistentes y ConflictException para eliminación
-con especialidades asociadas. Conserva mensajes, normalización y comprobación
-de existencia antes de asociaciones. No se agregan reglas de unicidad: el
-servicio anterior no comprobaba duplicados. ITecnicoService devuelve TecnicoDto
-al crear, detalle no nullable y Task al actualizar/eliminar; se retira
-TecnicoOperationResult sin consumidores. Se conservan disponible/especialidadId,
-su combinación AND y disponible=false, el detalle con certificaciones, fechas,
-conteo y antigüedad con una referencia UTC, DTO, repositorios y TecnicoEspecialidad.
-POST mantiene 201 y Location; PUT/DELETE, 204; la validación automática no cambia.
-Pruebas manuales pendientes: IDs/filtros inválidos, 404, eliminación con/sin
-especialidades, filtros individuales/combinados (incluido false), detalle con
-cero/varias asociaciones y fechas límite, validación por campo, éxitos y traceId
-correlacionado con el único cierre Warning.
-
-Activo utiliza las excepciones existentes para detalle inexistente, códigos
-duplicados, categoría inexistente, rutas reservadas, baja lógica y estados
-administrativos. Conserva mensajes y prioridades: PUT comprueba existencia,
-ruta, código, categoría y cambio administrativo antes de escribir; PATCH valida
-destino antes de existencia y órdenes abiertas antes de resolver una repetición.
-DELETE sigue rechazando cualquier orden y no escribe al repetir una baja sin
-órdenes. Listado y validación automática de filtros (incluido estado=0), patrón
-del código, detalle y cálculos permanecen intactos. IActivoService devuelve
-ActivoDto al crear, detalle e imagen no nullable y Task para PUT/PATCH/DELETE;
-se retira ActivoOperationResult al no quedar consumidores.
-
-La validación del archivo es validación de entrada: conserva exactamente su
-respuesta por campo mediante la fábrica (400, detail, errors.Archivo e
-INVALID_REQUEST); no es una excepción de negocio pendiente. La ausencia del
-activo se lanza antes de guardar la imagen y fuera del try de SQL. El catch
-exclusivo de ImagenUpdateRejectedException conserva la limpieza de la imagen
-nueva y relanza el fallo técnico; no se convierte a 409. Otros resultados SQL
-inciertos siguen conservando ambos archivos. Solo tras éxito SQL se intenta
-retirar la imagen anterior administrada. Almacenamiento y protección de rutas,
-actualización exclusiva de ImagenUrl y validadores no se modifican.
-Pruebas manuales pendientes: prioridades de 400/404/409, duplicados, categoría,
-filtros, baja y repetición, órdenes abiertas/finales, PATCH/PUT sin cambios
-parciales, éxitos/Location, errores por campo de archivo, carga/reemplazo y
-fallos de persistencia/limpieza sobre un entorno de pruebas.
-
-OrdenMantenimiento, TecnicoEspecialidad y RepuestoProveedor utilizan ahora las
-excepciones existentes. Se retiran sus tres resultados de operaciones sin
-consumidores. Los contratos devuelven el DTO creado y detalle no nullable;
-actualización y eliminación de asociaciones devuelven Task. Órdenes conserva
-únicamente listado, detalle y creación, con código generado, estado Solicitada,
-normalización y cálculo de días intactos.
-
-Se conserva el orden de POST: activo existente para órdenes; técnico, especialidad
-y duplicado para TecnicoEspecialidad; repuesto, proveedor y duplicado para
-RepuestoProveedor. Los mensajes y códigos HTTP no cambian. TecnicoEspecialidad
-conservaba 404 para claves no positivas antes del lote de anotaciones. Actualmente
-las claves cero/negativas de ambas asociaciones producen 400 automático por campo;
-claves positivas sin asociación mantienen 404.
-POST mantiene 201, DTO y Location con sus claves actuales; PUT/DELETE de
-asociaciones mantienen 204. No se alteran consultas, DTO ni datos.
-
-La búsqueda estática global no encuentra traducciones de rechazos de negocio
-en los controladores ni resultados de fallo en servicios. La respuesta por campo
-de validación de archivo en Activo permanece como validación de entrada, al igual
-que la validación automática de DTO. La migración estática de los recorridos
-actuales queda realizada; A5 aún requiere comprobaciones de ejecución antes de
-declararse completamente validado. Pruebas manuales pendientes:
-400 por ID, 404 de detalle/PUT/DELETE, 409 por duplicados o asociaciones,
-actualización conservando el nombre propio, respuestas exitosas y Location,
-validación automática y coincidencia de traceId con el único cierre Warning.
+Referencias: [Serilog.AspNetCore](https://github.com/serilog/serilog-aspnetcore),
+[manejo de errores en ASP.NET Core 10](https://learn.microsoft.com/aspnet/core/fundamentals/error-handling?view=aspnetcore-10.0).
 
 ## Formato de errores (A6)
 
