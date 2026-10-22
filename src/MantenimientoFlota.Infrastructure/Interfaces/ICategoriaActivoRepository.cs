@@ -1,3 +1,4 @@
+using MantenimientoFlota.Domain.DTO.CategoriaActivo;
 using MantenimientoFlota.Domain.Entities;
 
 namespace MantenimientoFlota.Infrastructure.Interfaces;
@@ -10,7 +11,7 @@ public interface ICategoriaActivoRepository
 
     Task<CategoriaActivo?> GetByIdAsync(int id);
 
-    Task<CategoriaActivo?> GetDetalleByIdAsync(int id);
+    Task<CategoriaActivoDetalleDto?> GetDetalleByIdAsync(int id);
 
     Task<CategoriaActivo?> AddAsync(CategoriaActivo categoria);
 

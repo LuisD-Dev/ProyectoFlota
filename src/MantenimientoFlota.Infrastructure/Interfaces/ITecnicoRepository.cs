@@ -1,3 +1,4 @@
+using MantenimientoFlota.Domain.DTO.Tecnico;
 using MantenimientoFlota.Domain.Entities;
 
 namespace MantenimientoFlota.Infrastructure.Interfaces;
@@ -12,7 +13,7 @@ public interface ITecnicoRepository
 
     Task<Tecnico?> GetByIdAsync(int id);
 
-    Task<Tecnico?> GetDetalleByIdAsync(int id);
+    Task<TecnicoDetalleDto?> GetDetalleByIdAsync(int id);
 
     Task<Tecnico?> AddAsync(Tecnico tecnico);
 

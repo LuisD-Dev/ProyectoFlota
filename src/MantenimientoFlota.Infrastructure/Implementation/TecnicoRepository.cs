@@ -1,3 +1,4 @@
+using MantenimientoFlota.Domain.DTO.Tecnico;
 using MantenimientoFlota.Infrastructure.Interfaces;
 using MantenimientoFlota.Domain.Entities;
 using MantenimientoFlota.Infrastructure.Data;
@@ -47,14 +48,25 @@ public class TecnicoRepository : ITecnicoRepository
             .FirstOrDefaultAsync(tecnico => tecnico.Id == id);
     }
 
-    public async Task<Tecnico?> GetDetalleByIdAsync(int id)
+    public async Task<TecnicoDetalleDto?> GetDetalleByIdAsync(int id)
     {
+        // El conteo se traduce a COUNT en SQL; las relaciones se proyectan a resúmenes.
         return await _context.Tecnicos
             .AsNoTracking()
             .AsSingleQuery()
-            .Include(entidad => entidad.TecnicoEspecialidades)
-            .ThenInclude(relacion => relacion.Especialidad)
-            .FirstOrDefaultAsync(entidad => entidad.Id == id);
+            .Where(entidad => entidad.Id == id)
+            .Select(entidad => new TecnicoDetalleDto
+            {
+                Id = entidad.Id, NombreCompleto = entidad.NombreCompleto, Identificacion = entidad.Identificacion,
+                Telefono = entidad.Telefono, Correo = entidad.Correo, Disponible = entidad.Disponible,
+                TarifaPorHora = entidad.TarifaPorHora,
+                CantidadEspecialidades = entidad.TecnicoEspecialidades.Count(),
+                Especialidades = entidad.TecnicoEspecialidades.OrderBy(relacion => relacion.Especialidad.Nombre)
+                    .ThenBy(relacion => relacion.EspecialidadId).Select(relacion => new EspecialidadTecnicoResumenDto {
+                        EspecialidadId = relacion.EspecialidadId, Nombre = relacion.Especialidad.Nombre,
+                        NivelCertificacion = relacion.NivelCertificacion, FechaObtencion = relacion.FechaObtencion }).ToList()
+            })
+            .FirstOrDefaultAsync();
     }
 
     public async Task<Tecnico?> AddAsync(Tecnico tecnico)

@@ -1,3 +1,4 @@
+using MantenimientoFlota.Domain.DTO.Repuesto;
 using MantenimientoFlota.Domain.Entities;
 
 namespace MantenimientoFlota.Infrastructure.Interfaces;
@@ -10,7 +11,7 @@ public interface IRepuestoRepository
 
     Task<Repuesto?> GetByIdAsync(int id);
 
-    Task<Repuesto?> GetDetalleByIdAsync(int id);
+    Task<RepuestoDetalleDto?> GetDetalleByIdAsync(int id);
 
     Task<Repuesto?> AddAsync(Repuesto repuesto);
 

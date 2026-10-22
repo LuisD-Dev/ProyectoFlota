@@ -1,3 +1,4 @@
+using MantenimientoFlota.Domain.DTO.CategoriaActivo;
 using MantenimientoFlota.Infrastructure.Interfaces;
 using MantenimientoFlota.Domain.Entities;
 using MantenimientoFlota.Infrastructure.Data;
@@ -31,13 +32,22 @@ public class CategoriaActivoRepository : ICategoriaActivoRepository
             .FirstOrDefaultAsync(categoria => categoria.Id == id);
     }
 
-    public async Task<CategoriaActivo?> GetDetalleByIdAsync(int id)
+    public async Task<CategoriaActivoDetalleDto?> GetDetalleByIdAsync(int id)
     {
+        // El conteo se traduce a COUNT en SQL; las relaciones se proyectan a resúmenes.
         return await _context.CategoriasActivo
             .AsNoTracking()
             .AsSingleQuery()
-            .Include(entidad => entidad.Activos)
-            .FirstOrDefaultAsync(entidad => entidad.Id == id);
+            .Where(entidad => entidad.Id == id)
+            .Select(entidad => new CategoriaActivoDetalleDto
+            {
+                Id = entidad.Id, Nombre = entidad.Nombre, Descripcion = entidad.Descripcion,
+                IntervaloMantenimientoKm = entidad.IntervaloMantenimientoKm,
+                CantidadActivos = entidad.Activos.Count(),
+                Activos = entidad.Activos.OrderBy(activo => activo.Codigo).Select(activo => new ActivoResumenDto {
+                    Codigo = activo.Codigo, Nombre = activo.Nombre, Estado = activo.Estado }).ToList()
+            })
+            .FirstOrDefaultAsync();
     }
 
     public async Task<CategoriaActivo?> AddAsync(CategoriaActivo categoria)

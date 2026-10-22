@@ -1,3 +1,4 @@
+using MantenimientoFlota.Domain.Exceptions;
 using Microsoft.Extensions.Logging;
 using MantenimientoFlota.Domain.DTO.PatternResult;
 using MapsterMapper;
@@ -25,9 +26,9 @@ public class TecnicoEspecialidadService : ITecnicoEspecialidadService
 
     public async Task<Result<IReadOnlyList<TecnicoEspecialidadDto>>> GetAllAsync(int tecnicoId)
     {
-        if (tecnicoId <= 0) return Result<IReadOnlyList<TecnicoEspecialidadDto>>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
+        if (tecnicoId <= 0) throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         if (!await _repository.TechnicianExistsAsync(tecnicoId))
-            return Result<IReadOnlyList<TecnicoEspecialidadDto>>.Failure(404, "Recurso no encontrado", $"No se encontró el técnico con id {tecnicoId}.");
+            throw new ResourceNotFoundException($"No se encontró el técnico con id {tecnicoId}.");
         var tecnicoEspecialidades = await _repository.GetAllAsync(tecnicoId);
 
         _logger.LogDebug("Operación de negocio completada. Operation={Operation}", "TecnicoEspecialidad.GetAllAsync");
@@ -43,7 +44,7 @@ public class TecnicoEspecialidadService : ITecnicoEspecialidadService
             tecnicoId,
             especialidadId);
 
-        if (tecnicoEspecialidad is null) return Result<TecnicoEspecialidadDto>.Failure(404, "Recurso no encontrado", $"No se encontró la relación entre el técnico con id {tecnicoId} y la especialidad con id {especialidadId}.");
+        if (tecnicoEspecialidad is null) throw new ResourceNotFoundException($"No se encontró la relación entre el técnico con id {tecnicoId} y la especialidad con id {especialidadId}.");
         _logger.LogDebug("Operación de negocio completada. Operation={Operation}", "TecnicoEspecialidad.GetByIdAsync");
         return Result<TecnicoEspecialidadDto>.Success(_mapper.Map<TecnicoEspecialidadDto>(tecnicoEspecialidad), 200);
     }
@@ -52,22 +53,22 @@ public class TecnicoEspecialidadService : ITecnicoEspecialidadService
         int tecnicoId,
         CrearTecnicoEspecialidadDto dto)
     {
-        if (tecnicoId <= 0) return Result<TecnicoEspecialidadDto>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
+        if (tecnicoId <= 0) throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         var especialidadId = dto.EspecialidadId!.Value;
 
         if (!await _repository.TechnicianExistsAsync(tecnicoId))
         {
-            return Result<TecnicoEspecialidadDto>.Failure(404, "Recurso no encontrado", $"No se encontró el técnico con id {tecnicoId}.");
+            throw new ResourceNotFoundException($"No se encontró el técnico con id {tecnicoId}.");
         }
 
         if (!await _repository.SpecialtyExistsAsync(especialidadId))
         {
-            return Result<TecnicoEspecialidadDto>.Failure(404, "Recurso no encontrado", $"No se encontró la especialidad con id {dto.EspecialidadId}.");
+            throw new ResourceNotFoundException($"No se encontró la especialidad con id {dto.EspecialidadId}.");
         }
 
         if (await _repository.ExistsAsync(tecnicoId, especialidadId))
         {
-            return Result<TecnicoEspecialidadDto>.Failure(409, "Conflicto", "Ya existe una relación entre el técnico y la especialidad indicados.");
+            throw new ConflictException("Ya existe una relación entre el técnico y la especialidad indicados.");
         }
 
         var tecnicoEspecialidad = _mapper.Map<TecnicoEspecialidad>(dto);
@@ -93,7 +94,7 @@ public class TecnicoEspecialidadService : ITecnicoEspecialidadService
         var tecnicoEspecialidad = await _repository.GetForUpdateAsync(tecnicoId, especialidadId);
         if (tecnicoEspecialidad is null)
         {
-            return Result<object?>.Failure(404, "Recurso no encontrado", $"No se encontró la relación entre el técnico con id {tecnicoId} y la especialidad con id {especialidadId}.");
+            throw new ResourceNotFoundException($"No se encontró la relación entre el técnico con id {tecnicoId} y la especialidad con id {especialidadId}.");
         }
 
         _mapper.Map(dto, tecnicoEspecialidad);
@@ -113,7 +114,7 @@ public class TecnicoEspecialidadService : ITecnicoEspecialidadService
     {
         if (!await _repository.ExistsAsync(tecnicoId, especialidadId))
         {
-            return Result<object?>.Failure(404, "Recurso no encontrado", $"No se encontró la relación entre el técnico con id {tecnicoId} y la especialidad con id {especialidadId}.");
+            throw new ResourceNotFoundException($"No se encontró la relación entre el técnico con id {tecnicoId} y la especialidad con id {especialidadId}.");
         }
 
         await _repository.DeleteAsync(tecnicoId, especialidadId);

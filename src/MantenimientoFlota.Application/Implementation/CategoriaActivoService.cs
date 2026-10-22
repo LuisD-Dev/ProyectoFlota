@@ -1,3 +1,4 @@
+using MantenimientoFlota.Domain.Exceptions;
 using Microsoft.Extensions.Logging;
 using MantenimientoFlota.Domain.DTO.PatternResult;
 using MapsterMapper;
@@ -34,11 +35,11 @@ public class CategoriaActivoService : ICategoriaActivoService
     public async Task<Result<CategoriaActivoDetalleDto>> GetByIdAsync(int id)
     {
         if (id <= 0)
-            return Result<CategoriaActivoDetalleDto>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         var entidad = await _repository.GetDetalleByIdAsync(id);
-        if (entidad is null) return Result<CategoriaActivoDetalleDto>.Failure(404, "Recurso no encontrado", $"No se encontró la categoría de activo con id {id}.");
+        if (entidad is null) throw new ResourceNotFoundException($"No se encontró la categoría de activo con id {id}.");
         _logger.LogDebug("Operación de negocio completada. Operation={Operation}", "CategoriaActivo.GetByIdAsync");
-        return Result<CategoriaActivoDetalleDto>.Success(_mapper.Map<CategoriaActivoDetalleDto>(entidad), 200);
+        return Result<CategoriaActivoDetalleDto>.Success(entidad, 200);
     }
 
     public async Task<Result<CategoriaActivoDto>> CreateAsync(
@@ -48,7 +49,7 @@ public class CategoriaActivoService : ICategoriaActivoService
 
         if (await _repository.ExistsByNameAsync(nombre))
         {
-            return Result<CategoriaActivoDto>.Failure(409, "Conflicto", "Ya existe una categoría de activo con el nombre indicado.");
+            throw new ConflictException("Ya existe una categoría de activo con el nombre indicado.");
         }
 
         var categoria = _mapper.Map<CategoriaActivo>(dto);
@@ -66,19 +67,19 @@ public class CategoriaActivoService : ICategoriaActivoService
         ActualizarCategoriaActivoDto dto)
     {
         if (id <= 0)
-            return Result<object?>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         var categoria = await _repository.GetForUpdateAsync(id);
 
         if (categoria is null)
         {
-            return Result<object?>.Failure(404, "Recurso no encontrado", $"No se encontró la categoría de activo con id {id}.");
+            throw new ResourceNotFoundException($"No se encontró la categoría de activo con id {id}.");
         }
 
         var nombre = dto.Nombre.Trim();
 
         if (await _repository.ExistsByNameAsync(nombre, id))
         {
-            return Result<object?>.Failure(409, "Conflicto", "Ya existe una categoría de activo con el nombre indicado.");
+            throw new ConflictException("Ya existe una categoría de activo con el nombre indicado.");
         }
 
         _mapper.Map(dto, categoria);
@@ -93,17 +94,17 @@ public class CategoriaActivoService : ICategoriaActivoService
     public async Task<Result<object?>> DeleteAsync(int id)
     {
         if (id <= 0)
-            return Result<object?>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         var categoria = await _repository.GetForUpdateAsync(id);
 
         if (categoria is null)
         {
-            return Result<object?>.Failure(404, "Recurso no encontrado", $"No se encontró la categoría de activo con id {id}.");
+            throw new ResourceNotFoundException($"No se encontró la categoría de activo con id {id}.");
         }
 
         if (await _repository.HasAssociatedAssetsAsync(id))
         {
-            return Result<object?>.Failure(409, "Conflicto", "No se puede eliminar la categoría porque tiene activos asociados.");
+            throw new ConflictException("No se puede eliminar la categoría porque tiene activos asociados.");
         }
 
         await _repository.DeleteAsync(id);

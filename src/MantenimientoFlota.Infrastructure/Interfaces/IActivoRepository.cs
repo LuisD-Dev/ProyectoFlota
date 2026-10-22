@@ -1,3 +1,4 @@
+using MantenimientoFlota.Domain.DTO.Activo;
 using MantenimientoFlota.Domain.Entities;
 using MantenimientoFlota.Domain.Constants;
 
@@ -13,7 +14,7 @@ public interface IActivoRepository
 
     Task<Activo?> GetByIdAsync(int id);
 
-    Task<Activo?> GetDetalleByIdAsync(int id);
+    Task<ActivoDetalleDto?> GetDetalleByIdAsync(int id);
 
     Task<Activo?> AddAsync(Activo activo);
 

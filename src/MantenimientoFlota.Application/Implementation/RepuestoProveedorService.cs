@@ -1,3 +1,4 @@
+using MantenimientoFlota.Domain.Exceptions;
 using Microsoft.Extensions.Logging;
 using MantenimientoFlota.Domain.DTO.PatternResult;
 using MapsterMapper;
@@ -25,9 +26,9 @@ public class RepuestoProveedorService : IRepuestoProveedorService
 
     public async Task<Result<IReadOnlyList<RepuestoProveedorDto>>> GetAllAsync(int repuestoId)
     {
-        if (repuestoId <= 0) return Result<IReadOnlyList<RepuestoProveedorDto>>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
+        if (repuestoId <= 0) throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         if (!await _repository.RepuestoExistsAsync(repuestoId))
-            return Result<IReadOnlyList<RepuestoProveedorDto>>.Failure(404, "Recurso no encontrado", $"No se encontró el repuesto con id {repuestoId}.");
+            throw new ResourceNotFoundException($"No se encontró el repuesto con id {repuestoId}.");
         var repuestoProveedores = await _repository.GetAllAsync(repuestoId);
 
         _logger.LogDebug("Operación de negocio completada. Operation={Operation}", "RepuestoProveedor.GetAllAsync");
@@ -40,12 +41,12 @@ public class RepuestoProveedorService : IRepuestoProveedorService
         int proveedorId)
     {
         if (repuestoId <= 0 || proveedorId <= 0)
-            return Result<RepuestoProveedorDto>.Failure(400, "Solicitud no válida", "Los identificadores de repuesto y proveedor deben ser mayores que cero.");
+            throw new InvalidRequestException("Los identificadores de repuesto y proveedor deben ser mayores que cero.");
         var repuestoProveedor = await _repository.GetByIdAsync(
             repuestoId,
             proveedorId);
 
-        if (repuestoProveedor is null) return Result<RepuestoProveedorDto>.Failure(404, "Recurso no encontrado", $"No se encontró la relación entre el repuesto con id {repuestoId} y el proveedor con id {proveedorId}.");
+        if (repuestoProveedor is null) throw new ResourceNotFoundException($"No se encontró la relación entre el repuesto con id {repuestoId} y el proveedor con id {proveedorId}.");
         _logger.LogDebug("Operación de negocio completada. Operation={Operation}", "RepuestoProveedor.GetByIdAsync");
         return Result<RepuestoProveedorDto>.Success(_mapper.Map<RepuestoProveedorDto>(repuestoProveedor), 200);
     }
@@ -54,22 +55,22 @@ public class RepuestoProveedorService : IRepuestoProveedorService
         int repuestoId,
         CrearRepuestoProveedorDto dto)
     {
-        if (repuestoId <= 0) return Result<RepuestoProveedorDto>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
+        if (repuestoId <= 0) throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         var proveedorId = dto.ProveedorId!.Value;
 
         if (!await _repository.RepuestoExistsAsync(repuestoId))
         {
-            return Result<RepuestoProveedorDto>.Failure(404, "Recurso no encontrado", $"No se encontró el repuesto con id {repuestoId}.");
+            throw new ResourceNotFoundException($"No se encontró el repuesto con id {repuestoId}.");
         }
 
         if (!await _repository.ProveedorExistsAsync(proveedorId))
         {
-            return Result<RepuestoProveedorDto>.Failure(404, "Recurso no encontrado", $"No se encontró el proveedor con id {dto.ProveedorId}.");
+            throw new ResourceNotFoundException($"No se encontró el proveedor con id {dto.ProveedorId}.");
         }
 
         if (await _repository.ExistsAsync(repuestoId, proveedorId))
         {
-            return Result<RepuestoProveedorDto>.Failure(409, "Conflicto", "Ya existe una relación entre el repuesto y el proveedor indicados.");
+            throw new ConflictException("Ya existe una relación entre el repuesto y el proveedor indicados.");
         }
 
         var repuestoProveedor = _mapper.Map<RepuestoProveedor>(dto);
@@ -93,11 +94,11 @@ public class RepuestoProveedorService : IRepuestoProveedorService
         ActualizarRepuestoProveedorDto dto)
     {
         if (repuestoId <= 0 || proveedorId <= 0)
-            return Result<object?>.Failure(400, "Solicitud no válida", "Los identificadores de repuesto y proveedor deben ser mayores que cero.");
+            throw new InvalidRequestException("Los identificadores de repuesto y proveedor deben ser mayores que cero.");
         var repuestoProveedor = await _repository.GetForUpdateAsync(repuestoId, proveedorId);
         if (repuestoProveedor is null)
         {
-            return Result<object?>.Failure(404, "Recurso no encontrado", $"No se encontró la relación entre el repuesto con id {repuestoId} y el proveedor con id {proveedorId}.");
+            throw new ResourceNotFoundException($"No se encontró la relación entre el repuesto con id {repuestoId} y el proveedor con id {proveedorId}.");
         }
 
         _mapper.Map(dto, repuestoProveedor);
@@ -116,10 +117,10 @@ public class RepuestoProveedorService : IRepuestoProveedorService
         int proveedorId)
     {
         if (repuestoId <= 0 || proveedorId <= 0)
-            return Result<object?>.Failure(400, "Solicitud no válida", "Los identificadores de repuesto y proveedor deben ser mayores que cero.");
+            throw new InvalidRequestException("Los identificadores de repuesto y proveedor deben ser mayores que cero.");
         if (!await _repository.ExistsAsync(repuestoId, proveedorId))
         {
-            return Result<object?>.Failure(404, "Recurso no encontrado", $"No se encontró la relación entre el repuesto con id {repuestoId} y el proveedor con id {proveedorId}.");
+            throw new ResourceNotFoundException($"No se encontró la relación entre el repuesto con id {repuestoId} y el proveedor con id {proveedorId}.");
         }
 
         await _repository.DeleteAsync(repuestoId, proveedorId);

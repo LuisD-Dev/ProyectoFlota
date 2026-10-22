@@ -1,3 +1,4 @@
+using MantenimientoFlota.Domain.Exceptions;
 using Microsoft.Extensions.Logging;
 using MantenimientoFlota.Domain.DTO.PatternResult;
 using MapsterMapper;
@@ -27,7 +28,7 @@ public class OrdenMantenimientoService : IOrdenMantenimientoService
     public async Task<Result<IReadOnlyList<OrdenMantenimientoDto>>> GetAllAsync(int? activoId = null)
     {
         if (activoId is <= 0)
-            return Result<IReadOnlyList<OrdenMantenimientoDto>>.Failure(400, "Solicitud no válida", "El identificador del activo debe ser mayor que cero.");
+            throw new InvalidRequestException("El identificador del activo debe ser mayor que cero.");
         var ordenes = await _repository.GetAllAsync(activoId);
         _logger.LogDebug("Operación de negocio completada. Operation={Operation}", "OrdenMantenimiento.GetAllAsync");
         return Result<IReadOnlyList<OrdenMantenimientoDto>>.Success(_mapper.Map<List<OrdenMantenimientoDto>>(ordenes), 200);
@@ -36,13 +37,13 @@ public class OrdenMantenimientoService : IOrdenMantenimientoService
     public async Task<Result<OrdenMantenimientoDetalleDto>> GetByIdAsync(int id)
     {
         if (id <= 0)
-            return Result<OrdenMantenimientoDetalleDto>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         var fechaReferencia = DateOnly.FromDateTime(DateTime.UtcNow);
         var orden = await _repository.GetDetalleByIdAsync(id);
 
         if (orden is null)
         {
-            return Result<OrdenMantenimientoDetalleDto>.Failure(404, "Recurso no encontrado", $"No se encontró la orden de mantenimiento con id {id}.");
+            throw new ResourceNotFoundException($"No se encontró la orden de mantenimiento con id {id}.");
         }
 
         // Los componentes almacenados se interpretan como calendario UTC, sin conversión de zona.
@@ -61,7 +62,7 @@ public class OrdenMantenimientoService : IOrdenMantenimientoService
 
         if (!await _repository.ActivoExistsAsync(activoId))
         {
-            return Result<OrdenMantenimientoDto>.Failure(404, "Recurso no encontrado", $"No se encontró el activo con id {dto.ActivoId}.");
+            throw new ResourceNotFoundException($"No se encontró el activo con id {dto.ActivoId}.");
         }
 
         var orden = _mapper.Map<OrdenMantenimiento>(dto);

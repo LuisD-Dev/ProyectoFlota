@@ -1,3 +1,4 @@
+using MantenimientoFlota.Domain.DTO.Repuesto;
 using MantenimientoFlota.Infrastructure.Interfaces;
 using MantenimientoFlota.Domain.Entities;
 using MantenimientoFlota.Infrastructure.Data;
@@ -36,14 +37,26 @@ public class RepuestoRepository : IRepuestoRepository
             .FirstOrDefaultAsync(repuesto => repuesto.Id == id);
     }
 
-    public async Task<Repuesto?> GetDetalleByIdAsync(int id)
+    public async Task<RepuestoDetalleDto?> GetDetalleByIdAsync(int id)
     {
+        // El conteo se traduce a COUNT en SQL; las relaciones se proyectan a resúmenes.
         return await _context.Repuestos
             .AsNoTracking()
             .AsSingleQuery()
-            .Include(entidad => entidad.RepuestoProveedores)
-            .ThenInclude(relacion => relacion.Proveedor)
-            .FirstOrDefaultAsync(entidad => entidad.Id == id);
+            .Where(entidad => entidad.Id == id)
+            .Select(entidad => new RepuestoDetalleDto
+            {
+                Id = entidad.Id, Codigo = entidad.Codigo, Nombre = entidad.Nombre,
+                UnidadMedida = entidad.UnidadMedida, StockActual = entidad.StockActual, StockMinimo = entidad.StockMinimo,
+                StockBajo = entidad.StockActual < entidad.StockMinimo,
+                FaltanteStockMinimo = entidad.StockActual < entidad.StockMinimo ? entidad.StockMinimo - entidad.StockActual : 0m,
+                CantidadProveedores = entidad.RepuestoProveedores.Count(),
+                Proveedores = entidad.RepuestoProveedores.OrderBy(relacion => relacion.Proveedor.Nombre)
+                    .ThenBy(relacion => relacion.ProveedorId).Select(relacion => new ProveedorRepuestoResumenDto {
+                        ProveedorId = relacion.ProveedorId, Nombre = relacion.Proveedor.Nombre,
+                        PrecioOfrecido = relacion.PrecioOfrecido, TiempoEntregaDias = relacion.TiempoEntregaDias }).ToList()
+            })
+            .FirstOrDefaultAsync();
     }
 
     public async Task<Repuesto?> AddAsync(Repuesto repuesto)

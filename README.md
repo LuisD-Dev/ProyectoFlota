@@ -1,3 +1,20 @@
+## Revisión de cumplimiento del Avance 1 - 22/10/2026
+
+La entrega permanece abierta para cambios. No se movió el tag avance-1 ni se
+preparó una versión definitiva del ZIP o del video. Después del último commit,
+actualizar el hash de la tabla y hacer coincidir tag, repositorio, ZIP y video.
+
+La revisión de los dos documentos de entrega detectó y corrigió dos diferencias:
+la jerarquía de excepciones de negocio requerida en A5 y los conteos SQL de
+C16, D9, E18 y F20. Se conservan DTO en Domain, Mapster, Result, estados sin
+enums y relaciones anidadas en Técnico/Repuesto. No cambian las migraciones.
+
+La comprobación funcional automatizada usa SQLite en memoria; no reemplaza
+la demostración de arranque y persistencia sobre SQL Server. Las evidencias
+funcionales de la tabla deben completarse con los minutos del nuevo video.
+El historial de contribuciones también debe revisarse con ambos integrantes
+según la sección 14 del enunciado; no se modifican autores ni fechas históricas.
+
 # Sistema de Gestión de Mantenimiento de Flota Vehicular
 
 ## Relaciones integradas en Técnico y Repuesto (vigente)
@@ -250,9 +267,12 @@ clase se incorporan en el apartado vigente anterior.
 ## Result según el ejercicio de clase (contrato vigente)
 
 `Domain/DTO/PatternResult` contiene `BaseResult` y `Result<T>`. Los nueve servicios
-retornan Result: los rechazos esperados usan Failure con 400, 404 o 409 y no
-lanzan excepciones de negocio. Las reglas y su orden se conservan. Se retiró
-la jerarquía anterior de excepciones de negocio y su traducción en middleware.
+retornan Result en los éxitos. Los rechazos esperados lanzan las excepciones
+de Domain/Exceptions: InvalidRequestException (400), ResourceNotFoundException
+(404) y ConflictException (409), derivadas de BusinessException. Las reglas y su
+orden se conservan. GlobalExceptionHandler traduce la jerarquía al contrato
+ApiErrorResponse, que hereda de Result<object?>. Así se conserva Result y se
+cumple la jerarquía de excepciones exigida por A5.
 
 Las respuestas JSON exitosas 200 y 201 ahora contienen `isSuccess`, `status`,
 `title`, `detail` y `data`. Las listas están en `data`; el identificador creado
@@ -268,11 +288,11 @@ la limpieza de imágenes ante rechazo de persistencia no cambia.
 Verificación: 140 comparaciones en memoria con los servicios previos a Result,
 y comprobaciones directas de controladores y logging. Pendientes las pruebas
 HTTP/SQL y la inspección de OpenAPI generado. Estas pruebas no ejecutan SQL.
-Las secciones históricas de A5 que describen excepciones quedan reemplazadas
-por este contrato vigente.
+A5 utiliza la jerarquía vigente de Domain y un único punto de traducción
+de excepciones en GlobalExceptionHandler.
 
 Impacto en entrega: actualizar la tabla y las capturas del video para mostrar
-`data`, el Result de los servicios y la ausencia de excepciones de negocio.
+`data`, el Result de los servicios y las excepciones de negocio de Domain.
 No se declara la entrega revalidada hasta completar las pruebas en ejecución.
 
 IExceptionHandler y Serilog están integrados; su comportamiento vigente se
@@ -284,13 +304,14 @@ Application registra Mapster 10.0.13 e `IMapper` por inyección de dependencias,
 como en el ejercicio. `Mapper/MapsterConfig.cs` centraliza 42 configuraciones
 para Activo, Categoría, Especialidad, Técnico, Proveedor, Repuesto, Orden de
 Mantenimiento y las dos asociaciones. Los servicios realizan la transformación
-entre entidades y DTO; los repositorios devuelven entidades.
+entre entidades y DTO. Los repositorios devuelven entidades para escrituras y
+lecturas generales, y proyecciones de detalle para los cuatro conteos exigidos.
 
-Los detalles cargan sus relaciones mediante consultas sin seguimiento y una
-sola consulta SQL por operación. Esto carga más columnas que las proyecciones
-anteriores. Los criterios de orden de las colecciones se aplican en el mapper;
-la comparación de texto ahora se realiza en memoria y puede diferir de la
-intercalación de SQL Server para algunos caracteres.
+Los detalles de Activo, Categoría, Técnico y Repuesto proyectan los campos y
+resúmenes necesarios directamente en LINQ. Sus Count() se traducen a COUNT(*)
+en SQL Server antes de materializar los DTO, sin contar entidades completas
+en el mapper. Se verificó la traducción usando el proveedor SQL Server sin
+abrir conexiones. Los demás detalles mantienen las relaciones y mapeos de Mapster.
 
 Los mapeos de actualización protegen IDs y navegaciones; las claves compuestas
 se conservan explícitamente. Activo mantiene la gestión de ImagenUrl y la
@@ -512,8 +533,10 @@ ejecutado; reproducibilidad y segundo arranque requieren comprobación real.
 La integración sigue la presentación Clase 6-1: `AddExceptionHandler` registra
 `GlobalExceptionHandler : IExceptionHandler`; `AddProblemDetails` habilita la
 infraestructura y `UseExceptionHandler` protege los endpoints. Los fallos
-esperados continúan como Result.Failure en los servicios, sin excepciones de
-negocio. La jerarquía antigua y GlobalExceptionHandlingMiddleware se retiraron.
+esperados se expresan con BusinessException y sus tres derivadas de Domain.
+GlobalExceptionHandler conserva los mensajes, errores por campo y códigos
+400/404/409, con Warning. Los fallos inesperados mantienen 500 genérico y
+Error con tipo y stack seguros. El middleware anterior se retiró.
 
 Serilog.AspNetCore 10.0.0 reemplaza al proveedor de logging anterior. La
 configuración central está en `Api/Common/ApiLoggingConfiguration.cs`. Se

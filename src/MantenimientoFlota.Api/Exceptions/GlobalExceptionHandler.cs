@@ -1,3 +1,4 @@
+using MantenimientoFlota.Domain.Exceptions;
 using MantenimientoFlota.Api.Common;
 using Microsoft.AspNetCore.Diagnostics;
 
@@ -9,10 +10,20 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
         CancellationToken cancellationToken)
     {
         if (context.Response.HasStarted) return false;
-        var conflict = ExceptionClassification.IsPersistenceConflict(exception);
-        var status = conflict ? StatusCodes.Status409Conflict : StatusCodes.Status500InternalServerError;
         if (context.Features.Get<IExceptionHandlerFeature>()?.Endpoint is RouteEndpoint endpoint)
             context.Items[RequestLoggingState.RouteKey] = endpoint.RoutePattern.RawText;
+
+        if (exception is BusinessException business)
+        {
+            logger.LogWarning("Excepción de negocio procesada. TraceId={TraceId} ExceptionType={ExceptionType}",
+                context.TraceIdentifier, business.GetType().FullName);
+            context.Response.StatusCode = business.Status;
+            await context.Response.WriteAsJsonAsync(ApiErrorFactory.Create(context,
+                business.Status, business.Message, business.Errors, business.Title), cancellationToken);
+            return true;
+        }
+        var conflict = ExceptionClassification.IsPersistenceConflict(exception);
+        var status = conflict ? StatusCodes.Status409Conflict : StatusCodes.Status500InternalServerError;
 
         // No se registra el objeto original: sus mensajes/inner exceptions pueden contener secretos.
         logger.Log(conflict ? LogLevel.Warning : LogLevel.Error,

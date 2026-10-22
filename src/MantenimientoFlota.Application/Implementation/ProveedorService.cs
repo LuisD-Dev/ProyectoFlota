@@ -1,3 +1,4 @@
+using MantenimientoFlota.Domain.Exceptions;
 using Microsoft.Extensions.Logging;
 using MantenimientoFlota.Domain.DTO.PatternResult;
 using MapsterMapper;
@@ -34,9 +35,9 @@ public class ProveedorService : IProveedorService
     public async Task<Result<ProveedorDetalleDto>> GetByIdAsync(int id)
     {
         if (id <= 0)
-            return Result<ProveedorDetalleDto>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         var entidad = await _repository.GetDetalleByIdAsync(id);
-        if (entidad is null) return Result<ProveedorDetalleDto>.Failure(404, "Recurso no encontrado", $"No se encontró el proveedor con id {id}.");
+        if (entidad is null) throw new ResourceNotFoundException($"No se encontró el proveedor con id {id}.");
         _logger.LogDebug("Operación de negocio completada. Operation={Operation}", "Proveedor.GetByIdAsync");
         return Result<ProveedorDetalleDto>.Success(_mapper.Map<ProveedorDetalleDto>(entidad), 200);
     }
@@ -58,12 +59,12 @@ public class ProveedorService : IProveedorService
         ActualizarProveedorDto dto)
     {
         if (id <= 0)
-            return Result<object?>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         var proveedor = await _repository.GetForUpdateAsync(id);
 
         if (proveedor is null)
         {
-            return Result<object?>.Failure(404, "Recurso no encontrado", $"No se encontró el proveedor con id {id}.");
+            throw new ResourceNotFoundException($"No se encontró el proveedor con id {id}.");
         }
 
         _mapper.Map(dto, proveedor);
@@ -78,17 +79,17 @@ public class ProveedorService : IProveedorService
     public async Task<Result<object?>> DeleteAsync(int id)
     {
         if (id <= 0)
-            return Result<object?>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         var proveedor = await _repository.GetForUpdateAsync(id);
 
         if (proveedor is null)
         {
-            return Result<object?>.Failure(404, "Recurso no encontrado", $"No se encontró el proveedor con id {id}.");
+            throw new ResourceNotFoundException($"No se encontró el proveedor con id {id}.");
         }
 
         if (await _repository.HasAssociatedPartsAsync(id))
         {
-            return Result<object?>.Failure(409, "Conflicto", "No se puede eliminar el proveedor porque tiene repuestos asociados.");
+            throw new ConflictException("No se puede eliminar el proveedor porque tiene repuestos asociados.");
         }
 
         await _repository.DeleteAsync(proveedor);

@@ -1,3 +1,4 @@
+using MantenimientoFlota.Domain.Exceptions;
 using Microsoft.Extensions.Logging;
 using MantenimientoFlota.Domain.DTO.PatternResult;
 using MapsterMapper;
@@ -27,7 +28,7 @@ public class TecnicoService : ITecnicoService
         int? especialidadId = null)
     {
         if (especialidadId is <= 0)
-            return Result<IEnumerable<TecnicoDto>>.Failure(400, "Solicitud no válida", "El identificador de la especialidad debe ser mayor que cero.");
+            throw new InvalidRequestException("El identificador de la especialidad debe ser mayor que cero.");
 
         var tecnicos = await _repository.GetAllAsync(disponible, especialidadId);
 
@@ -39,16 +40,16 @@ public class TecnicoService : ITecnicoService
     public async Task<Result<TecnicoDetalleDto>> GetByIdAsync(int id)
     {
         if (id <= 0)
-            return Result<TecnicoDetalleDto>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         var fechaReferencia = DateOnly.FromDateTime(DateTime.UtcNow);
         var tecnico = await _repository.GetDetalleByIdAsync(id);
 
         if (tecnico is null)
         {
-            return Result<TecnicoDetalleDto>.Failure(404, "Recurso no encontrado", $"No se encontró el técnico con id {id}.");
+            throw new ResourceNotFoundException($"No se encontró el técnico con id {id}.");
         }
 
-        var detalle = _mapper.Map<TecnicoDetalleDto>(tecnico);
+        var detalle = tecnico;
         foreach (var especialidad in detalle.Especialidades)
         {
             especialidad.AntiguedadAnios = MapsterConfig.CalcularAntiguedadAnios(
@@ -77,12 +78,12 @@ public class TecnicoService : ITecnicoService
         ActualizarTecnicoDto dto)
     {
         if (id <= 0)
-            return Result<object?>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         var tecnico = await _repository.GetForUpdateAsync(id);
 
         if (tecnico is null)
         {
-            return Result<object?>.Failure(404, "Recurso no encontrado", $"No se encontró el técnico con id {id}.");
+            throw new ResourceNotFoundException($"No se encontró el técnico con id {id}.");
         }
 
         _mapper.Map(dto, tecnico);
@@ -97,17 +98,17 @@ public class TecnicoService : ITecnicoService
     public async Task<Result<object?>> DeleteAsync(int id)
     {
         if (id <= 0)
-            return Result<object?>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
+            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         var tecnico = await _repository.GetForUpdateAsync(id);
 
         if (tecnico is null)
         {
-            return Result<object?>.Failure(404, "Recurso no encontrado", $"No se encontró el técnico con id {id}.");
+            throw new ResourceNotFoundException($"No se encontró el técnico con id {id}.");
         }
 
         if (await _repository.HasAssociatedSpecialtiesAsync(id))
         {
-            return Result<object?>.Failure(409, "Conflicto", "No se puede eliminar el técnico porque tiene especialidades asociadas.");
+            throw new ConflictException("No se puede eliminar el técnico porque tiene especialidades asociadas.");
         }
 
         await _repository.DeleteAsync(id);

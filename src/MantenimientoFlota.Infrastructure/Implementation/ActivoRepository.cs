@@ -1,3 +1,4 @@
+using MantenimientoFlota.Domain.DTO.Activo;
 using MantenimientoFlota.Infrastructure.Interfaces;
 using MantenimientoFlota.Domain.Entities;
 using MantenimientoFlota.Domain.Constants;
@@ -49,14 +50,32 @@ public class ActivoRepository : IActivoRepository
             .FirstOrDefaultAsync(activo => activo.Id == id);
     }
 
-    public async Task<Activo?> GetDetalleByIdAsync(int id)
+    public async Task<ActivoDetalleDto?> GetDetalleByIdAsync(int id)
     {
+        // El conteo se traduce a COUNT en SQL; las relaciones se proyectan a resúmenes.
         return await _context.Activos
             .AsNoTracking()
             .AsSingleQuery()
-            .Include(activo => activo.CategoriaActivo)
-            .Include(activo => activo.OrdenesMantenimiento)
-            .FirstOrDefaultAsync(activo => activo.Id == id);
+            .Where(entidad => entidad.Id == id)
+            .Select(entidad => new ActivoDetalleDto
+            {
+                Id = entidad.Id, Codigo = entidad.Codigo, Nombre = entidad.Nombre,
+                Descripcion = entidad.Descripcion, FechaAdquisicion = entidad.FechaAdquisicion,
+                ValorReferencia = entidad.ValorReferencia, Estado = entidad.Estado,
+                ImagenUrl = entidad.ImagenUrl, Placa = entidad.Placa,
+                KilometrajeActual = entidad.KilometrajeActual, CategoriaActivoId = entidad.CategoriaActivoId,
+                CategoriaActivoNombre = entidad.CategoriaActivo.Nombre,
+                Categoria = new CategoriaActivoResumenDto { Id = entidad.CategoriaActivo.Id,
+                    Nombre = entidad.CategoriaActivo.Nombre,
+                    IntervaloMantenimientoKm = entidad.CategoriaActivo.IntervaloMantenimientoKm },
+                CantidadOrdenes = entidad.OrdenesMantenimiento.Count(),
+                Ordenes = entidad.OrdenesMantenimiento.OrderByDescending(orden => orden.FechaSolicitud)
+                    .ThenByDescending(orden => orden.Id).Select(orden => new OrdenMantenimientoResumenDto {
+                        Codigo = orden.Codigo, FechaSolicitud = orden.FechaSolicitud,
+                        TipoMantenimiento = orden.TipoMantenimiento, Prioridad = orden.Prioridad,
+                        EstadoActual = orden.EstadoActual }).ToList()
+            })
+            .FirstOrDefaultAsync();
     }
 
     public async Task<Activo?> AddAsync(Activo activo)
