@@ -1,8 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace MantenimientoFlota.Infrastructure.Persistence.Migrations
+namespace MantenimientoFlota.Infrastructure.Data.Migrations
 {
     /// <inheritdoc />
     public partial class AddValidationChecks : Migration

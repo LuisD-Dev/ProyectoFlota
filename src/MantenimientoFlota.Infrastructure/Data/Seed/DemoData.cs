@@ -1,7 +1,7 @@
 using MantenimientoFlota.Domain.Entities;
-using MantenimientoFlota.Domain.Enums;
+using MantenimientoFlota.Domain.Constants;
 
-namespace MantenimientoFlota.Infrastructure.Persistence.Seed;
+namespace MantenimientoFlota.Infrastructure.Data.Seed;
 
 internal static class DemoData
 {
