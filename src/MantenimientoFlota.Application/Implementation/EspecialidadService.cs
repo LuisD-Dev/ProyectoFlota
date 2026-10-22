@@ -1,7 +1,10 @@
-using MantenimientoFlota.Application.Common.Exceptions;
-using MantenimientoFlota.Application.DTOs.Especialidad;
-using MantenimientoFlota.Application.Interfaces.Services;
-using MantenimientoFlota.Application.Interfaces.Repositories;
+using Microsoft.Extensions.Logging;
+using MantenimientoFlota.Domain.DTO.PatternResult;
+using MapsterMapper;
+using MantenimientoFlota.Application.Mapper;
+using MantenimientoFlota.Domain.DTO.Especialidad;
+using MantenimientoFlota.Application.Interfaces;
+using MantenimientoFlota.Infrastructure.Interfaces;
 using MantenimientoFlota.Domain.Entities;
 
 namespace MantenimientoFlota.Application.Implementation;
@@ -9,105 +12,104 @@ namespace MantenimientoFlota.Application.Implementation;
 public class EspecialidadService : IEspecialidadService
 {
     private readonly IEspecialidadRepository _repository;
+    private readonly IMapper _mapper;
+    private readonly ILogger<EspecialidadService> _logger;
 
-    public EspecialidadService(IEspecialidadRepository repository)
+    public EspecialidadService(IEspecialidadRepository repository, IMapper mapper, ILogger<EspecialidadService> logger)
     {
         _repository = repository;
+        _mapper = mapper;
+        _logger = logger;
     }
 
-    public async Task<IReadOnlyList<EspecialidadDto>> GetAllAsync()
+    public async Task<Result<IReadOnlyList<EspecialidadDto>>> GetAllAsync()
     {
         var especialidades = await _repository.GetAllAsync();
 
-        return especialidades
-            .Select(MapToDto)
-            .ToList();
+        _logger.LogDebug("Operación de negocio completada. Operation={Operation}", "Especialidad.GetAllAsync");
+
+        return Result<IReadOnlyList<EspecialidadDto>>.Success(_mapper.Map<List<EspecialidadDto>>(especialidades), 200);
     }
 
-    public async Task<EspecialidadDetalleDto> GetByIdAsync(int id)
+    public async Task<Result<EspecialidadDetalleDto>> GetByIdAsync(int id)
     {
-        ValidarId(id);
-        return await _repository.GetDetalleByIdAsync(id)
-            ?? throw new ResourceNotFoundException($"No se encontró la especialidad con id {id}.");
+        if (id <= 0)
+            return Result<EspecialidadDetalleDto>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
+        var entidad = await _repository.GetDetalleByIdAsync(id);
+        if (entidad is null) return Result<EspecialidadDetalleDto>.Failure(404, "Recurso no encontrado", $"No se encontró la especialidad con id {id}.");
+        _logger.LogDebug("Operación de negocio completada. Operation={Operation}", "Especialidad.GetByIdAsync");
+        return Result<EspecialidadDetalleDto>.Success(_mapper.Map<EspecialidadDetalleDto>(entidad), 200);
     }
 
-    public async Task<EspecialidadDto> CreateAsync(
+    public async Task<Result<EspecialidadDto>> CreateAsync(
         CrearEspecialidadDto dto)
     {
         var nombre = dto.Nombre.Trim();
 
         if (await _repository.ExistsByNameAsync(nombre))
         {
-            throw new ConflictException("Ya existe una especialidad con el nombre indicado.");
+            return Result<EspecialidadDto>.Failure(409, "Conflicto", "Ya existe una especialidad con el nombre indicado.");
         }
 
-        var especialidad = new Especialidad
-        {
-            Nombre = nombre,
-            Descripcion = dto.Descripcion ?? string.Empty
-        };
+        var especialidad = _mapper.Map<Especialidad>(dto);
 
         var especialidadCreada = await _repository.AddAsync(especialidad);
 
-        return MapToDto(especialidadCreada);
+        _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Especialidad.CreateAsync");
+
+        return Result<EspecialidadDto>.Success(_mapper.Map<EspecialidadDto>(especialidadCreada), 201);
     }
 
-    public async Task UpdateAsync(
+    public async Task<Result<object?>> UpdateAsync(
         int id,
         ActualizarEspecialidadDto dto)
     {
-        ValidarId(id);
-        var especialidad = await _repository.GetByIdAsync(id);
+        if (id <= 0)
+            return Result<object?>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
+        var especialidad = await _repository.GetForUpdateAsync(id);
 
         if (especialidad is null)
         {
-            throw new ResourceNotFoundException($"No se encontró la especialidad con id {id}.");
+            return Result<object?>.Failure(404, "Recurso no encontrado", $"No se encontró la especialidad con id {id}.");
         }
 
         var nombre = dto.Nombre.Trim();
 
         if (await _repository.ExistsByNameAsync(nombre, id))
         {
-            throw new ConflictException("Ya existe una especialidad con el nombre indicado.");
+            return Result<object?>.Failure(409, "Conflicto", "Ya existe una especialidad con el nombre indicado.");
         }
 
-        especialidad.Nombre = nombre;
-        especialidad.Descripcion = dto.Descripcion ?? string.Empty;
+        _mapper.Map(dto, especialidad);
 
         await _repository.UpdateAsync(especialidad);
+
+        _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Especialidad.UpdateAsync");
+
+        return Result<object?>.Success(null, 204);
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task<Result<object?>> DeleteAsync(int id)
     {
-        ValidarId(id);
-        var especialidad = await _repository.GetByIdAsync(id);
+        if (id <= 0)
+            return Result<object?>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
+        var especialidad = await _repository.GetForUpdateAsync(id);
 
         if (especialidad is null)
         {
-            throw new ResourceNotFoundException($"No se encontró la especialidad con id {id}.");
+            return Result<object?>.Failure(404, "Recurso no encontrado", $"No se encontró la especialidad con id {id}.");
         }
 
         if (await _repository.HasAssociatedTechniciansAsync(id))
         {
-            throw new ConflictException("No se puede eliminar la especialidad porque tiene técnicos asociados.");
+            return Result<object?>.Failure(409, "Conflicto", "No se puede eliminar la especialidad porque tiene técnicos asociados.");
         }
 
         await _repository.DeleteAsync(especialidad);
+
+        _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Especialidad.DeleteAsync");
+
+        return Result<object?>.Success(null, 204);
     }
 
-    private static void ValidarId(int id)
-    {
-        if (id <= 0)
-            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
-    }
-
-    private static EspecialidadDto MapToDto(Especialidad especialidad)
-    {
-        return new EspecialidadDto
-        {
-            Id = especialidad.Id,
-            Nombre = especialidad.Nombre,
-            Descripcion = especialidad.Descripcion
-        };
-    }
 }

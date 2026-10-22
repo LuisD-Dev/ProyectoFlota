@@ -1,5 +1,7 @@
 using MantenimientoFlota.Application.Implementation;
-using MantenimientoFlota.Application.Interfaces.Services;
+using MantenimientoFlota.Application.Interfaces;
+using MantenimientoFlota.Application.Mapper;
+using MapsterMapper;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MantenimientoFlota.Application;
@@ -8,6 +10,10 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
+        services.AddLogging();
+        services.AddSingleton(MapsterConfig.RegisterMaps());
+        services.AddScoped<IMapper, ServiceMapper>();
+
         services.AddScoped<IActivoService, ActivoService>();
         services.AddScoped<ICategoriaActivoService, CategoriaActivoService>();
         services.AddScoped<IEspecialidadService, EspecialidadService>();

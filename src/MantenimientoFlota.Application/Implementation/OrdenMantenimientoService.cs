@@ -1,99 +1,80 @@
-using MantenimientoFlota.Application.Common.Exceptions;
-using MantenimientoFlota.Application.DTOs.OrdenMantenimiento;
-using MantenimientoFlota.Application.Interfaces.Services;
-using MantenimientoFlota.Application.Interfaces.Repositories;
+using Microsoft.Extensions.Logging;
+using MantenimientoFlota.Domain.DTO.PatternResult;
+using MapsterMapper;
+using MantenimientoFlota.Application.Mapper;
+using MantenimientoFlota.Domain.DTO.OrdenMantenimiento;
+using MantenimientoFlota.Application.Interfaces;
+using MantenimientoFlota.Infrastructure.Interfaces;
 using MantenimientoFlota.Domain.Entities;
-using MantenimientoFlota.Domain.Enums;
+using MantenimientoFlota.Domain.Constants;
 
 namespace MantenimientoFlota.Application.Implementation;
 
 public class OrdenMantenimientoService : IOrdenMantenimientoService
 {
     private readonly IOrdenMantenimientoRepository _repository;
+    private readonly IMapper _mapper;
+    private readonly ILogger<OrdenMantenimientoService> _logger;
 
     public OrdenMantenimientoService(
-        IOrdenMantenimientoRepository repository)
+        IOrdenMantenimientoRepository repository, IMapper mapper, ILogger<OrdenMantenimientoService> logger)
     {
         _repository = repository;
+        _mapper = mapper;
+        _logger = logger;
     }
 
-    public async Task<IReadOnlyList<OrdenMantenimientoDto>> GetAllAsync(int? activoId = null)
+    public async Task<Result<IReadOnlyList<OrdenMantenimientoDto>>> GetAllAsync(int? activoId = null)
     {
         if (activoId is <= 0)
-            throw new InvalidRequestException("El identificador del activo debe ser mayor que cero.");
-        return await _repository.GetAllAsync(activoId);
+            return Result<IReadOnlyList<OrdenMantenimientoDto>>.Failure(400, "Solicitud no válida", "El identificador del activo debe ser mayor que cero.");
+        var ordenes = await _repository.GetAllAsync(activoId);
+        _logger.LogDebug("Operación de negocio completada. Operation={Operation}", "OrdenMantenimiento.GetAllAsync");
+        return Result<IReadOnlyList<OrdenMantenimientoDto>>.Success(_mapper.Map<List<OrdenMantenimientoDto>>(ordenes), 200);
     }
 
-    public async Task<OrdenMantenimientoDetalleDto> GetByIdAsync(int id)
+    public async Task<Result<OrdenMantenimientoDetalleDto>> GetByIdAsync(int id)
     {
         if (id <= 0)
-            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
+            return Result<OrdenMantenimientoDetalleDto>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
         var fechaReferencia = DateOnly.FromDateTime(DateTime.UtcNow);
         var orden = await _repository.GetDetalleByIdAsync(id);
 
         if (orden is null)
         {
-            throw new ResourceNotFoundException($"No se encontró la orden de mantenimiento con id {id}.");
+            return Result<OrdenMantenimientoDetalleDto>.Failure(404, "Recurso no encontrado", $"No se encontró la orden de mantenimiento con id {id}.");
         }
 
         // Los componentes almacenados se interpretan como calendario UTC, sin conversión de zona.
+        var detalle = _mapper.Map<OrdenMantenimientoDetalleDto>(orden);
         var fechaSolicitud = DateOnly.FromDateTime(orden.FechaSolicitud);
-        orden.DiasTranscurridosDesdeSolicitud = Math.Max(
+        detalle.DiasTranscurridosDesdeSolicitud = Math.Max(
             0, fechaReferencia.DayNumber - fechaSolicitud.DayNumber);
-        return orden;
+        _logger.LogDebug("Operación de negocio completada. Operation={Operation}", "OrdenMantenimiento.GetByIdAsync");
+        return Result<OrdenMantenimientoDetalleDto>.Success(detalle, 200);
     }
 
-    public async Task<OrdenMantenimientoDto> CreateAsync(
+    public async Task<Result<OrdenMantenimientoDto>> CreateAsync(
         CrearOrdenMantenimientoDto dto)
     {
         var activoId = dto.ActivoId!.Value;
 
         if (!await _repository.ActivoExistsAsync(activoId))
         {
-            throw new ResourceNotFoundException($"No se encontró el activo con id {dto.ActivoId}.");
+            return Result<OrdenMantenimientoDto>.Failure(404, "Recurso no encontrado", $"No se encontró el activo con id {dto.ActivoId}.");
         }
 
-        var orden = new OrdenMantenimiento
-        {
-            Codigo = $"OM-{Guid.NewGuid():N}",
-            ActivoId = activoId,
-            Motivo = dto.Motivo.Trim(),
-            TipoMantenimiento = dto.TipoMantenimiento.Trim(),
-            FechaSolicitud = DateTime.UtcNow,
-            FechaProgramada = null,
-            FechaCierre = null,
-            Prioridad = dto.Prioridad.Trim(),
-            CostoTotal = 0m,
-            EstadoActual = EstadoOrdenMantenimiento.Solicitada
-        };
+        var orden = _mapper.Map<OrdenMantenimiento>(dto);
+        orden.Codigo = $"OM-{Guid.NewGuid():N}";
+        orden.FechaSolicitud = DateTime.UtcNow;
+        orden.EstadoActual = EstadoOrdenMantenimiento.Solicitada;
 
         var ordenCreada = await _repository.AddAsync(orden);
         var ordenCompleta = await _repository.GetByIdAsync(ordenCreada.Id)
-            ?? MapToDto(ordenCreada);
+            ?? ordenCreada;
 
-        return ordenCompleta;
-    }
+        _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "OrdenMantenimiento.CreateAsync");
 
-    private static OrdenMantenimientoDto MapToDto(
-        OrdenMantenimiento ordenMantenimiento)
-    {
-        return new OrdenMantenimientoDto
-        {
-            Id = ordenMantenimiento.Id,
-            Codigo = ordenMantenimiento.Codigo,
-            ActivoId = ordenMantenimiento.ActivoId,
-            ActivoCodigo = ordenMantenimiento.Activo?.Codigo
-                ?? string.Empty,
-            ActivoNombre = ordenMantenimiento.Activo?.Nombre
-                ?? string.Empty,
-            Motivo = ordenMantenimiento.Motivo,
-            TipoMantenimiento = ordenMantenimiento.TipoMantenimiento,
-            FechaSolicitud = ordenMantenimiento.FechaSolicitud,
-            FechaProgramada = ordenMantenimiento.FechaProgramada,
-            FechaCierre = ordenMantenimiento.FechaCierre,
-            Prioridad = ordenMantenimiento.Prioridad,
-            CostoTotal = ordenMantenimiento.CostoTotal,
-            EstadoActual = ordenMantenimiento.EstadoActual
-        };
+        return Result<OrdenMantenimientoDto>.Success(_mapper.Map<OrdenMantenimientoDto>(ordenCompleta), 201);
     }
 }

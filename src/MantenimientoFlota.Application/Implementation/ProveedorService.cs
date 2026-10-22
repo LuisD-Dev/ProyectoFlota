@@ -1,7 +1,10 @@
-using MantenimientoFlota.Application.Common.Exceptions;
-using MantenimientoFlota.Application.DTOs.Proveedor;
-using MantenimientoFlota.Application.Interfaces.Services;
-using MantenimientoFlota.Application.Interfaces.Repositories;
+using Microsoft.Extensions.Logging;
+using MantenimientoFlota.Domain.DTO.PatternResult;
+using MapsterMapper;
+using MantenimientoFlota.Application.Mapper;
+using MantenimientoFlota.Domain.DTO.Proveedor;
+using MantenimientoFlota.Application.Interfaces;
+using MantenimientoFlota.Infrastructure.Interfaces;
 using MantenimientoFlota.Domain.Entities;
 
 namespace MantenimientoFlota.Application.Implementation;
@@ -9,97 +12,90 @@ namespace MantenimientoFlota.Application.Implementation;
 public class ProveedorService : IProveedorService
 {
     private readonly IProveedorRepository _repository;
+    private readonly IMapper _mapper;
+    private readonly ILogger<ProveedorService> _logger;
 
-    public ProveedorService(IProveedorRepository repository)
+    public ProveedorService(IProveedorRepository repository, IMapper mapper, ILogger<ProveedorService> logger)
     {
         _repository = repository;
+        _mapper = mapper;
+        _logger = logger;
     }
 
-    public async Task<IReadOnlyList<ProveedorDto>> GetAllAsync()
+    public async Task<Result<IReadOnlyList<ProveedorDto>>> GetAllAsync()
     {
         var proveedores = await _repository.GetAllAsync();
 
-        return proveedores
-            .Select(MapToDto)
-            .ToList();
+        _logger.LogDebug("Operación de negocio completada. Operation={Operation}", "Proveedor.GetAllAsync");
+
+        return Result<IReadOnlyList<ProveedorDto>>.Success(_mapper.Map<List<ProveedorDto>>(proveedores), 200);
     }
 
-    public async Task<ProveedorDetalleDto> GetByIdAsync(int id)
+    public async Task<Result<ProveedorDetalleDto>> GetByIdAsync(int id)
     {
-        ValidarId(id);
-        return await _repository.GetDetalleByIdAsync(id)
-            ?? throw new ResourceNotFoundException($"No se encontró el proveedor con id {id}.");
+        if (id <= 0)
+            return Result<ProveedorDetalleDto>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
+        var entidad = await _repository.GetDetalleByIdAsync(id);
+        if (entidad is null) return Result<ProveedorDetalleDto>.Failure(404, "Recurso no encontrado", $"No se encontró el proveedor con id {id}.");
+        _logger.LogDebug("Operación de negocio completada. Operation={Operation}", "Proveedor.GetByIdAsync");
+        return Result<ProveedorDetalleDto>.Success(_mapper.Map<ProveedorDetalleDto>(entidad), 200);
     }
 
-    public async Task<ProveedorDto> CreateAsync(
+    public async Task<Result<ProveedorDto>> CreateAsync(
         CrearProveedorDto dto)
     {
-        var proveedor = new Proveedor
-        {
-            Nombre = dto.Nombre.Trim(),
-            Contacto = dto.Contacto?.Trim() ?? string.Empty,
-            Direccion = dto.Direccion?.Trim() ?? string.Empty,
-            CondicionesGenerales = dto.CondicionesGenerales?.Trim() ?? string.Empty
-        };
+        var proveedor = _mapper.Map<Proveedor>(dto);
 
         var proveedorCreado = await _repository.AddAsync(proveedor);
 
-        return MapToDto(proveedorCreado);
+        _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Proveedor.CreateAsync");
+
+        return Result<ProveedorDto>.Success(_mapper.Map<ProveedorDto>(proveedorCreado), 201);
     }
 
-    public async Task UpdateAsync(
+    public async Task<Result<object?>> UpdateAsync(
         int id,
         ActualizarProveedorDto dto)
     {
-        ValidarId(id);
-        var proveedor = await _repository.GetByIdAsync(id);
+        if (id <= 0)
+            return Result<object?>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
+        var proveedor = await _repository.GetForUpdateAsync(id);
 
         if (proveedor is null)
         {
-            throw new ResourceNotFoundException($"No se encontró el proveedor con id {id}.");
+            return Result<object?>.Failure(404, "Recurso no encontrado", $"No se encontró el proveedor con id {id}.");
         }
 
-        proveedor.Nombre = dto.Nombre.Trim();
-        proveedor.Contacto = dto.Contacto?.Trim() ?? string.Empty;
-        proveedor.Direccion = dto.Direccion?.Trim() ?? string.Empty;
-        proveedor.CondicionesGenerales = dto.CondicionesGenerales?.Trim() ?? string.Empty;
+        _mapper.Map(dto, proveedor);
 
         await _repository.UpdateAsync(proveedor);
+
+        _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Proveedor.UpdateAsync");
+
+        return Result<object?>.Success(null, 204);
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task<Result<object?>> DeleteAsync(int id)
     {
-        ValidarId(id);
-        var proveedor = await _repository.GetByIdAsync(id);
+        if (id <= 0)
+            return Result<object?>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
+        var proveedor = await _repository.GetForUpdateAsync(id);
 
         if (proveedor is null)
         {
-            throw new ResourceNotFoundException($"No se encontró el proveedor con id {id}.");
+            return Result<object?>.Failure(404, "Recurso no encontrado", $"No se encontró el proveedor con id {id}.");
         }
 
         if (await _repository.HasAssociatedPartsAsync(id))
         {
-            throw new ConflictException("No se puede eliminar el proveedor porque tiene repuestos asociados.");
+            return Result<object?>.Failure(409, "Conflicto", "No se puede eliminar el proveedor porque tiene repuestos asociados.");
         }
 
         await _repository.DeleteAsync(proveedor);
+
+        _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Proveedor.DeleteAsync");
+
+        return Result<object?>.Success(null, 204);
     }
 
-    private static void ValidarId(int id)
-    {
-        if (id <= 0)
-            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
-    }
-
-    private static ProveedorDto MapToDto(Proveedor proveedor)
-    {
-        return new ProveedorDto
-        {
-            Id = proveedor.Id,
-            Nombre = proveedor.Nombre,
-            Contacto = proveedor.Contacto,
-            Direccion = proveedor.Direccion,
-            CondicionesGenerales = proveedor.CondicionesGenerales
-        };
-    }
 }

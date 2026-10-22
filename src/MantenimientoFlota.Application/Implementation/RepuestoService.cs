@@ -1,7 +1,10 @@
-using MantenimientoFlota.Application.Common.Exceptions;
-using MantenimientoFlota.Application.DTOs.Repuesto;
-using MantenimientoFlota.Application.Interfaces.Services;
-using MantenimientoFlota.Application.Interfaces.Repositories;
+using Microsoft.Extensions.Logging;
+using MantenimientoFlota.Domain.DTO.PatternResult;
+using MapsterMapper;
+using MantenimientoFlota.Application.Mapper;
+using MantenimientoFlota.Domain.DTO.Repuesto;
+using MantenimientoFlota.Application.Interfaces;
+using MantenimientoFlota.Infrastructure.Interfaces;
 using MantenimientoFlota.Domain.Entities;
 
 namespace MantenimientoFlota.Application.Implementation;
@@ -9,114 +12,104 @@ namespace MantenimientoFlota.Application.Implementation;
 public class RepuestoService : IRepuestoService
 {
     private readonly IRepuestoRepository _repository;
+    private readonly IMapper _mapper;
+    private readonly ILogger<RepuestoService> _logger;
 
-    public RepuestoService(IRepuestoRepository repository)
+    public RepuestoService(IRepuestoRepository repository, IMapper mapper, ILogger<RepuestoService> logger)
     {
         _repository = repository;
+        _mapper = mapper;
+        _logger = logger;
     }
 
-    public async Task<IReadOnlyList<RepuestoDto>> GetAllAsync(bool stockBajo = false)
+    public async Task<Result<IReadOnlyList<RepuestoDto>>> GetAllAsync(bool stockBajo = false)
     {
         var repuestos = await _repository.GetAllAsync(stockBajo);
 
-        return repuestos
-            .Select(MapToDto)
-            .ToList();
+        _logger.LogDebug("Operación de negocio completada. Operation={Operation}", "Repuesto.GetAllAsync");
+
+        return Result<IReadOnlyList<RepuestoDto>>.Success(_mapper.Map<List<RepuestoDto>>(repuestos), 200);
     }
 
-    public async Task<RepuestoDetalleDto> GetByIdAsync(int id)
+    public async Task<Result<RepuestoDetalleDto>> GetByIdAsync(int id)
     {
-        ValidarId(id);
-        return await _repository.GetDetalleByIdAsync(id)
-            ?? throw new ResourceNotFoundException($"No se encontró el repuesto con id {id}.");
+        if (id <= 0)
+            return Result<RepuestoDetalleDto>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
+        var entidad = await _repository.GetDetalleByIdAsync(id);
+        if (entidad is null) return Result<RepuestoDetalleDto>.Failure(404, "Recurso no encontrado", $"No se encontró el repuesto con id {id}.");
+        _logger.LogDebug("Operación de negocio completada. Operation={Operation}", "Repuesto.GetByIdAsync");
+        return Result<RepuestoDetalleDto>.Success(_mapper.Map<RepuestoDetalleDto>(entidad), 200);
     }
 
-    public async Task<RepuestoDto> CreateAsync(
+    public async Task<Result<RepuestoDto>> CreateAsync(
         CrearRepuestoDto dto)
     {
         var codigo = dto.Codigo.Trim();
 
         if (await _repository.ExistsByCodigoAsync(codigo))
         {
-            throw new ConflictException("Ya existe un repuesto con el código indicado.");
+            return Result<RepuestoDto>.Failure(409, "Conflicto", "Ya existe un repuesto con el código indicado.");
         }
 
-        var repuesto = new Repuesto
-        {
-            Codigo = codigo,
-            Nombre = dto.Nombre.Trim(),
-            UnidadMedida = dto.UnidadMedida.Trim(),
-            StockActual = dto.StockActual,
-            StockMinimo = dto.StockMinimo
-        };
+        var repuesto = _mapper.Map<Repuesto>(dto);
 
         var repuestoCreado = await _repository.AddAsync(repuesto) ?? repuesto;
 
-        return MapToDto(repuestoCreado);
+        _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Repuesto.CreateAsync");
+
+        return Result<RepuestoDto>.Success(_mapper.Map<RepuestoDto>(repuestoCreado), 201);
     }
 
-    public async Task UpdateAsync(
+    public async Task<Result<object?>> UpdateAsync(
         int id,
         ActualizarRepuestoDto dto)
     {
-        ValidarId(id);
-        var repuesto = await _repository.GetByIdAsync(id);
+        if (id <= 0)
+            return Result<object?>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
+        var repuesto = await _repository.GetForUpdateAsync(id);
 
         if (repuesto is null)
         {
-            throw new ResourceNotFoundException($"No se encontró el repuesto con id {id}.");
+            return Result<object?>.Failure(404, "Recurso no encontrado", $"No se encontró el repuesto con id {id}.");
         }
 
         var codigo = dto.Codigo.Trim();
 
         if (await _repository.ExistsByCodigoAsync(codigo, id))
         {
-            throw new ConflictException("Ya existe un repuesto con el código indicado.");
+            return Result<object?>.Failure(409, "Conflicto", "Ya existe un repuesto con el código indicado.");
         }
 
-        repuesto.Codigo = codigo;
-        repuesto.Nombre = dto.Nombre.Trim();
-        repuesto.UnidadMedida = dto.UnidadMedida.Trim();
-        repuesto.StockActual = dto.StockActual;
-        repuesto.StockMinimo = dto.StockMinimo;
+        _mapper.Map(dto, repuesto);
 
-        _repository.Update(repuesto);
+        await _repository.UpdateAsync(repuesto);
+
+        _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Repuesto.UpdateAsync");
+
+        return Result<object?>.Success(null, 204);
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task<Result<object?>> DeleteAsync(int id)
     {
-        ValidarId(id);
-        var repuesto = await _repository.GetByIdAsync(id);
+        if (id <= 0)
+            return Result<object?>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
+        var repuesto = await _repository.GetForUpdateAsync(id);
 
         if (repuesto is null)
         {
-            throw new ResourceNotFoundException($"No se encontró el repuesto con id {id}.");
+            return Result<object?>.Failure(404, "Recurso no encontrado", $"No se encontró el repuesto con id {id}.");
         }
 
         if (await _repository.HasAssociatedSuppliersAsync(id))
         {
-            throw new ConflictException("No se puede eliminar el repuesto porque tiene proveedores asociados.");
+            return Result<object?>.Failure(409, "Conflicto", "No se puede eliminar el repuesto porque tiene proveedores asociados.");
         }
 
-        _repository.Delete(id);
+        await _repository.DeleteAsync(id);
+
+        _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Repuesto.DeleteAsync");
+
+        return Result<object?>.Success(null, 204);
     }
 
-    private static void ValidarId(int id)
-    {
-        if (id <= 0)
-            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
-    }
-
-    private static RepuestoDto MapToDto(Repuesto repuesto)
-    {
-        return new RepuestoDto
-        {
-            Id = repuesto.Id,
-            Codigo = repuesto.Codigo,
-            Nombre = repuesto.Nombre,
-            UnidadMedida = repuesto.UnidadMedida,
-            StockActual = repuesto.StockActual,
-            StockMinimo = repuesto.StockMinimo
-        };
-    }
 }

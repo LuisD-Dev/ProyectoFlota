@@ -1,10 +1,13 @@
-using MantenimientoFlota.Application.Common.Results;
-using MantenimientoFlota.Application.Common.Exceptions;
-using MantenimientoFlota.Application.DTOs.Activo;
-using MantenimientoFlota.Application.Interfaces.Services;
-using MantenimientoFlota.Application.Interfaces.Repositories;
+using Microsoft.Extensions.Logging;
+using MantenimientoFlota.Domain.DTO.PatternResult;
+using MapsterMapper;
+using MantenimientoFlota.Application.Mapper;
+using MantenimientoFlota.Infrastructure.Exceptions;
+using MantenimientoFlota.Domain.DTO.Activo;
+using MantenimientoFlota.Application.Interfaces;
+using MantenimientoFlota.Infrastructure.Interfaces;
 using MantenimientoFlota.Domain.Entities;
-using MantenimientoFlota.Domain.Enums;
+using MantenimientoFlota.Domain.Constants;
 
 namespace MantenimientoFlota.Application.Implementation;
 
@@ -12,89 +15,69 @@ public class ActivoService : IActivoService
 {
     private readonly IActivoRepository _repository;
     private readonly IActivoImagenStorage _imagenes;
+    private readonly IMapper _mapper;
+    private readonly ILogger<ActivoService> _logger;
 
-    public ActivoService(IActivoRepository repository, IActivoImagenStorage imagenes)
+    public ActivoService(IActivoRepository repository, IActivoImagenStorage imagenes, IMapper mapper, ILogger<ActivoService> logger)
     {
         _repository = repository;
         _imagenes = imagenes;
+        _mapper = mapper;
+        _logger = logger;
     }
 
-    public async Task<IReadOnlyList<ActivoDto>> GetAllAsync(
+    public async Task<Result<IReadOnlyList<ActivoDto>>> GetAllAsync(
         int? categoriaActivoId = null,
-        EstadoActivo? estado = null)
+        int? estado = null)
     {
         var activos = await _repository.GetAllAsync(categoriaActivoId, estado);
 
-        return activos
-            .Select(MapToDto)
-            .ToList();
+        _logger.LogDebug("Operación de negocio completada. Operation={Operation}", "Activo.GetAllAsync");
+
+        return Result<IReadOnlyList<ActivoDto>>.Success(_mapper.Map<List<ActivoDto>>(activos), 200);
     }
 
-    public async Task<ActivoDetalleDto> GetByIdAsync(int id)
+    public async Task<Result<ActivoDetalleDto>> GetByIdAsync(int id)
     {
-        ValidarId(id);
+        if (id <= 0)
+            return Result<ActivoDetalleDto>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
         var fechaReferencia = DateOnly.FromDateTime(DateTime.UtcNow);
         var activo = await _repository.GetDetalleByIdAsync(id);
 
         if (activo is null)
         {
-            throw new ResourceNotFoundException($"No se encontró el activo con id {id}.");
+            return Result<ActivoDetalleDto>.Failure(404, "Recurso no encontrado", $"No se encontró el activo con id {id}.");
         }
 
-        activo.AntiguedadAnios = CalcularAntiguedadAnios(activo.FechaAdquisicion, fechaReferencia);
-        return activo;
+        var detalle = _mapper.Map<ActivoDetalleDto>(activo);
+        detalle.AntiguedadAnios = MapsterConfig.CalcularAntiguedadAnios(
+            activo.FechaAdquisicion, fechaReferencia);
+        _logger.LogDebug("Operación de negocio completada. Operation={Operation}", "Activo.GetByIdAsync");
+        return Result<ActivoDetalleDto>.Success(detalle, 200);
     }
 
-    private static int CalcularAntiguedadAnios(DateOnly fechaAdquisicion, DateOnly fechaReferencia)
-    {
-        if (fechaAdquisicion > fechaReferencia)
-        {
-            return 0;
-        }
-
-        var anios = fechaReferencia.Year - fechaAdquisicion.Year;
-        if (fechaAdquisicion.AddYears(anios) > fechaReferencia)
-        {
-            anios--;
-        }
-
-        return anios;
-    }
-
-    public async Task<ActivoDto> CreateAsync(CrearActivoDto dto)
+    public async Task<Result<ActivoDto>> CreateAsync(CrearActivoDto dto)
     {
         if (_imagenes.EsRutaReservada(dto.ImagenUrl))
         {
-            throw new InvalidRequestException("Las rutas de imágenes administradas solo pueden asignarse mediante la carga de imagen del activo.");
+            return Result<ActivoDto>.Failure(400, "Solicitud no válida", "Las rutas de imágenes administradas solo pueden asignarse mediante la carga de imagen del activo.");
         }
 
         var codigo = dto.Codigo.Trim();
 
         if (await _repository.ExistsByCodigoAsync(codigo))
         {
-            throw new ConflictException("Ya existe un activo con el código indicado.");
+            return Result<ActivoDto>.Failure(409, "Conflicto", "Ya existe un activo con el código indicado.");
         }
 
         var categoriaActivoId = dto.CategoriaActivoId!.Value;
 
         if (!await _repository.CategoriaExisteAsync(categoriaActivoId))
         {
-            throw new InvalidRequestException("No existe una categoría de activo con el identificador indicado.");
+            return Result<ActivoDto>.Failure(400, "Solicitud no válida", "No existe una categoría de activo con el identificador indicado.");
         }
 
-        var activo = new Activo
-        {
-            Codigo = codigo,
-            Nombre = dto.Nombre.Trim(),
-            Descripcion = dto.Descripcion ?? string.Empty,
-            FechaAdquisicion = dto.FechaAdquisicion!.Value,
-            ValorReferencia = dto.ValorReferencia!.Value,
-            Estado = dto.Estado!.Value,
-            ImagenUrl = dto.ImagenUrl ?? string.Empty,
-            Placa = dto.Placa ?? string.Empty,
-            KilometrajeActual = dto.KilometrajeActual!.Value,
-            CategoriaActivoId = categoriaActivoId
-        };
+        var activo = _mapper.Map<Activo>(dto);
 
         var activoCreado = await _repository.AddAsync(activo)
             ?? activo;
@@ -102,138 +85,140 @@ public class ActivoService : IActivoService
         var activoCompleto = await _repository.GetByIdAsync(activoCreado.Id)
             ?? activoCreado;
 
-        return MapToDto(activoCompleto);
+        _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Activo.CreateAsync");
+
+        return Result<ActivoDto>.Success(_mapper.Map<ActivoDto>(activoCompleto), 201);
     }
 
-    public async Task UpdateAsync(
+    public async Task<Result<object?>> UpdateAsync(
         int id,
         ActualizarActivoDto dto)
     {
-        ValidarId(id);
-        var activoExistente = await _repository.GetByIdAsync(id);
+        if (id <= 0)
+            return Result<object?>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
+        var activoExistente = await _repository.GetForUpdateAsync(id);
 
         if (activoExistente is null)
         {
-            throw new ResourceNotFoundException($"No se encontró el activo con id {id}.");
+            return Result<object?>.Failure(404, "Recurso no encontrado", $"No se encontró el activo con id {id}.");
         }
 
         if (_imagenes.EsRutaReservada(dto.ImagenUrl)
             && !(dto.ImagenUrl == activoExistente.ImagenUrl
                 && _imagenes.EsRutaAdministrada(id, activoExistente.ImagenUrl)))
         {
-            throw new InvalidRequestException("Las rutas de imágenes administradas solo pueden asignarse mediante la carga de imagen del activo.");
+            return Result<object?>.Failure(400, "Solicitud no válida", "Las rutas de imágenes administradas solo pueden asignarse mediante la carga de imagen del activo.");
         }
 
         var codigo = dto.Codigo.Trim();
 
         if (await _repository.ExistsByCodigoAsync(codigo, id))
         {
-            throw new ConflictException("Ya existe un activo con el código indicado.");
+            return Result<object?>.Failure(409, "Conflicto", "Ya existe un activo con el código indicado.");
         }
 
         var categoriaActivoId = dto.CategoriaActivoId!.Value;
 
         if (!await _repository.CategoriaExisteAsync(categoriaActivoId))
         {
-            throw new InvalidRequestException("No existe una categoría de activo con el identificador indicado.");
+            return Result<object?>.Failure(400, "Solicitud no válida", "No existe una categoría de activo con el identificador indicado.");
         }
 
         if (activoExistente.Estado != dto.Estado!.Value
             && await TieneConflictoEstadoAdministrativoAsync(id, dto.Estado.Value))
         {
-            throw new ConflictException("No se puede cambiar el estado del activo porque tiene órdenes de mantenimiento abiertas.");
+            return Result<object?>.Failure(409, "Conflicto", "No se puede cambiar el estado del activo porque tiene órdenes de mantenimiento abiertas.");
         }
 
-        var activoActualizado = new Activo
-        {
-            Id = id,
-            Codigo = codigo,
-            Nombre = dto.Nombre.Trim(),
-            Descripcion = dto.Descripcion ?? string.Empty,
-            FechaAdquisicion = dto.FechaAdquisicion!.Value,
-            ValorReferencia = dto.ValorReferencia!.Value,
-            Estado = dto.Estado!.Value,
-            ImagenUrl = _imagenes.EsRutaAdministrada(id, activoExistente.ImagenUrl)
-                ? activoExistente.ImagenUrl : dto.ImagenUrl ?? string.Empty,
-            Placa = dto.Placa ?? string.Empty,
-            KilometrajeActual = dto.KilometrajeActual!.Value,
-            CategoriaActivoId = categoriaActivoId
-        };
+        var activoActualizado = _mapper.Map(dto, activoExistente);
+        activoActualizado.Id = id;
+        activoActualizado.ImagenUrl = _imagenes.EsRutaAdministrada(id, activoExistente.ImagenUrl)
+            ? activoExistente.ImagenUrl : dto.ImagenUrl ?? string.Empty;
 
-        _repository.Update(activoActualizado);
+        await _repository.UpdateAsync(activoActualizado);
 
-        return;
+        _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Activo.UpdateAsync");
+
+        return Result<object?>.Success(null, 204);
     }
 
-    public async Task CambiarEstadoAdministrativoAsync(
+    public async Task<Result<object?>> CambiarEstadoAdministrativoAsync(
         int id,
         CambiarEstadoActivoDto dto)
     {
-        ValidarId(id);
+        if (id <= 0)
+            return Result<object?>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
         if (dto.Estado is not (EstadoActivo.FueraDeServicio or EstadoActivo.DadoDeBaja))
         {
-            throw new InvalidRequestException("Solo se permite establecer el estado FueraDeServicio o DadoDeBaja.");
+            return Result<object?>.Failure(400, "Solicitud no válida", "Solo se permite establecer el estado FueraDeServicio o DadoDeBaja.");
         }
 
-        var activo = await _repository.GetByIdAsync(id);
+        var activo = await _repository.GetForUpdateAsync(id);
         if (activo is null)
         {
-            throw new ResourceNotFoundException($"No se encontró el activo con id {id}.");
+            return Result<object?>.Failure(404, "Recurso no encontrado", $"No se encontró el activo con id {id}.");
         }
 
         if (await TieneConflictoEstadoAdministrativoAsync(id, dto.Estado.Value))
         {
-            throw new ConflictException("No se puede cambiar el estado del activo porque tiene órdenes de mantenimiento abiertas.");
+            return Result<object?>.Failure(409, "Conflicto", "No se puede cambiar el estado del activo porque tiene órdenes de mantenimiento abiertas.");
         }
 
         if (activo.Estado == dto.Estado.Value)
         {
-            return;
+            _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Activo.CambiarEstadoAdministrativoAsync");
+            return Result<object?>.Success(null, 204);
         }
 
         activo.Estado = dto.Estado.Value;
-        _repository.UpdateEstado(activo);
-        return;
+        await _repository.UpdateEstadoAsync(activo);
+        _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Activo.CambiarEstadoAdministrativoAsync");
+        return Result<object?>.Success(null, 204);
     }
 
-    private async Task<bool> TieneConflictoEstadoAdministrativoAsync(int id, EstadoActivo destino)
+    private async Task<bool> TieneConflictoEstadoAdministrativoAsync(int id, int destino)
     {
         return destino is EstadoActivo.FueraDeServicio or EstadoActivo.DadoDeBaja
             && await _repository.HasOpenMaintenanceOrdersAsync(id);
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task<Result<object?>> DeleteAsync(int id)
     {
-        ValidarId(id);
-        var activo = await _repository.GetByIdAsync(id);
+        if (id <= 0)
+            return Result<object?>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
+        var activo = await _repository.GetForUpdateAsync(id);
 
         if (activo is null)
         {
-            throw new ResourceNotFoundException($"No se encontró el activo con id {id}.");
+            return Result<object?>.Failure(404, "Recurso no encontrado", $"No se encontró el activo con id {id}.");
         }
 
         if (await _repository.HasAssociatedMaintenanceOrdersAsync(id))
         {
-            throw new ConflictException("No se puede eliminar el activo porque tiene órdenes de mantenimiento asociadas.");
+            return Result<object?>.Failure(409, "Conflicto", "No se puede eliminar el activo porque tiene órdenes de mantenimiento asociadas.");
         }
 
         if (activo.Estado == EstadoActivo.DadoDeBaja)
         {
-            return;
+            _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Activo.DeleteAsync");
+            return Result<object?>.Success(null, 204);
         }
 
         activo.Estado = EstadoActivo.DadoDeBaja;
-        _repository.UpdateEstado(activo);
+        await _repository.UpdateEstadoAsync(activo);
 
-        return;
+        _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Activo.DeleteAsync");
+
+        return Result<object?>.Success(null, 204);
     }
 
-    public async Task<ActivoImagenDto> ActualizarImagenAsync(
+    public async Task<Result<ActivoImagenDto>> ActualizarImagenAsync(
         int id, Stream contenido, string extension, CancellationToken cancellationToken)
     {
-        ValidarId(id);
+        if (id <= 0)
+            return Result<ActivoImagenDto>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
         var activo = await _repository.GetByIdAsync(id);
-        if (activo is null) throw new ResourceNotFoundException($"No se encontró el activo con id {id}.");
+        if (activo is null) return Result<ActivoImagenDto>.Failure(404, "Recurso no encontrado", $"No se encontró el activo con id {id}.");
 
         var nuevaRuta = await _imagenes.GuardarAsync(id, contenido, extension, cancellationToken);
         try
@@ -247,32 +232,8 @@ public class ActivoService : IActivoService
         }
         // Otros fallos pueden tener resultado SQL incierto: conservar ambos archivos.
         await _imagenes.EliminarSiAdministradaAsync(id, activo.ImagenUrl);
-        return new(id, nuevaRuta);
+        _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Activo.ActualizarImagenAsync");
+        return Result<ActivoImagenDto>.Success(new ActivoImagenDto(id, nuevaRuta), 200);
     }
 
-    private static void ValidarId(int id)
-    {
-        if (id <= 0)
-            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
-    }
-
-    private static ActivoDto MapToDto(Activo activo)
-    {
-        return new ActivoDto
-        {
-            Id = activo.Id,
-            Codigo = activo.Codigo,
-            Nombre = activo.Nombre,
-            Descripcion = activo.Descripcion,
-            FechaAdquisicion = activo.FechaAdquisicion,
-            ValorReferencia = activo.ValorReferencia,
-            Estado = activo.Estado,
-            ImagenUrl = activo.ImagenUrl,
-            Placa = activo.Placa,
-            KilometrajeActual = activo.KilometrajeActual,
-            CategoriaActivoId = activo.CategoriaActivoId,
-            CategoriaActivoNombre = activo.CategoriaActivo?.Nombre
-                ?? string.Empty
-        };
-    }
 }

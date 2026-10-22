@@ -1,7 +1,10 @@
-using MantenimientoFlota.Application.Common.Exceptions;
-using MantenimientoFlota.Application.DTOs.TecnicoEspecialidad;
-using MantenimientoFlota.Application.Interfaces.Services;
-using MantenimientoFlota.Application.Interfaces.Repositories;
+using Microsoft.Extensions.Logging;
+using MantenimientoFlota.Domain.DTO.PatternResult;
+using MapsterMapper;
+using MantenimientoFlota.Application.Mapper;
+using MantenimientoFlota.Domain.DTO.TecnicoEspecialidad;
+using MantenimientoFlota.Application.Interfaces;
+using MantenimientoFlota.Infrastructure.Interfaces;
 using MantenimientoFlota.Domain.Entities;
 
 namespace MantenimientoFlota.Application.Implementation;
@@ -9,23 +12,30 @@ namespace MantenimientoFlota.Application.Implementation;
 public class TecnicoEspecialidadService : ITecnicoEspecialidadService
 {
     private readonly ITecnicoEspecialidadRepository _repository;
+    private readonly IMapper _mapper;
+    private readonly ILogger<TecnicoEspecialidadService> _logger;
 
     public TecnicoEspecialidadService(
-        ITecnicoEspecialidadRepository repository)
+        ITecnicoEspecialidadRepository repository, IMapper mapper, ILogger<TecnicoEspecialidadService> logger)
     {
         _repository = repository;
+        _mapper = mapper;
+        _logger = logger;
     }
 
-    public async Task<IReadOnlyList<TecnicoEspecialidadDto>> GetAllAsync()
+    public async Task<Result<IReadOnlyList<TecnicoEspecialidadDto>>> GetAllAsync(int tecnicoId)
     {
-        var tecnicoEspecialidades = await _repository.GetAllAsync();
+        if (tecnicoId <= 0) return Result<IReadOnlyList<TecnicoEspecialidadDto>>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
+        if (!await _repository.TechnicianExistsAsync(tecnicoId))
+            return Result<IReadOnlyList<TecnicoEspecialidadDto>>.Failure(404, "Recurso no encontrado", $"No se encontró el técnico con id {tecnicoId}.");
+        var tecnicoEspecialidades = await _repository.GetAllAsync(tecnicoId);
 
-        return tecnicoEspecialidades
-            .Select(MapToDto)
-            .ToList();
+        _logger.LogDebug("Operación de negocio completada. Operation={Operation}", "TecnicoEspecialidad.GetAllAsync");
+
+        return Result<IReadOnlyList<TecnicoEspecialidadDto>>.Success(_mapper.Map<List<TecnicoEspecialidadDto>>(tecnicoEspecialidades), 200);
     }
 
-    public async Task<TecnicoEspecialidadDto> GetByIdAsync(
+    public async Task<Result<TecnicoEspecialidadDto>> GetByIdAsync(
         int tecnicoId,
         int especialidadId)
     {
@@ -33,39 +43,36 @@ public class TecnicoEspecialidadService : ITecnicoEspecialidadService
             tecnicoId,
             especialidadId);
 
-        return tecnicoEspecialidad is null
-            ? throw new ResourceNotFoundException($"No se encontró la relación entre el técnico con id {tecnicoId} y la especialidad con id {especialidadId}.")
-            : MapToDto(tecnicoEspecialidad);
+        if (tecnicoEspecialidad is null) return Result<TecnicoEspecialidadDto>.Failure(404, "Recurso no encontrado", $"No se encontró la relación entre el técnico con id {tecnicoId} y la especialidad con id {especialidadId}.");
+        _logger.LogDebug("Operación de negocio completada. Operation={Operation}", "TecnicoEspecialidad.GetByIdAsync");
+        return Result<TecnicoEspecialidadDto>.Success(_mapper.Map<TecnicoEspecialidadDto>(tecnicoEspecialidad), 200);
     }
 
-    public async Task<TecnicoEspecialidadDto> CreateAsync(
+    public async Task<Result<TecnicoEspecialidadDto>> CreateAsync(
+        int tecnicoId,
         CrearTecnicoEspecialidadDto dto)
     {
-        var tecnicoId = dto.TecnicoId!.Value;
+        if (tecnicoId <= 0) return Result<TecnicoEspecialidadDto>.Failure(400, "Solicitud no válida", "El identificador debe ser mayor que cero.");
         var especialidadId = dto.EspecialidadId!.Value;
 
         if (!await _repository.TechnicianExistsAsync(tecnicoId))
         {
-            throw new ResourceNotFoundException($"No se encontró el técnico con id {dto.TecnicoId}.");
+            return Result<TecnicoEspecialidadDto>.Failure(404, "Recurso no encontrado", $"No se encontró el técnico con id {tecnicoId}.");
         }
 
         if (!await _repository.SpecialtyExistsAsync(especialidadId))
         {
-            throw new ResourceNotFoundException($"No se encontró la especialidad con id {dto.EspecialidadId}.");
+            return Result<TecnicoEspecialidadDto>.Failure(404, "Recurso no encontrado", $"No se encontró la especialidad con id {dto.EspecialidadId}.");
         }
 
         if (await _repository.ExistsAsync(tecnicoId, especialidadId))
         {
-            throw new ConflictException("Ya existe una relación entre el técnico y la especialidad indicados.");
+            return Result<TecnicoEspecialidadDto>.Failure(409, "Conflicto", "Ya existe una relación entre el técnico y la especialidad indicados.");
         }
 
-        var tecnicoEspecialidad = new TecnicoEspecialidad
-        {
-            TecnicoId = tecnicoId,
-            EspecialidadId = especialidadId,
-            NivelCertificacion = dto.NivelCertificacion.Trim(),
-            FechaObtencion = dto.FechaObtencion!.Value
-        };
+        var tecnicoEspecialidad = _mapper.Map<TecnicoEspecialidad>(dto);
+        tecnicoEspecialidad.TecnicoId = tecnicoId;
+        tecnicoEspecialidad.EspecialidadId = especialidadId;
 
         var relacionCreada = await _repository.AddAsync(tecnicoEspecialidad);
         var relacionCompleta = await _repository.GetByIdAsync(
@@ -73,57 +80,46 @@ public class TecnicoEspecialidadService : ITecnicoEspecialidadService
             relacionCreada.EspecialidadId)
             ?? relacionCreada;
 
-        return MapToDto(relacionCompleta);
+        _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "TecnicoEspecialidad.CreateAsync");
+
+        return Result<TecnicoEspecialidadDto>.Success(_mapper.Map<TecnicoEspecialidadDto>(relacionCompleta), 201);
     }
 
-    public async Task UpdateAsync(
+    public async Task<Result<object?>> UpdateAsync(
         int tecnicoId,
         int especialidadId,
         ActualizarTecnicoEspecialidadDto dto)
     {
-        if (!await _repository.ExistsAsync(tecnicoId, especialidadId))
+        var tecnicoEspecialidad = await _repository.GetForUpdateAsync(tecnicoId, especialidadId);
+        if (tecnicoEspecialidad is null)
         {
-            throw new ResourceNotFoundException($"No se encontró la relación entre el técnico con id {tecnicoId} y la especialidad con id {especialidadId}.");
+            return Result<object?>.Failure(404, "Recurso no encontrado", $"No se encontró la relación entre el técnico con id {tecnicoId} y la especialidad con id {especialidadId}.");
         }
 
-        var tecnicoEspecialidad = new TecnicoEspecialidad
-        {
-            TecnicoId = tecnicoId,
-            EspecialidadId = especialidadId,
-            NivelCertificacion = dto.NivelCertificacion.Trim(),
-            FechaObtencion = dto.FechaObtencion!.Value
-        };
+        _mapper.Map(dto, tecnicoEspecialidad);
+        tecnicoEspecialidad.TecnicoId = tecnicoId;
+        tecnicoEspecialidad.EspecialidadId = especialidadId;
 
         await _repository.UpdateAsync(tecnicoEspecialidad);
 
+        _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "TecnicoEspecialidad.UpdateAsync");
+
+        return Result<object?>.Success(null, 204);
     }
 
-    public async Task DeleteAsync(
+    public async Task<Result<object?>> DeleteAsync(
         int tecnicoId,
         int especialidadId)
     {
         if (!await _repository.ExistsAsync(tecnicoId, especialidadId))
         {
-            throw new ResourceNotFoundException($"No se encontró la relación entre el técnico con id {tecnicoId} y la especialidad con id {especialidadId}.");
+            return Result<object?>.Failure(404, "Recurso no encontrado", $"No se encontró la relación entre el técnico con id {tecnicoId} y la especialidad con id {especialidadId}.");
         }
 
         await _repository.DeleteAsync(tecnicoId, especialidadId);
 
-    }
+        _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "TecnicoEspecialidad.DeleteAsync");
 
-    private static TecnicoEspecialidadDto MapToDto(
-        TecnicoEspecialidad tecnicoEspecialidad)
-    {
-        return new TecnicoEspecialidadDto
-        {
-            TecnicoId = tecnicoEspecialidad.TecnicoId,
-            TecnicoNombreCompleto = tecnicoEspecialidad.Tecnico?.NombreCompleto
-                ?? string.Empty,
-            EspecialidadId = tecnicoEspecialidad.EspecialidadId,
-            EspecialidadNombre = tecnicoEspecialidad.Especialidad?.Nombre
-                ?? string.Empty,
-            NivelCertificacion = tecnicoEspecialidad.NivelCertificacion,
-            FechaObtencion = tecnicoEspecialidad.FechaObtencion
-        };
+        return Result<object?>.Success(null, 204);
     }
 }
