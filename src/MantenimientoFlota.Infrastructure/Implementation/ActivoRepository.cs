@@ -18,6 +18,33 @@ public class ActivoRepository : IActivoRepository
         _context = context;
     }
 
+    public async Task<(IEnumerable<Activo> Items, int TotalRecords)> SearchAsync(BuscarActivosDto consulta)
+    {
+        IQueryable<Activo> query = _context.Activos.AsNoTracking().Include(x => x.CategoriaActivo);
+        if (!string.IsNullOrWhiteSpace(consulta.Texto))
+        {
+            var texto = consulta.Texto.Trim();
+            query = query.Where(x => x.Codigo.Contains(texto) || x.Nombre.Contains(texto) || x.Placa.Contains(texto));
+        }
+        if (consulta.CategoriaActivoId.HasValue) query = query.Where(x => x.CategoriaActivoId == consulta.CategoriaActivoId.Value);
+        if (consulta.Estado.HasValue) query = query.Where(x => x.Estado == consulta.Estado.Value);
+        if (consulta.KilometrajeDesde.HasValue) query = query.Where(x => x.KilometrajeActual >= consulta.KilometrajeDesde.Value);
+        if (consulta.KilometrajeHasta.HasValue) query = query.Where(x => x.KilometrajeActual <= consulta.KilometrajeHasta.Value);
+        var totalRecords = await query.CountAsync();
+        var descending = string.Equals(consulta.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+        IOrderedQueryable<Activo> ordered = consulta.SortBy.ToLowerInvariant() switch
+        {
+            "codigo" => descending ? query.OrderByDescending(x => x.Codigo) : query.OrderBy(x => x.Codigo),
+            "fecha" => descending ? query.OrderByDescending(x => x.FechaAdquisicion) : query.OrderBy(x => x.FechaAdquisicion),
+            "kilometraje" => descending ? query.OrderByDescending(x => x.KilometrajeActual) : query.OrderBy(x => x.KilometrajeActual),
+            _ => descending ? query.OrderByDescending(x => x.Nombre) : query.OrderBy(x => x.Nombre)
+        };
+        var offset = ((long)consulta.PageNumber - 1) * consulta.PageSize;
+        if (offset > int.MaxValue) return (Array.Empty<Activo>(), totalRecords);
+        var items = await ordered.ThenBy(x => x.Id).Skip((int)offset).Take(consulta.PageSize).ToListAsync();
+        return (items, totalRecords);
+    }
+
     public async Task<IEnumerable<Activo>> GetAllAsync(
         int? categoriaActivoId = null,
         int? estado = null)
@@ -50,32 +77,18 @@ public class ActivoRepository : IActivoRepository
             .FirstOrDefaultAsync(activo => activo.Id == id);
     }
 
-    public async Task<ActivoDetalleDto?> GetDetalleByIdAsync(int id)
+    public async Task<(Activo? Entidad, int Cantidad)> GetDetalleByIdAsync(int id)
     {
-        // El conteo se traduce a COUNT en SQL; las relaciones se proyectan a resúmenes.
-        return await _context.Activos
+        // Count se ejecuta en SQL; Application transforma la entidad al DTO.
+        var resultado = await _context.Activos
             .AsNoTracking()
             .AsSingleQuery()
+            .Include(entidad => entidad.CategoriaActivo)
+            .Include(entidad => entidad.OrdenesMantenimiento)
             .Where(entidad => entidad.Id == id)
-            .Select(entidad => new ActivoDetalleDto
-            {
-                Id = entidad.Id, Codigo = entidad.Codigo, Nombre = entidad.Nombre,
-                Descripcion = entidad.Descripcion, FechaAdquisicion = entidad.FechaAdquisicion,
-                ValorReferencia = entidad.ValorReferencia, Estado = entidad.Estado,
-                ImagenUrl = entidad.ImagenUrl, Placa = entidad.Placa,
-                KilometrajeActual = entidad.KilometrajeActual, CategoriaActivoId = entidad.CategoriaActivoId,
-                CategoriaActivoNombre = entidad.CategoriaActivo.Nombre,
-                Categoria = new CategoriaActivoResumenDto { Id = entidad.CategoriaActivo.Id,
-                    Nombre = entidad.CategoriaActivo.Nombre,
-                    IntervaloMantenimientoKm = entidad.CategoriaActivo.IntervaloMantenimientoKm },
-                CantidadOrdenes = entidad.OrdenesMantenimiento.Count(),
-                Ordenes = entidad.OrdenesMantenimiento.OrderByDescending(orden => orden.FechaSolicitud)
-                    .ThenByDescending(orden => orden.Id).Select(orden => new OrdenMantenimientoResumenDto {
-                        Codigo = orden.Codigo, FechaSolicitud = orden.FechaSolicitud,
-                        TipoMantenimiento = orden.TipoMantenimiento, Prioridad = orden.Prioridad,
-                        EstadoActual = orden.EstadoActual }).ToList()
-            })
+            .Select(entidad => new { Entidad = entidad, Cantidad = entidad.OrdenesMantenimiento.Count() })
             .FirstOrDefaultAsync();
+        return (resultado?.Entidad, resultado?.Cantidad ?? 0);
     }
 
     public async Task<Activo?> AddAsync(Activo activo)

@@ -11,7 +11,7 @@ public interface ICategoriaActivoRepository
 
     Task<CategoriaActivo?> GetByIdAsync(int id);
 
-    Task<CategoriaActivoDetalleDto?> GetDetalleByIdAsync(int id);
+    Task<(CategoriaActivo? Entidad, int Cantidad)> GetDetalleByIdAsync(int id);
 
     Task<CategoriaActivo?> AddAsync(CategoriaActivo categoria);
 

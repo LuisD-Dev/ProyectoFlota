@@ -32,7 +32,7 @@ public static class MapsterConfig
             .Map(dest => dest.Ordenes, src => src.OrdenesMantenimiento
                 .OrderByDescending(orden => orden.FechaSolicitud)
                 .ThenByDescending(orden => orden.Id))
-            .Map(dest => dest.CantidadOrdenes, src => src.OrdenesMantenimiento.Count)
+            .Ignore(dest => dest.CantidadOrdenes)
             // La fecha de referencia se captura una vez por solicitud en el servicio.
             .Ignore(dest => dest.AntiguedadAnios);
 
@@ -81,7 +81,7 @@ public static class MapsterConfig
         config.NewConfig<Activo, ActivoResumenDto>();
 
         config.NewConfig<CategoriaActivo, CategoriaActivoDetalleDto>()
-            .Map(dest => dest.CantidadActivos, src => src.Activos.Count)
+            .Ignore(dest => dest.CantidadActivos)
             .Map(dest => dest.Activos, src => src.Activos.OrderBy(activo => activo.Codigo));
 
         config.NewConfig<TecnicoEspecialidad, TecnicoEspecialidadResumenDto>()
@@ -96,7 +96,7 @@ public static class MapsterConfig
             .Ignore(dest => dest.AntiguedadAnios);
 
         config.NewConfig<Tecnico, TecnicoDetalleDto>()
-            .Map(dest => dest.CantidadEspecialidades, src => src.TecnicoEspecialidades.Count)
+            .Ignore(dest => dest.CantidadEspecialidades)
             .Map(dest => dest.Especialidades, src => src.TecnicoEspecialidades.OrderBy(relacion => relacion.Especialidad.Nombre).ThenBy(relacion => relacion.EspecialidadId));
 
         config.NewConfig<RepuestoProveedor, RepuestoProveedorResumenDto>()
@@ -112,7 +112,7 @@ public static class MapsterConfig
         config.NewConfig<Repuesto, RepuestoDetalleDto>()
             .Map(dest => dest.StockBajo, src => src.StockActual < src.StockMinimo)
             .Map(dest => dest.FaltanteStockMinimo, src => src.StockActual < src.StockMinimo ? src.StockMinimo - src.StockActual : 0m)
-            .Map(dest => dest.CantidadProveedores, src => src.RepuestoProveedores.Count)
+            .Ignore(dest => dest.CantidadProveedores)
             .Map(dest => dest.Proveedores, src => src.RepuestoProveedores.OrderBy(relacion => relacion.Proveedor.Nombre).ThenBy(relacion => relacion.ProveedorId));
 
         config.NewConfig<CategoriaActivo, CategoriaOrdenResumenDto>();

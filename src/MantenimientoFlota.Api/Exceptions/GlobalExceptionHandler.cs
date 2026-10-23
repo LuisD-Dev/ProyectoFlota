@@ -22,6 +22,15 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
                 business.Status, business.Message, business.Errors, business.Title), cancellationToken);
             return true;
         }
+        if (exception is BadHttpRequestException badRequest)
+        {
+            logger.LogWarning("Solicitud HTTP rechazada. TraceId={TraceId} Status={Status} ExceptionType={ExceptionType}",
+                context.TraceIdentifier, badRequest.StatusCode, badRequest.GetType().FullName);
+            context.Response.StatusCode = badRequest.StatusCode;
+            await context.Response.WriteAsJsonAsync(ApiErrorFactory.Create(context, badRequest.StatusCode,
+                "La solicitud HTTP no es válida.", title: "Solicitud no válida", errorCode: "INVALID_REQUEST"), cancellationToken);
+            return true;
+        }
         var conflict = ExceptionClassification.IsPersistenceConflict(exception);
         var status = conflict ? StatusCodes.Status409Conflict : StatusCodes.Status500InternalServerError;
 

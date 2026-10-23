@@ -23,6 +23,14 @@ public class RepuestoService : IRepuestoService
         _logger = logger;
     }
 
+    public async Task<Result<IReadOnlyList<RepuestoDto>>> SearchAsync(BuscarRepuestosDto consulta)
+    {
+        var (items, totalRecords) = await _repository.SearchAsync(consulta);
+        var data = _mapper.Map<List<RepuestoDto>>(items);
+        return Result<IReadOnlyList<RepuestoDto>>.Paged(data,
+            consulta.PageNumber, consulta.PageSize, totalRecords);
+    }
+
     public async Task<Result<IReadOnlyList<RepuestoDto>>> GetAllAsync(bool stockBajo = false)
     {
         var repuestos = await _repository.GetAllAsync(stockBajo);
@@ -36,10 +44,12 @@ public class RepuestoService : IRepuestoService
     {
         if (id <= 0)
             throw new InvalidRequestException("El identificador debe ser mayor que cero.");
-        var entidad = await _repository.GetDetalleByIdAsync(id);
+        var (entidad, cantidad) = await _repository.GetDetalleByIdAsync(id);
         if (entidad is null) throw new ResourceNotFoundException($"No se encontró el repuesto con id {id}.");
         _logger.LogDebug("Operación de negocio completada. Operation={Operation}", "Repuesto.GetByIdAsync");
-        return Result<RepuestoDetalleDto>.Success(entidad, 200);
+        var detalle = _mapper.Map<RepuestoDetalleDto>(entidad);
+        detalle.CantidadProveedores = cantidad;
+        return Result<RepuestoDetalleDto>.Success(detalle, 200);
     }
 
     public async Task<Result<RepuestoDto>> CreateAsync(
@@ -87,7 +97,7 @@ public class RepuestoService : IRepuestoService
 
         _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Repuesto.UpdateAsync");
 
-        return Result<object?>.Success(null, 204);
+        return Result<object?>.Success(null, 200, "OK", "Operación completada.");
     }
 
     public async Task<Result<object?>> DeleteAsync(int id)
@@ -110,7 +120,7 @@ public class RepuestoService : IRepuestoService
 
         _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Repuesto.DeleteAsync");
 
-        return Result<object?>.Success(null, 204);
+        return Result<object?>.Success(null, 200, "OK", "Operación completada.");
     }
 
 }

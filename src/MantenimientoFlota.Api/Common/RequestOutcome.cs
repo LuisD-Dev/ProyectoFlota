@@ -7,8 +7,3 @@ internal static class RequestOutcome
     internal const string ExpectedFailure = "ExpectedFailure";
     internal const string UnexpectedException = "UnexpectedException";
 }
-
-internal static class RequestOutcomeMarker
-{
-    internal static readonly object Key = new();
-}

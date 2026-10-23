@@ -36,10 +36,12 @@ public class CategoriaActivoService : ICategoriaActivoService
     {
         if (id <= 0)
             throw new InvalidRequestException("El identificador debe ser mayor que cero.");
-        var entidad = await _repository.GetDetalleByIdAsync(id);
+        var (entidad, cantidad) = await _repository.GetDetalleByIdAsync(id);
         if (entidad is null) throw new ResourceNotFoundException($"No se encontró la categoría de activo con id {id}.");
         _logger.LogDebug("Operación de negocio completada. Operation={Operation}", "CategoriaActivo.GetByIdAsync");
-        return Result<CategoriaActivoDetalleDto>.Success(entidad, 200);
+        var detalle = _mapper.Map<CategoriaActivoDetalleDto>(entidad);
+        detalle.CantidadActivos = cantidad;
+        return Result<CategoriaActivoDetalleDto>.Success(detalle, 200);
     }
 
     public async Task<Result<CategoriaActivoDto>> CreateAsync(
@@ -88,7 +90,7 @@ public class CategoriaActivoService : ICategoriaActivoService
 
         _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "CategoriaActivo.UpdateAsync");
 
-        return Result<object?>.Success(null, 204);
+        return Result<object?>.Success(null, 200, "OK", "Operación completada.");
     }
 
     public async Task<Result<object?>> DeleteAsync(int id)
@@ -111,7 +113,7 @@ public class CategoriaActivoService : ICategoriaActivoService
 
         _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "CategoriaActivo.DeleteAsync");
 
-        return Result<object?>.Success(null, 204);
+        return Result<object?>.Success(null, 200, "OK", "Operación completada.");
     }
 
 }

@@ -21,6 +21,9 @@ public sealed class CategoriaActivoController : ControllerBase
         _service = service;
     }
 
+    /// <summary>Listar categorías de activo.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
     [EndpointSummary("Listar categorías de activo")]
     [HttpGet]
     [ProducesResponseType(
@@ -35,12 +38,18 @@ public sealed class CategoriaActivoController : ControllerBase
         return this.FromResult(categorias);
     }
 
+    /// <summary>Consultar detalle de categorías de activo.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="id">Identificador positivo del recurso.</param>
+    /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    /// <response code="404">El recurso solicitado no existe.</response>
     [EndpointSummary("Consultar detalle de categorías de activo")]
-    [HttpGet("{id:int}")]
+    [HttpGet("{id:int}", Name = "CategoriaActivo_GetById")]
     [ProducesResponseType(typeof(Result<CategoriaActivoDetalleDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<Result<CategoriaActivoDetalleDto>>> GetById(
+    public async Task<ActionResult<Result<CategoriaActivoDetalleDto>>> GetByIdAsync(
         [FromServices] ILogger<CategoriaActivoController> logger,
         [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")] int id)
     {
@@ -51,6 +60,13 @@ public sealed class CategoriaActivoController : ControllerBase
         return this.FromResult(categoria);
     }
 
+    /// <summary>Registrar categorías de activo.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="dto">Datos de entrada de la operación.</param>
+    /// <response code="201">Recurso creado; Location permite consultar su detalle.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    /// <response code="409">La operación entra en conflicto con los datos o las reglas de negocio.</response>
+    /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Registrar categorías de activo")]
     [HttpPost]
     [ProducesResponseType(typeof(Result<CategoriaActivoDto>), StatusCodes.Status201Created)]
@@ -66,15 +82,24 @@ public sealed class CategoriaActivoController : ControllerBase
 
         if (!result.IsSuccess) return this.FromResult(result);
 
-        return CreatedAtAction(
-            nameof(GetById),
+        return CreatedAtRoute(
+            "CategoriaActivo_GetById",
             new { id = result.Data!.Id },
             result);
     }
 
+    /// <summary>Actualizar categorías de activo.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="id">Identificador positivo del recurso.</param>
+    /// <param name="dto">Datos de entrada de la operación.</param>
+    /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    /// <response code="404">El recurso solicitado no existe.</response>
+    /// <response code="409">La operación entra en conflicto con los datos o las reglas de negocio.</response>
+    /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Actualizar categorías de activo")]
     [HttpPut("{id:int}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
@@ -91,9 +116,16 @@ public sealed class CategoriaActivoController : ControllerBase
         return this.FromResult(result);
     }
 
+    /// <summary>Eliminar categorías de activo.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="id">Identificador positivo del recurso.</param>
+    /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    /// <response code="404">El recurso solicitado no existe.</response>
+    /// <response code="409">La operación entra en conflicto con los datos o las reglas de negocio.</response>
     [EndpointSummary("Eliminar categorías de activo")]
     [HttpDelete("{id:int}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]

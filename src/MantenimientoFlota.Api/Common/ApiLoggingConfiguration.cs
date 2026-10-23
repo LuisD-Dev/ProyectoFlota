@@ -6,12 +6,14 @@ namespace MantenimientoFlota.Api.Common;
 public static class ApiLoggingConfiguration
 {
     public static LoggerConfiguration ConfigureApiLogging(this LoggerConfiguration configuration,
-        string logDirectory, bool writeConsole = true)
+        string logDirectory, bool writeConsole = true, bool isDevelopment = false)
     {
         const string template = "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext} {Message:lj}{NewLine}{Exception}";
         configuration.MinimumLevel.Information()
             .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-            .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Information)
+            .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
+            .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command",
+                isDevelopment ? LogEventLevel.Information : LogEventLevel.Warning)
             .Enrich.FromLogContext()
             // Los mensajes de EF Update pueden incluir la excepción completa como propiedad de texto.
             // Los fallos HTTP se diagnostican de forma segura en nuestro handler/cierre.
@@ -36,7 +38,8 @@ public static class ApiLoggingConfiguration
             {
                 if (context.Items.ContainsKey(RequestLoggingState.UnhandledKey)) return LogEventLevel.Verbose;
                 if (exception is not null || context.Response.StatusCode >= 500) return LogEventLevel.Error;
-                return context.Items.ContainsKey(RequestOutcomeMarker.Key) ? LogEventLevel.Warning : LogEventLevel.Information;
+                return context.Items.ContainsKey(RequestOutcomeMarker.Key) || context.Response.StatusCode is >= 400 and < 500
+                    ? LogEventLevel.Warning : LogEventLevel.Information;
             };
             options.EnrichDiagnosticContext = (diagnostic, context) =>
             {

@@ -73,7 +73,7 @@ public class ProveedorService : IProveedorService
 
         _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Proveedor.UpdateAsync");
 
-        return Result<object?>.Success(null, 204);
+        return Result<object?>.Success(null, 200, "OK", "Operación completada.");
     }
 
     public async Task<Result<object?>> DeleteAsync(int id)
@@ -96,7 +96,7 @@ public class ProveedorService : IProveedorService
 
         _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Proveedor.DeleteAsync");
 
-        return Result<object?>.Success(null, 204);
+        return Result<object?>.Success(null, 200, "OK", "Operación completada.");
     }
 
 }

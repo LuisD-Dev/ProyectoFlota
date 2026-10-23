@@ -42,14 +42,15 @@ public class TecnicoService : ITecnicoService
         if (id <= 0)
             throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         var fechaReferencia = DateOnly.FromDateTime(DateTime.UtcNow);
-        var tecnico = await _repository.GetDetalleByIdAsync(id);
+        var (tecnico, cantidad) = await _repository.GetDetalleByIdAsync(id);
 
         if (tecnico is null)
         {
             throw new ResourceNotFoundException($"No se encontró el técnico con id {id}.");
         }
 
-        var detalle = tecnico;
+        var detalle = _mapper.Map<TecnicoDetalleDto>(tecnico);
+        detalle.CantidadEspecialidades = cantidad;
         foreach (var especialidad in detalle.Especialidades)
         {
             especialidad.AntiguedadAnios = MapsterConfig.CalcularAntiguedadAnios(
@@ -92,7 +93,7 @@ public class TecnicoService : ITecnicoService
 
         _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Tecnico.UpdateAsync");
 
-        return Result<object?>.Success(null, 204);
+        return Result<object?>.Success(null, 200, "OK", "Operación completada.");
     }
 
     public async Task<Result<object?>> DeleteAsync(int id)
@@ -115,7 +116,7 @@ public class TecnicoService : ITecnicoService
 
         _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Tecnico.DeleteAsync");
 
-        return Result<object?>.Success(null, 204);
+        return Result<object?>.Success(null, 200, "OK", "Operación completada.");
     }
 
 }

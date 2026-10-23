@@ -24,6 +24,12 @@ public sealed class TecnicoController : ControllerBase
         _relaciones = relaciones;
     }
 
+    /// <summary>Listar técnicos.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="disponible">Parámetro de la operación.</param>
+    /// <param name="especialidadId">Identificador positivo del recurso.</param>
+    /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
     [EndpointSummary("Listar técnicos")]
     [HttpGet]
     [ProducesResponseType(typeof(Result<IEnumerable<TecnicoDto>>), StatusCodes.Status200OK)]
@@ -40,12 +46,18 @@ public sealed class TecnicoController : ControllerBase
         return this.FromResult(tecnicos);
     }
 
+    /// <summary>Consultar detalle de técnicos.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="id">Identificador positivo del recurso.</param>
+    /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    /// <response code="404">El recurso solicitado no existe.</response>
     [EndpointSummary("Consultar detalle de técnicos")]
-    [HttpGet("{id:int}")]
+    [HttpGet("{id:int}", Name = "Tecnico_GetById")]
     [ProducesResponseType(typeof(Result<TecnicoDetalleDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<Result<TecnicoDetalleDto>>> GetById(
+    public async Task<ActionResult<Result<TecnicoDetalleDto>>> GetByIdAsync(
         [FromServices] ILogger<TecnicoController> logger,
         [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")] int id)
     {
@@ -56,6 +68,12 @@ public sealed class TecnicoController : ControllerBase
         return this.FromResult(tecnico);
     }
 
+    /// <summary>Registrar técnicos.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="dto">Datos de entrada de la operación.</param>
+    /// <response code="201">Recurso creado; Location permite consultar su detalle.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Registrar técnicos")]
     [HttpPost]
     [ProducesResponseType(typeof(Result<TecnicoDto>), StatusCodes.Status201Created)]
@@ -70,15 +88,23 @@ public sealed class TecnicoController : ControllerBase
 
         if (!result.IsSuccess) return this.FromResult(result);
 
-        return CreatedAtAction(
-            nameof(GetById),
+        return CreatedAtRoute(
+            "Tecnico_GetById",
             new { id = result.Data!.Id },
             result);
     }
 
+    /// <summary>Actualizar técnicos.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="id">Identificador positivo del recurso.</param>
+    /// <param name="dto">Datos de entrada de la operación.</param>
+    /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    /// <response code="404">El recurso solicitado no existe.</response>
+    /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Actualizar técnicos")]
     [HttpPut("{id:int}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status415UnsupportedMediaType)]
@@ -94,9 +120,16 @@ public sealed class TecnicoController : ControllerBase
         return this.FromResult(result);
     }
 
+    /// <summary>Eliminar técnicos.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="id">Identificador positivo del recurso.</param>
+    /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    /// <response code="404">El recurso solicitado no existe.</response>
+    /// <response code="409">La operación entra en conflicto con los datos o las reglas de negocio.</response>
     [EndpointSummary("Eliminar técnicos")]
     [HttpDelete("{id:int}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
@@ -111,6 +144,12 @@ public sealed class TecnicoController : ControllerBase
         return this.FromResult(result);
     }
 
+    /// <summary>Listar asociaciones técnico-especialidad.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="tecnicoId">Identificador positivo del recurso.</param>
+    /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    /// <response code="404">El recurso solicitado no existe.</response>
     [EndpointSummary("Listar asociaciones técnico-especialidad")]
     [HttpGet("{tecnicoId:int}/especialidades")]
     [ProducesResponseType(
@@ -128,12 +167,19 @@ public sealed class TecnicoController : ControllerBase
         return this.FromResult(tecnicoEspecialidades);
     }
 
+    /// <summary>Consultar detalle de asociaciones técnico-especialidad.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="tecnicoId">Identificador positivo del recurso.</param>
+    /// <param name="especialidadId">Identificador positivo del recurso.</param>
+    /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    /// <response code="404">El recurso solicitado no existe.</response>
     [EndpointSummary("Consultar detalle de asociaciones técnico-especialidad")]
-    [HttpGet("{tecnicoId:int}/especialidades/{especialidadId:int}")]
+    [HttpGet("{tecnicoId:int}/especialidades/{especialidadId:int}", Name = "Tecnico_GetEspecialidad")]
     [ProducesResponseType(typeof(Result<TecnicoEspecialidadDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<Result<TecnicoEspecialidadDto>>> ConsultarEspecialidad(
+    public async Task<ActionResult<Result<TecnicoEspecialidadDto>>> ConsultarEspecialidadAsync(
         [FromServices] ILogger<TecnicoController> logger,
         [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")] int tecnicoId,
         [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")] int especialidadId)
@@ -146,6 +192,15 @@ public sealed class TecnicoController : ControllerBase
         return this.FromResult(tecnicoEspecialidad);
     }
 
+    /// <summary>Registrar asociaciones técnico-especialidad.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="tecnicoId">Identificador positivo del recurso.</param>
+    /// <param name="dto">Datos de entrada de la operación.</param>
+    /// <response code="201">Recurso creado; Location permite consultar su detalle.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    /// <response code="404">El recurso solicitado no existe.</response>
+    /// <response code="409">La operación entra en conflicto con los datos o las reglas de negocio.</response>
+    /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Registrar asociaciones técnico-especialidad")]
     [HttpPost("{tecnicoId:int}/especialidades")]
     [ProducesResponseType(
@@ -167,8 +222,8 @@ public sealed class TecnicoController : ControllerBase
 
         if (!result.IsSuccess) return this.FromResult(result);
 
-        return CreatedAtAction(
-            nameof(ConsultarEspecialidad),
+        return CreatedAtRoute(
+            "Tecnico_GetEspecialidad",
             new
             {
                 tecnicoId = tecnicoEspecialidad!.TecnicoId,
@@ -177,9 +232,18 @@ public sealed class TecnicoController : ControllerBase
             result);
     }
 
+    /// <summary>Actualizar asociaciones técnico-especialidad.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="tecnicoId">Identificador positivo del recurso.</param>
+    /// <param name="especialidadId">Identificador positivo del recurso.</param>
+    /// <param name="dto">Datos de entrada de la operación.</param>
+    /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    /// <response code="404">El recurso solicitado no existe.</response>
+    /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Actualizar asociaciones técnico-especialidad")]
     [HttpPut("{tecnicoId:int}/especialidades/{especialidadId:int}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status415UnsupportedMediaType)]
@@ -197,9 +261,16 @@ public sealed class TecnicoController : ControllerBase
         return this.FromResult(result);
     }
 
+    /// <summary>Eliminar asociaciones técnico-especialidad.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="tecnicoId">Identificador positivo del recurso.</param>
+    /// <param name="especialidadId">Identificador positivo del recurso.</param>
+    /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    /// <response code="404">El recurso solicitado no existe.</response>
     [EndpointSummary("Eliminar asociaciones técnico-especialidad")]
     [HttpDelete("{tecnicoId:int}/especialidades/{especialidadId:int}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> DesasociarEspecialidadAsync(

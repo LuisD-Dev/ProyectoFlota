@@ -6,6 +6,8 @@ namespace MantenimientoFlota.Application.Interfaces;
 
 public interface IActivoService
 {
+    Task<Result<IReadOnlyList<ActivoDto>>> SearchAsync(BuscarActivosDto consulta);
+
     Task<Result<IReadOnlyList<ActivoDto>>> GetAllAsync(
         int? categoriaActivoId = null,
         int? estado = null);

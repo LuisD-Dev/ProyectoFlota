@@ -21,6 +21,9 @@ public sealed class EspecialidadController : ControllerBase
         _service = service;
     }
 
+    /// <summary>Listar especialidades.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
     [EndpointSummary("Listar especialidades")]
     [HttpGet]
     [ProducesResponseType(
@@ -35,12 +38,18 @@ public sealed class EspecialidadController : ControllerBase
         return this.FromResult(especialidades);
     }
 
+    /// <summary>Consultar detalle de especialidades.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="id">Identificador positivo del recurso.</param>
+    /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    /// <response code="404">El recurso solicitado no existe.</response>
     [EndpointSummary("Consultar detalle de especialidades")]
-    [HttpGet("{id:int}")]
+    [HttpGet("{id:int}", Name = "Especialidad_GetById")]
     [ProducesResponseType(typeof(Result<EspecialidadDetalleDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<Result<EspecialidadDetalleDto>>> GetById(
+    public async Task<ActionResult<Result<EspecialidadDetalleDto>>> GetByIdAsync(
         [FromServices] ILogger<EspecialidadController> logger,
         [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")] int id)
     {
@@ -51,6 +60,13 @@ public sealed class EspecialidadController : ControllerBase
         return this.FromResult(especialidad);
     }
 
+    /// <summary>Registrar especialidades.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="dto">Datos de entrada de la operación.</param>
+    /// <response code="201">Recurso creado; Location permite consultar su detalle.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    /// <response code="409">La operación entra en conflicto con los datos o las reglas de negocio.</response>
+    /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Registrar especialidades")]
     [HttpPost]
     [ProducesResponseType(typeof(Result<EspecialidadDto>), StatusCodes.Status201Created)]
@@ -66,15 +82,24 @@ public sealed class EspecialidadController : ControllerBase
 
         if (!result.IsSuccess) return this.FromResult(result);
 
-        return CreatedAtAction(
-            nameof(GetById),
+        return CreatedAtRoute(
+            "Especialidad_GetById",
             new { id = result.Data!.Id },
             result);
     }
 
+    /// <summary>Actualizar especialidades.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="id">Identificador positivo del recurso.</param>
+    /// <param name="dto">Datos de entrada de la operación.</param>
+    /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    /// <response code="404">El recurso solicitado no existe.</response>
+    /// <response code="409">La operación entra en conflicto con los datos o las reglas de negocio.</response>
+    /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Actualizar especialidades")]
     [HttpPut("{id:int}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
@@ -91,9 +116,16 @@ public sealed class EspecialidadController : ControllerBase
         return this.FromResult(result);
     }
 
+    /// <summary>Eliminar especialidades.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="id">Identificador positivo del recurso.</param>
+    /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    /// <response code="404">El recurso solicitado no existe.</response>
+    /// <response code="409">La operación entra en conflicto con los datos o las reglas de negocio.</response>
     [EndpointSummary("Eliminar especialidades")]
     [HttpDelete("{id:int}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]

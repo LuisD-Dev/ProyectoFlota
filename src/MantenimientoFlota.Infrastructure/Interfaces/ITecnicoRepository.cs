@@ -13,7 +13,7 @@ public interface ITecnicoRepository
 
     Task<Tecnico?> GetByIdAsync(int id);
 
-    Task<TecnicoDetalleDto?> GetDetalleByIdAsync(int id);
+    Task<(Tecnico? Entidad, int Cantidad)> GetDetalleByIdAsync(int id);
 
     Task<Tecnico?> AddAsync(Tecnico tecnico);
 

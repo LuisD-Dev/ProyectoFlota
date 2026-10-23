@@ -32,22 +32,17 @@ public class CategoriaActivoRepository : ICategoriaActivoRepository
             .FirstOrDefaultAsync(categoria => categoria.Id == id);
     }
 
-    public async Task<CategoriaActivoDetalleDto?> GetDetalleByIdAsync(int id)
+    public async Task<(CategoriaActivo? Entidad, int Cantidad)> GetDetalleByIdAsync(int id)
     {
-        // El conteo se traduce a COUNT en SQL; las relaciones se proyectan a resúmenes.
-        return await _context.CategoriasActivo
+        // Count se ejecuta en SQL; Application transforma la entidad al DTO.
+        var resultado = await _context.CategoriasActivo
             .AsNoTracking()
             .AsSingleQuery()
+            .Include(entidad => entidad.Activos)
             .Where(entidad => entidad.Id == id)
-            .Select(entidad => new CategoriaActivoDetalleDto
-            {
-                Id = entidad.Id, Nombre = entidad.Nombre, Descripcion = entidad.Descripcion,
-                IntervaloMantenimientoKm = entidad.IntervaloMantenimientoKm,
-                CantidadActivos = entidad.Activos.Count(),
-                Activos = entidad.Activos.OrderBy(activo => activo.Codigo).Select(activo => new ActivoResumenDto {
-                    Codigo = activo.Codigo, Nombre = activo.Nombre, Estado = activo.Estado }).ToList()
-            })
+            .Select(entidad => new { Entidad = entidad, Cantidad = entidad.Activos.Count() })
             .FirstOrDefaultAsync();
+        return (resultado?.Entidad, resultado?.Cantidad ?? 0);
     }
 
     public async Task<CategoriaActivo?> AddAsync(CategoriaActivo categoria)

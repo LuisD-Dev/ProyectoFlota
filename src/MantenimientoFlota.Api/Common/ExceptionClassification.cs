@@ -10,7 +10,8 @@ internal static class ExceptionClassification
     {
         if (exception is ImagenUpdateRejectedException { InnerException: not null } image)
             exception = image.InnerException!;
-        return exception is DbUpdateConcurrencyException
+        return exception is SqlException { Number: 547 or 2601 or 2627 }
+            || exception is DbUpdateConcurrencyException
             || exception is DbUpdateException { InnerException: SqlException sql }
                 && sql.Number is 547 or 2601 or 2627;
     }

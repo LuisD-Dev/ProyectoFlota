@@ -24,6 +24,29 @@ public sealed class RepuestoController : ControllerBase
         _relaciones = relaciones;
     }
 
+    /// <summary>Buscar repuestos con filtros, orden y paginación.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="consulta">Filtros de consulta.</param>
+    /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    [EndpointSummary("Buscar repuestos con filtros, orden y paginación")]
+    [EndpointDescription("Página inicial 1, tamaño 10 y máximo 50. Orden por lista blanca y desempate por ID. Sin coincidencias devuelve 200 con data vacía. Los filtros omitidos no restringen el resultado.")]
+    [HttpGet("buscar")]
+    [ProducesResponseType(typeof(Result<IReadOnlyList<RepuestoDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<Result<IReadOnlyList<RepuestoDto>>>> SearchAsync(
+        [FromServices] ILogger<RepuestoController> logger,
+        [FromQuery] BuscarRepuestosDto consulta)
+    {
+        logger.LogInformation("Operación invocada. Operation={Operation}", "Repuesto.SearchAsync");
+        return this.FromResult(await _service.SearchAsync(consulta));
+    }
+
+    /// <summary>Listar repuestos.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="stockBajo">Parámetro de la operación.</param>
+    /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
     [EndpointSummary("Listar repuestos")]
     [HttpGet]
     [ProducesResponseType(typeof(Result<IEnumerable<RepuestoDto>>), StatusCodes.Status200OK)]
@@ -38,12 +61,18 @@ public sealed class RepuestoController : ControllerBase
         return this.FromResult(repuestos);
     }
 
+    /// <summary>Consultar detalle de repuestos.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="id">Identificador positivo del recurso.</param>
+    /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    /// <response code="404">El recurso solicitado no existe.</response>
     [EndpointSummary("Consultar detalle de repuestos")]
-    [HttpGet("{id:int}")]
+    [HttpGet("{id:int}", Name = "Repuesto_GetById")]
     [ProducesResponseType(typeof(Result<RepuestoDetalleDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<Result<RepuestoDetalleDto>>> GetById(
+    public async Task<ActionResult<Result<RepuestoDetalleDto>>> GetByIdAsync(
         [FromServices] ILogger<RepuestoController> logger,
         [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")] int id)
     {
@@ -54,6 +83,13 @@ public sealed class RepuestoController : ControllerBase
         return this.FromResult(repuesto);
     }
 
+    /// <summary>Registrar repuestos.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="dto">Datos de entrada de la operación.</param>
+    /// <response code="201">Recurso creado; Location permite consultar su detalle.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    /// <response code="409">La operación entra en conflicto con los datos o las reglas de negocio.</response>
+    /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Registrar repuestos")]
     [HttpPost]
     [ProducesResponseType(typeof(Result<RepuestoDto>), StatusCodes.Status201Created)]
@@ -69,15 +105,24 @@ public sealed class RepuestoController : ControllerBase
 
         if (!result.IsSuccess) return this.FromResult(result);
 
-        return CreatedAtAction(
-            nameof(GetById),
+        return CreatedAtRoute(
+            "Repuesto_GetById",
             new { id = result.Data!.Id },
             result);
     }
 
+    /// <summary>Actualizar repuestos.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="id">Identificador positivo del recurso.</param>
+    /// <param name="dto">Datos de entrada de la operación.</param>
+    /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    /// <response code="404">El recurso solicitado no existe.</response>
+    /// <response code="409">La operación entra en conflicto con los datos o las reglas de negocio.</response>
+    /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Actualizar repuestos")]
     [HttpPut("{id:int}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
@@ -93,9 +138,16 @@ public sealed class RepuestoController : ControllerBase
         return this.FromResult(result);
     }
 
+    /// <summary>Eliminar repuestos.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="id">Identificador positivo del recurso.</param>
+    /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    /// <response code="404">El recurso solicitado no existe.</response>
+    /// <response code="409">La operación entra en conflicto con los datos o las reglas de negocio.</response>
     [EndpointSummary("Eliminar repuestos")]
     [HttpDelete("{id:int}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
@@ -110,6 +162,12 @@ public sealed class RepuestoController : ControllerBase
         return this.FromResult(result);
     }
 
+    /// <summary>Listar asociaciones repuesto-proveedor.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="repuestoId">Identificador positivo del recurso.</param>
+    /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    /// <response code="404">El recurso solicitado no existe.</response>
     [EndpointSummary("Listar asociaciones repuesto-proveedor")]
     [HttpGet("{repuestoId:int}/proveedores")]
     [ProducesResponseType(
@@ -127,14 +185,21 @@ public sealed class RepuestoController : ControllerBase
         return this.FromResult(repuestoProveedores);
     }
 
+    /// <summary>Consultar detalle de asociaciones repuesto-proveedor.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="repuestoId">Identificador positivo del recurso.</param>
+    /// <param name="proveedorId">Identificador positivo del recurso.</param>
+    /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    /// <response code="404">El recurso solicitado no existe.</response>
     [EndpointSummary("Consultar detalle de asociaciones repuesto-proveedor")]
-    [HttpGet("{repuestoId:int}/proveedores/{proveedorId:int}")]
+    [HttpGet("{repuestoId:int}/proveedores/{proveedorId:int}", Name = "Repuesto_GetProveedor")]
     [ProducesResponseType(
         typeof(Result<RepuestoProveedorDto>),
         StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<Result<RepuestoProveedorDto>>> ConsultarProveedor(
+    public async Task<ActionResult<Result<RepuestoProveedorDto>>> ConsultarProveedorAsync(
         [FromServices] ILogger<RepuestoController> logger,
         [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")] int repuestoId,
         [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que cero.")] int proveedorId)
@@ -148,6 +213,15 @@ public sealed class RepuestoController : ControllerBase
         return this.FromResult(repuestoProveedor);
     }
 
+    /// <summary>Registrar asociaciones repuesto-proveedor.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="repuestoId">Identificador positivo del recurso.</param>
+    /// <param name="dto">Datos de entrada de la operación.</param>
+    /// <response code="201">Recurso creado; Location permite consultar su detalle.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    /// <response code="404">El recurso solicitado no existe.</response>
+    /// <response code="409">La operación entra en conflicto con los datos o las reglas de negocio.</response>
+    /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Registrar asociaciones repuesto-proveedor")]
     [HttpPost("{repuestoId:int}/proveedores")]
     [ProducesResponseType(
@@ -169,8 +243,8 @@ public sealed class RepuestoController : ControllerBase
 
         if (!result.IsSuccess) return this.FromResult(result);
 
-        return CreatedAtAction(
-            nameof(ConsultarProveedor),
+        return CreatedAtRoute(
+            "Repuesto_GetProveedor",
             new
             {
                 repuestoId = repuestoProveedor!.RepuestoId,
@@ -179,9 +253,18 @@ public sealed class RepuestoController : ControllerBase
             result);
     }
 
+    /// <summary>Actualizar asociaciones repuesto-proveedor.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="repuestoId">Identificador positivo del recurso.</param>
+    /// <param name="proveedorId">Identificador positivo del recurso.</param>
+    /// <param name="dto">Datos de entrada de la operación.</param>
+    /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    /// <response code="404">El recurso solicitado no existe.</response>
+    /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Actualizar asociaciones repuesto-proveedor")]
     [HttpPut("{repuestoId:int}/proveedores/{proveedorId:int}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status415UnsupportedMediaType)]
@@ -201,9 +284,16 @@ public sealed class RepuestoController : ControllerBase
         return this.FromResult(result);
     }
 
+    /// <summary>Eliminar asociaciones repuesto-proveedor.</summary>
+    /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
+    /// <param name="repuestoId">Identificador positivo del recurso.</param>
+    /// <param name="proveedorId">Identificador positivo del recurso.</param>
+    /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
+    /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
+    /// <response code="404">El recurso solicitado no existe.</response>
     [EndpointSummary("Eliminar asociaciones repuesto-proveedor")]
     [HttpDelete("{repuestoId:int}/proveedores/{proveedorId:int}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DesasociarProveedorAsync(

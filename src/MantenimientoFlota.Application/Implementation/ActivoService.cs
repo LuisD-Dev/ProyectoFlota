@@ -27,6 +27,14 @@ public class ActivoService : IActivoService
         _logger = logger;
     }
 
+    public async Task<Result<IReadOnlyList<ActivoDto>>> SearchAsync(BuscarActivosDto consulta)
+    {
+        var (items, totalRecords) = await _repository.SearchAsync(consulta);
+        var data = _mapper.Map<List<ActivoDto>>(items);
+        return Result<IReadOnlyList<ActivoDto>>.Paged(data,
+            consulta.PageNumber, consulta.PageSize, totalRecords);
+    }
+
     public async Task<Result<IReadOnlyList<ActivoDto>>> GetAllAsync(
         int? categoriaActivoId = null,
         int? estado = null)
@@ -43,14 +51,15 @@ public class ActivoService : IActivoService
         if (id <= 0)
             throw new InvalidRequestException("El identificador debe ser mayor que cero.");
         var fechaReferencia = DateOnly.FromDateTime(DateTime.UtcNow);
-        var activo = await _repository.GetDetalleByIdAsync(id);
+        var (activo, cantidad) = await _repository.GetDetalleByIdAsync(id);
 
         if (activo is null)
         {
             throw new ResourceNotFoundException($"No se encontró el activo con id {id}.");
         }
 
-        var detalle = activo;
+        var detalle = _mapper.Map<ActivoDetalleDto>(activo);
+        detalle.CantidadOrdenes = cantidad;
         detalle.AntiguedadAnios = MapsterConfig.CalcularAntiguedadAnios(
             activo.FechaAdquisicion, fechaReferencia);
         _logger.LogDebug("Operación de negocio completada. Operation={Operation}", "Activo.GetByIdAsync");
@@ -140,7 +149,7 @@ public class ActivoService : IActivoService
 
         _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Activo.UpdateAsync");
 
-        return Result<object?>.Success(null, 204);
+        return Result<object?>.Success(null, 200, "OK", "Operación completada.");
     }
 
     public async Task<Result<object?>> CambiarEstadoAdministrativoAsync(
@@ -168,13 +177,13 @@ public class ActivoService : IActivoService
         if (activo.Estado == dto.Estado.Value)
         {
             _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Activo.CambiarEstadoAdministrativoAsync");
-            return Result<object?>.Success(null, 204);
+            return Result<object?>.Success(null, 200, "OK", "Operación completada.");
         }
 
         activo.Estado = dto.Estado.Value;
         await _repository.UpdateEstadoAsync(activo);
         _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Activo.CambiarEstadoAdministrativoAsync");
-        return Result<object?>.Success(null, 204);
+        return Result<object?>.Success(null, 200, "OK", "Operación completada.");
     }
 
     private async Task<bool> TieneConflictoEstadoAdministrativoAsync(int id, int destino)
@@ -202,7 +211,7 @@ public class ActivoService : IActivoService
         if (activo.Estado == EstadoActivo.DadoDeBaja)
         {
             _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Activo.DeleteAsync");
-            return Result<object?>.Success(null, 204);
+            return Result<object?>.Success(null, 200, "OK", "Operación completada.");
         }
 
         activo.Estado = EstadoActivo.DadoDeBaja;
@@ -210,7 +219,7 @@ public class ActivoService : IActivoService
 
         _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Activo.DeleteAsync");
 
-        return Result<object?>.Success(null, 204);
+        return Result<object?>.Success(null, 200, "OK", "Operación completada.");
     }
 
     public async Task<Result<ActivoImagenDto>> ActualizarImagenAsync(

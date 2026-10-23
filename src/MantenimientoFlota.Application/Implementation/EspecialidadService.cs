@@ -87,7 +87,7 @@ public class EspecialidadService : IEspecialidadService
 
         _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Especialidad.UpdateAsync");
 
-        return Result<object?>.Success(null, 204);
+        return Result<object?>.Success(null, 200, "OK", "Operación completada.");
     }
 
     public async Task<Result<object?>> DeleteAsync(int id)
@@ -110,7 +110,7 @@ public class EspecialidadService : IEspecialidadService
 
         _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Especialidad.DeleteAsync");
 
-        return Result<object?>.Success(null, 204);
+        return Result<object?>.Success(null, 200, "OK", "Operación completada.");
     }
 
 }

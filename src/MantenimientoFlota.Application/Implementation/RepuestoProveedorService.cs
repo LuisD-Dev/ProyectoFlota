@@ -109,7 +109,7 @@ public class RepuestoProveedorService : IRepuestoProveedorService
 
         _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "RepuestoProveedor.UpdateAsync");
 
-        return Result<object?>.Success(null, 204);
+        return Result<object?>.Success(null, 200, "OK", "Operación completada.");
     }
 
     public async Task<Result<object?>> DeleteAsync(
@@ -127,7 +127,7 @@ public class RepuestoProveedorService : IRepuestoProveedorService
 
         _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "RepuestoProveedor.DeleteAsync");
 
-        return Result<object?>.Success(null, 204);
+        return Result<object?>.Success(null, 200, "OK", "Operación completada.");
     }
 
 }

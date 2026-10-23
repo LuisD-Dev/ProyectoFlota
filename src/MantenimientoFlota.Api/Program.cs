@@ -15,7 +15,8 @@ using MantenimientoFlota.Infrastructure.Data;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSerilog((services, logConfig) => logConfig.ConfigureApiLogging(
-    Path.GetFullPath(builder.Configuration["ApiLogs:Directorio"] ?? "logs", builder.Environment.ContentRootPath)));
+    Path.GetFullPath(builder.Configuration["ApiLogs:Directorio"] ?? "logs", builder.Environment.ContentRootPath),
+    isDevelopment: builder.Environment.IsDevelopment()));
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
@@ -29,7 +30,7 @@ builder.Services.AddControllers().ConfigureApiBehaviorOptions(options =>
     options.InvalidModelStateResponseFactory = context =>
         new BadRequestObjectResult(ApiErrorFactory.Validation(context.HttpContext, context.ModelState));
 });
-builder.Services.AddOpenApi();
+builder.Services.AddApiDocumentation();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(
     builder.Configuration,
@@ -60,7 +61,9 @@ app.UseExceptionHandler(new ExceptionHandlerOptions { SuppressDiagnosticsCallbac
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    app.MapScalarApiReference();
+    app.MapScalarApiReference(options => options
+        .WithTitle("Mantenimiento de Flota API")
+        .WithDefaultHttpClient(ScalarTarget.JavaScript, ScalarClient.Fetch));
 }
 
 app.UseHttpsRedirection();

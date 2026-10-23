@@ -6,6 +6,8 @@ namespace MantenimientoFlota.Infrastructure.Interfaces;
 
 public interface IActivoRepository
 {
+    Task<(IEnumerable<Activo> Items, int TotalRecords)> SearchAsync(BuscarActivosDto consulta);
+
     Task<IEnumerable<Activo>> GetAllAsync(
         int? categoriaActivoId = null,
         int? estado = null);
@@ -14,7 +16,7 @@ public interface IActivoRepository
 
     Task<Activo?> GetByIdAsync(int id);
 
-    Task<ActivoDetalleDto?> GetDetalleByIdAsync(int id);
+    Task<(Activo? Entidad, int Cantidad)> GetDetalleByIdAsync(int id);
 
     Task<Activo?> AddAsync(Activo activo);
 

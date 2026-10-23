@@ -5,6 +5,8 @@ namespace MantenimientoFlota.Application.Interfaces;
 
 public interface IRepuestoService
 {
+    Task<Result<IReadOnlyList<RepuestoDto>>> SearchAsync(BuscarRepuestosDto consulta);
+
     Task<Result<IReadOnlyList<RepuestoDto>>> GetAllAsync(bool stockBajo = false);
 
     Task<Result<RepuestoDetalleDto>> GetByIdAsync(int id);

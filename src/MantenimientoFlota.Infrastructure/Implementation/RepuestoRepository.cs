@@ -15,6 +15,33 @@ public class RepuestoRepository : IRepuestoRepository
         _context = context;
     }
 
+    public async Task<(IEnumerable<Repuesto> Items, int TotalRecords)> SearchAsync(BuscarRepuestosDto consulta)
+    {
+        IQueryable<Repuesto> query = _context.Repuestos.AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(consulta.Texto))
+        {
+            var texto = consulta.Texto.Trim();
+            query = query.Where(x => x.Codigo.Contains(texto) || x.Nombre.Contains(texto));
+        }
+        if (consulta.ProveedorId.HasValue) query = query.Where(x => x.RepuestoProveedores.Any(r => r.ProveedorId == consulta.ProveedorId.Value));
+        if (consulta.StockBajo.HasValue) query = query.Where(x => (x.StockActual < x.StockMinimo) == consulta.StockBajo.Value);
+        if (consulta.StockDesde.HasValue) query = query.Where(x => x.StockActual >= consulta.StockDesde.Value);
+        if (consulta.StockHasta.HasValue) query = query.Where(x => x.StockActual <= consulta.StockHasta.Value);
+        var totalRecords = await query.CountAsync();
+        var descending = string.Equals(consulta.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+        IOrderedQueryable<Repuesto> ordered = consulta.SortBy.ToLowerInvariant() switch
+        {
+            "codigo" => descending ? query.OrderByDescending(x => x.Codigo) : query.OrderBy(x => x.Codigo),
+            "stock" => descending ? query.OrderByDescending(x => x.StockActual) : query.OrderBy(x => x.StockActual),
+            "minimo" => descending ? query.OrderByDescending(x => x.StockMinimo) : query.OrderBy(x => x.StockMinimo),
+            _ => descending ? query.OrderByDescending(x => x.Nombre) : query.OrderBy(x => x.Nombre)
+        };
+        var offset = ((long)consulta.PageNumber - 1) * consulta.PageSize;
+        if (offset > int.MaxValue) return (Array.Empty<Repuesto>(), totalRecords);
+        var items = await ordered.ThenBy(x => x.Id).Skip((int)offset).Take(consulta.PageSize).ToListAsync();
+        return (items, totalRecords);
+    }
+
     public async Task<IEnumerable<Repuesto>> GetAllAsync(bool stockBajo = false)
     {
         IQueryable<Repuesto> query = _context.Repuestos.AsNoTracking();
@@ -37,26 +64,18 @@ public class RepuestoRepository : IRepuestoRepository
             .FirstOrDefaultAsync(repuesto => repuesto.Id == id);
     }
 
-    public async Task<RepuestoDetalleDto?> GetDetalleByIdAsync(int id)
+    public async Task<(Repuesto? Entidad, int Cantidad)> GetDetalleByIdAsync(int id)
     {
-        // El conteo se traduce a COUNT en SQL; las relaciones se proyectan a resúmenes.
-        return await _context.Repuestos
+        // Count se ejecuta en SQL; Application transforma la entidad al DTO.
+        var resultado = await _context.Repuestos
             .AsNoTracking()
             .AsSingleQuery()
+            .Include(entidad => entidad.RepuestoProveedores)
+            .ThenInclude(relacion => relacion.Proveedor)
             .Where(entidad => entidad.Id == id)
-            .Select(entidad => new RepuestoDetalleDto
-            {
-                Id = entidad.Id, Codigo = entidad.Codigo, Nombre = entidad.Nombre,
-                UnidadMedida = entidad.UnidadMedida, StockActual = entidad.StockActual, StockMinimo = entidad.StockMinimo,
-                StockBajo = entidad.StockActual < entidad.StockMinimo,
-                FaltanteStockMinimo = entidad.StockActual < entidad.StockMinimo ? entidad.StockMinimo - entidad.StockActual : 0m,
-                CantidadProveedores = entidad.RepuestoProveedores.Count(),
-                Proveedores = entidad.RepuestoProveedores.OrderBy(relacion => relacion.Proveedor.Nombre)
-                    .ThenBy(relacion => relacion.ProveedorId).Select(relacion => new ProveedorRepuestoResumenDto {
-                        ProveedorId = relacion.ProveedorId, Nombre = relacion.Proveedor.Nombre,
-                        PrecioOfrecido = relacion.PrecioOfrecido, TiempoEntregaDias = relacion.TiempoEntregaDias }).ToList()
-            })
+            .Select(entidad => new { Entidad = entidad, Cantidad = entidad.RepuestoProveedores.Count() })
             .FirstOrDefaultAsync();
+        return (resultado?.Entidad, resultado?.Cantidad ?? 0);
     }
 
     public async Task<Repuesto?> AddAsync(Repuesto repuesto)

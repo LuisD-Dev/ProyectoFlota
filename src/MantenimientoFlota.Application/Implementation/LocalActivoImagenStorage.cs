@@ -5,8 +5,6 @@ using Microsoft.Extensions.Logging;
 
 namespace MantenimientoFlota.Application.Implementation;
 
-public sealed record ActivoImagenStorageOptions(string RootPath);
-
 public sealed class LocalActivoImagenStorage(
     ActivoImagenStorageOptions options,
     ILogger<LocalActivoImagenStorage> logger) : IActivoImagenStorage
