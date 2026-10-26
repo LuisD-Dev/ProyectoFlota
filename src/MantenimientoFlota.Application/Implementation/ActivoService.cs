@@ -2,7 +2,7 @@ using MantenimientoFlota.Domain.Exceptions;
 using Microsoft.Extensions.Logging;
 using MantenimientoFlota.Domain.DTO.PatternResult;
 using MapsterMapper;
-using MantenimientoFlota.Application.Mapper;
+using MantenimientoFlota.Application.Common;
 using MantenimientoFlota.Infrastructure.Exceptions;
 using MantenimientoFlota.Domain.DTO.Activo;
 using MantenimientoFlota.Application.Interfaces;
@@ -60,7 +60,7 @@ public class ActivoService : IActivoService
 
         var detalle = _mapper.Map<ActivoDetalleDto>(activo);
         detalle.CantidadOrdenes = cantidad;
-        detalle.AntiguedadAnios = MapsterConfig.CalcularAntiguedadAnios(
+        detalle.AntiguedadAnios = CalculosFecha.CalcularAntiguedadAnios(
             activo.FechaAdquisicion, fechaReferencia);
         _logger.LogDebug("Operación de negocio completada. Operation={Operation}", "Activo.GetByIdAsync");
         return Result<ActivoDetalleDto>.Success(detalle, 200);

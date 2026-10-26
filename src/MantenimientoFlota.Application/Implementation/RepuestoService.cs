@@ -2,7 +2,6 @@ using MantenimientoFlota.Domain.Exceptions;
 using Microsoft.Extensions.Logging;
 using MantenimientoFlota.Domain.DTO.PatternResult;
 using MapsterMapper;
-using MantenimientoFlota.Application.Mapper;
 using MantenimientoFlota.Domain.DTO.Repuesto;
 using MantenimientoFlota.Application.Interfaces;
 using MantenimientoFlota.Infrastructure.Interfaces;
@@ -49,6 +48,9 @@ public class RepuestoService : IRepuestoService
         _logger.LogDebug("Operación de negocio completada. Operation={Operation}", "Repuesto.GetByIdAsync");
         var detalle = _mapper.Map<RepuestoDetalleDto>(entidad);
         detalle.CantidadProveedores = cantidad;
+        detalle.StockBajo = entidad.StockActual < entidad.StockMinimo;
+        detalle.FaltanteStockMinimo = detalle.StockBajo
+            ? entidad.StockMinimo - entidad.StockActual : 0m;
         return Result<RepuestoDetalleDto>.Success(detalle, 200);
     }
 

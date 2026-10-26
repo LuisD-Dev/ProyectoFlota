@@ -1,4 +1,4 @@
-namespace MantenimientoFlota.Application.Interfaces;
+namespace MantenimientoFlota.Infrastructure.Interfaces;
 
 public interface IActivoImagenStorage
 {

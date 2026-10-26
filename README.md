@@ -102,8 +102,8 @@ La carga de Activo utiliza `multipart/form-data`, campo **Archivo**, con JPEG o 
 | Proyecto | Responsabilidad |
 | --- | --- |
 | Domain | Entidades, DTO, constantes, validaciones y excepciones de negocio |
-| Infrastructure | AppDbContext, configuración de relaciones, migraciones, seeders e interfaces e implementaciones de repositorios |
-| Application | Interfaces e implementaciones de servicios, reglas de negocio, Mapster y almacenamiento de imágenes |
+| Infrastructure | AppDbContext, configuración de relaciones, migraciones, seeders, almacenamiento físico de imágenes e interfaces e implementaciones de repositorios |
+| Application | Interfaces e implementaciones de servicios, reglas de negocio, cálculos compartidos y Mapster |
 | Api | Controladores, HTTP, OpenAPI/Scalar, validación y manejo global de errores y logs |
 
 Los repositorios consultan y persisten entidades; Application realiza el mapeo y los cálculos de presentación. Los conteos de los detalles y las búsquedas se resuelven en la consulta de base de datos. Las operaciones de EF Core utilizan métodos asíncronos.

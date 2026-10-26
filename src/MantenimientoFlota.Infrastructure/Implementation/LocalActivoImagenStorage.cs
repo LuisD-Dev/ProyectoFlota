@@ -1,9 +1,9 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
-using MantenimientoFlota.Application.Interfaces;
+using MantenimientoFlota.Infrastructure.Interfaces;
 using Microsoft.Extensions.Logging;
 
-namespace MantenimientoFlota.Application.Implementation;
+namespace MantenimientoFlota.Infrastructure.Implementation;
 
 public sealed class LocalActivoImagenStorage(
     ActivoImagenStorageOptions options,

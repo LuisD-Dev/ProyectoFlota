@@ -2,7 +2,6 @@ using MantenimientoFlota.Domain.Exceptions;
 using Microsoft.Extensions.Logging;
 using MantenimientoFlota.Domain.DTO.PatternResult;
 using MapsterMapper;
-using MantenimientoFlota.Application.Mapper;
 using MantenimientoFlota.Domain.DTO.CategoriaActivo;
 using MantenimientoFlota.Application.Interfaces;
 using MantenimientoFlota.Infrastructure.Interfaces;

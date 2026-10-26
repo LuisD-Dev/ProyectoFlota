@@ -110,8 +110,8 @@ public static class MapsterConfig
             .Map(dest => dest.Nombre, src => src.Proveedor.Nombre);
 
         config.NewConfig<Repuesto, RepuestoDetalleDto>()
-            .Map(dest => dest.StockBajo, src => src.StockActual < src.StockMinimo)
-            .Map(dest => dest.FaltanteStockMinimo, src => src.StockActual < src.StockMinimo ? src.StockMinimo - src.StockActual : 0m)
+            .Ignore(dest => dest.StockBajo)
+            .Ignore(dest => dest.FaltanteStockMinimo)
             .Ignore(dest => dest.CantidadProveedores)
             .Map(dest => dest.Proveedores, src => src.RepuestoProveedores.OrderBy(relacion => relacion.Proveedor.Nombre).ThenBy(relacion => relacion.ProveedorId));
 
@@ -234,17 +234,5 @@ public static class MapsterConfig
 
         config.Compile();
         return config;
-    }
-
-    public static int CalcularAntiguedadAnios(DateOnly fechaAdquisicion, DateOnly fechaReferencia)
-    {
-        if (fechaAdquisicion > fechaReferencia)
-            return 0;
-
-        var anios = fechaReferencia.Year - fechaAdquisicion.Year;
-        if (fechaAdquisicion.AddYears(anios) > fechaReferencia)
-            anios--;
-
-        return anios;
     }
 }

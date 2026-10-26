@@ -2,7 +2,7 @@ using MantenimientoFlota.Domain.Exceptions;
 using Microsoft.Extensions.Logging;
 using MantenimientoFlota.Domain.DTO.PatternResult;
 using MapsterMapper;
-using MantenimientoFlota.Application.Mapper;
+using MantenimientoFlota.Application.Common;
 using MantenimientoFlota.Domain.DTO.Tecnico;
 using MantenimientoFlota.Application.Interfaces;
 using MantenimientoFlota.Infrastructure.Interfaces;
@@ -53,7 +53,7 @@ public class TecnicoService : ITecnicoService
         detalle.CantidadEspecialidades = cantidad;
         foreach (var especialidad in detalle.Especialidades)
         {
-            especialidad.AntiguedadAnios = MapsterConfig.CalcularAntiguedadAnios(
+            especialidad.AntiguedadAnios = CalculosFecha.CalcularAntiguedadAnios(
                 especialidad.FechaObtencion, fechaReferencia);
         }
 
