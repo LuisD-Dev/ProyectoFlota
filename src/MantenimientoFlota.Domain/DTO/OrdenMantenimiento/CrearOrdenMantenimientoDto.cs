@@ -17,6 +17,8 @@ public sealed class CrearOrdenMantenimientoDto
     [MaxLength(
         1000,
         ErrorMessage = "El motivo no puede exceder los 1000 caracteres.")]
+    [RegularExpression(@"^[^<>]*$",
+    ErrorMessage = "El motivo no puede contener los caracteres < ni >.")]
     public string Motivo { get; set; } = string.Empty;
 
     /// <summary>Tipo de mantenimiento solicitado.</summary>
@@ -25,6 +27,8 @@ public sealed class CrearOrdenMantenimientoDto
     [MaxLength(
         100,
         ErrorMessage = "El tipo de mantenimiento no puede exceder los 100 caracteres.")]
+    [RegularExpression(@"^[^<>]*$",
+    ErrorMessage = "El tipo de mantenimiento no puede contener los caracteres < ni >.")]
     public string TipoMantenimiento { get; set; } = string.Empty;
 
     /// <summary>Prioridad.</summary>
@@ -33,5 +37,7 @@ public sealed class CrearOrdenMantenimientoDto
     [MaxLength(
         50,
         ErrorMessage = "La prioridad no puede exceder los 50 caracteres.")]
+    [RegularExpression(@"^[^<>]*$",
+    ErrorMessage = "La prioridad no puede contener los caracteres < ni >.")]
     public string Prioridad { get; set; } = string.Empty;
 }

@@ -11,6 +11,8 @@ public sealed class CrearTecnicoDto
     [MaxLength(
         150,
         ErrorMessage = "El nombre completo no puede superar los 150 caracteres.")]
+    [RegularExpression(@"^[^<>]*$",
+    ErrorMessage = "El nombre completo no puede contener los caracteres < ni >.")]
     public string NombreCompleto { get; set; } = string.Empty;
 
     /// <summary>Identificación del técnico.</summary>
@@ -19,6 +21,8 @@ public sealed class CrearTecnicoDto
     [MaxLength(
         50,
         ErrorMessage = "La identificación no puede superar los 50 caracteres.")]
+    [RegularExpression(@"^[^<>]*$",
+    ErrorMessage = "La identificación no puede contener los caracteres < ni >.")]
     public string Identificacion { get; set; } = string.Empty;
 
     /// <summary>Número de teléfono de contacto.</summary>
@@ -26,6 +30,7 @@ public sealed class CrearTecnicoDto
     [MaxLength(
         30,
         ErrorMessage = "El teléfono no puede superar los 30 caracteres.")]
+    [Phone(ErrorMessage = "El teléfono no tiene un formato válido.")]
     public string? Telefono { get; set; }
 
     /// <summary>Correo electrónico de contacto.</summary>
@@ -33,6 +38,7 @@ public sealed class CrearTecnicoDto
     [MaxLength(
         254,
         ErrorMessage = "El correo no puede superar los 254 caracteres.")]
+    [EmailAddress(ErrorMessage = "El correo electrónico no tiene un formato válido.")]
     public string? Correo { get; set; }
 
     /// <summary>Indica si el técnico está disponible.</summary>

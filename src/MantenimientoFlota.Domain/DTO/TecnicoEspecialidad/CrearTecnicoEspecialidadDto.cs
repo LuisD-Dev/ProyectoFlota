@@ -17,6 +17,8 @@ public sealed class CrearTecnicoEspecialidadDto
     [MaxLength(
         100,
         ErrorMessage = "El nivel de certificación no puede superar los 100 caracteres.")]
+    [RegularExpression(@"^[^<>]*$",
+    ErrorMessage = "El nivel de certificación no puede contener los caracteres < ni >.")]
     public string NivelCertificacion { get; set; } = string.Empty;
 
     /// <summary>Fecha de obtención de la certificación.</summary>

@@ -9,6 +9,8 @@ public sealed class BuscarActivosDto : ConsultaPaginadaDto, IValidatableObject
     /// <summary>Texto contenido en código, nombre o placa.</summary>
     /// <example>Hilux</example>
     [StringLength(150)]
+    [RegularExpression(@"^[\p{L}\p{N}\s.\-]*$",
+      ErrorMessage = "La búsqueda solo admite letras, números, espacios, puntos y guiones.")]
     public string? Texto { get; set; }
     /// <summary>Categoría del activo. Omitir para consultar todas.</summary>
     /// <example>1</example>

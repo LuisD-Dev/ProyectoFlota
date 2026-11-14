@@ -9,18 +9,24 @@ public sealed class CrearRepuestoDto
     /// <example>REP-001</example>
     [Required(ErrorMessage = "El código es obligatorio.")]
     [MaxLength(50, ErrorMessage = "El código no puede superar los 50 caracteres.")]
+    [RegularExpression(@"^[^<>]*$",
+    ErrorMessage = "El código no puede contener los caracteres < ni >.")]
     public string Codigo { get; set; } = string.Empty;
 
     /// <summary>Nombre.</summary>
     /// <example>Vehículo de servicio</example>
     [Required(ErrorMessage = "El nombre es obligatorio.")]
     [MaxLength(150, ErrorMessage = "El nombre no puede superar los 150 caracteres.")]
+    [RegularExpression(@"^[^<>]*$",
+    ErrorMessage = "El nombre no puede contener los caracteres < ni >.")]
     public string Nombre { get; set; } = string.Empty;
 
     /// <summary>Unidad utilizada para medir las existencias.</summary>
     /// <example>Unidad</example>
     [Required(ErrorMessage = "La unidad de medida es obligatoria.")]
     [MaxLength(50, ErrorMessage = "La unidad de medida no puede superar los 50 caracteres.")]
+    [RegularExpression(@"^[^<>]*$",
+    ErrorMessage = "La unidad de medida no puede contener los caracteres < ni >.")]
     public string UnidadMedida { get; set; } = string.Empty;
 
     /// <summary>Cantidad disponible del repuesto.</summary>

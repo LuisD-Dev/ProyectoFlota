@@ -9,6 +9,8 @@ public sealed class BuscarRepuestosDto : ConsultaPaginadaDto, IValidatableObject
     /// <summary>Texto contenido en código o nombre.</summary>
     /// <example>Filtro</example>
     [StringLength(150)]
+    [RegularExpression(@"^[\p{L}\p{N}\s.\-]*$",
+     ErrorMessage = "La búsqueda solo admite letras, números, espacios, puntos y guiones.")]
     public string? Texto { get; set; }
     /// <summary>Proveedor asociado. Omitir para consultar todos.</summary>
     /// <example>1</example>

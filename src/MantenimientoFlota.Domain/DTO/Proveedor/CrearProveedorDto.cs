@@ -9,16 +9,22 @@ public sealed class CrearProveedorDto
     /// <example>Vehículo de servicio</example>
     [Required(ErrorMessage = "El nombre es obligatorio.")]
     [MaxLength(150, ErrorMessage = "El nombre no puede superar los 150 caracteres.")]
+    [RegularExpression(@"^[^<>]*$",
+    ErrorMessage = "El nombre no puede contener los caracteres < ni >.")]
     public string Nombre { get; set; } = string.Empty;
 
     /// <summary>Persona o medio de contacto del proveedor.</summary>
     /// <example>María Rodríguez</example>
     [MaxLength(200, ErrorMessage = "El contacto no puede superar los 200 caracteres.")]
+    [RegularExpression(@"^[^<>]*$",
+    ErrorMessage = "El contacto no puede contener los caracteres < ni >.")]
     public string? Contacto { get; set; }
 
     /// <summary>Dirección del proveedor.</summary>
     /// <example>San José</example>
     [MaxLength(500, ErrorMessage = "La dirección no puede superar los 500 caracteres.")]
+    [RegularExpression(@"^[^<>]*$",
+    ErrorMessage = "La dirección no puede contener los caracteres < ni >.")]
     public string? Direccion { get; set; }
 
     /// <summary>Condiciones comerciales del proveedor.</summary>
@@ -26,5 +32,7 @@ public sealed class CrearProveedorDto
     [MaxLength(
         1000,
         ErrorMessage = "Las condiciones generales no pueden superar los 1000 caracteres.")]
+    [RegularExpression(@"^[^<>]*$",
+    ErrorMessage = "Las condiciones generales no pueden contener los caracteres < ni >.")]
     public string? CondicionesGenerales { get; set; }
 }
