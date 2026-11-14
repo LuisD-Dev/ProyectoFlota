@@ -14,6 +14,9 @@ using MantenimientoFlota.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.WebHost.ConfigureKestrel(options =>
+    options.AddServerHeader = false);
+
 builder.Services.AddSerilog((services, logConfig) => logConfig.ConfigureApiLogging(
     Path.GetFullPath(builder.Configuration["ApiLogs:Directorio"] ?? "logs", builder.Environment.ContentRootPath),
     isDevelopment: builder.Environment.IsDevelopment()));
@@ -36,6 +39,18 @@ builder.Services.AddInfrastructure(
     builder.Configuration,
     builder.Environment.IsDevelopment());
 
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? [];
+
+builder.Services.AddCors(options =>
+    options.AddPolicy("Frontend", policy => policy
+        .WithOrigins(allowedOrigins)
+        .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE")
+        .WithHeaders("Content-Type", "Authorization")
+        .WithExposedHeaders("Location")
+        .SetPreflightMaxAge(TimeSpan.FromMinutes(10))));
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -53,6 +68,30 @@ if (app.Environment.IsDevelopment())
         throw new InvalidOperationException("No se pudo inicializar la base de Development. El inicio se ha detenido.");
     }
 }
+
+app.Use(async (context, next) =>
+{
+    context.Response.OnStarting(() =>
+    {
+        var headers = context.Response.Headers;
+
+        headers["X-Content-Type-Options"] = "nosniff";
+        headers["X-Frame-Options"] = "DENY";
+        headers["Referrer-Policy"] = "no-referrer";
+        headers["Permissions-Policy"] =
+            "camera=(), microphone=(), geolocation=()";
+
+        if (!context.Request.Path.StartsWithSegments("/scalar"))
+        {
+            headers["Content-Security-Policy"] =
+                "default-src 'none'; frame-ancestors 'none'";
+        }
+
+        return Task.CompletedTask;
+    });
+
+    await next();
+});
 
 app.UseApiRequestLogging();
 app.UseMiddleware<RequestLoggingMiddleware>();
@@ -75,6 +114,7 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = LocalActivoImagenStorage.RequestPath,
     OnPrepareResponse = context => context.Context.Response.Headers["X-Content-Type-Options"] = "nosniff"
 });
+app.UseCors("Frontend");
 
 app.UseAuthorization();
 
