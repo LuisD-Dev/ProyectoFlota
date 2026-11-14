@@ -53,6 +53,7 @@ public static class DependencyInjection
         services.AddScoped<
             IOrdenMantenimientoRepository,
             OrdenMantenimientoRepository>();
+        services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 
         return services;
     }

@@ -1,5 +1,4 @@
 using MantenimientoFlota.Domain.Entities;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace MantenimientoFlota.Infrastructure.Data.Seed;
@@ -37,7 +36,9 @@ public static class MasterSeeder
             Activo = true,
             FechaCreacionUtc = DateTime.UtcNow
         };
-        admin.PasswordHash = new PasswordHasher<Usuario>().HashPassword(admin, password);
+        admin.PasswordHash = BCrypt.Net.BCrypt.HashPassword(
+        password,
+        workFactor: 12);
         return admin;
     }
 }
