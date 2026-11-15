@@ -9,6 +9,7 @@ using MantenimientoFlota.Domain.DTO.CategoriaActivo;
 using Mapster;
 using MantenimientoFlota.Domain.DTO.Activo;
 using MantenimientoFlota.Domain.Entities;
+using MantenimientoFlota.Domain.DTO;
 
 namespace MantenimientoFlota.Application.Mapper;
 
@@ -17,6 +18,12 @@ public static class MapsterConfig
     public static TypeAdapterConfig RegisterMaps()
     {
         var config = new TypeAdapterConfig();
+
+        config.NewConfig<Usuario, LoginResponseDto>()
+    .Ignore(dest => dest.Token)
+    .Ignore(dest => dest.TokenType)
+    .Ignore(dest => dest.ExpiresAt)
+    .Ignore(dest => dest.Rol);
 
         config.NewConfig<Activo, ActivoDto>()
             .Map(dest => dest.CategoriaActivoNombre,

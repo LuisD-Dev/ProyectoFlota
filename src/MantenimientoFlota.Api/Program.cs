@@ -11,6 +11,11 @@ using MantenimientoFlota.Infrastructure.Implementation;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.EntityFrameworkCore;
 using MantenimientoFlota.Infrastructure.Data;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using MantenimientoFlota.Application.Interfaces;
+using MantenimientoFlota.Application.Implementation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,6 +56,97 @@ builder.Services.AddCors(options =>
         .WithExposedHeaders("Location")
         .SetPreflightMaxAge(TimeSpan.FromMinutes(10))));
 
+var jwtKey = builder.Configuration["Jwt:Key"]
+    ?? throw new InvalidOperationException(
+        "Falta configurar Jwt:Key en secretos.");
+
+var jwtIssuer = builder.Configuration["Jwt:Issuer"]
+    ?? throw new InvalidOperationException(
+        "Falta configurar Jwt:Issuer.");
+
+var jwtAudience = builder.Configuration["Jwt:Audience"]
+    ?? throw new InvalidOperationException(
+        "Falta configurar Jwt:Audience.");
+
+var jwtMinutes = builder.Configuration
+    .GetValue<int>("Jwt:ExpirationMinutes");
+
+if (jwtMinutes <= 0)
+    throw new InvalidOperationException(
+        "Jwt:ExpirationMinutes debe ser mayor que cero.");
+
+builder.Services.AddSingleton<IJwtTokenService>(
+    new JwtTokenService(
+        jwtKey,
+        jwtIssuer,
+        jwtAudience,
+        jwtMinutes));
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.MapInboundClaims = false;
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwtIssuer,
+
+            ValidateAudience = true,
+            ValidAudience = jwtAudience,
+
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtKey)),
+
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero,
+
+            NameClaimType = "name",
+            RoleClaimType = "role"
+        };
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = async context =>
+            {
+                context.HandleResponse();
+
+                context.Response.StatusCode =
+                    StatusCodes.Status401Unauthorized;
+
+                context.Response.Headers.WWWAuthenticate = "Bearer";
+
+                var response = ApiErrorFactory.Create(
+                    context.HttpContext,
+                    StatusCodes.Status401Unauthorized,
+                    "Debe iniciar sesión: el token no se envió, es inválido o está vencido.",
+                    title: "No autenticado");
+
+                await context.Response.WriteAsJsonAsync(
+                    response,
+                    context.HttpContext.RequestAborted);
+            },
+
+            OnForbidden = async context =>
+            {
+                context.Response.StatusCode =
+                    StatusCodes.Status403Forbidden;
+
+                var response = ApiErrorFactory.Create(
+                    context.HttpContext,
+                    StatusCodes.Status403Forbidden,
+                    "Su rol no tiene permiso para realizar esta operación.",
+                    title: "Acceso denegado");
+
+                await context.Response.WriteAsJsonAsync(
+                    response,
+                    context.HttpContext.RequestAborted);
+            }
+        };
+    });
+
+builder.Services.AddAuthorization();
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -116,6 +212,7 @@ app.UseStaticFiles(new StaticFileOptions
 });
 app.UseCors("Frontend");
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
