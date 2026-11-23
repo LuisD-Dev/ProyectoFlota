@@ -6,6 +6,8 @@ using MantenimientoFlota.Api.Contracts;
 
 using MantenimientoFlota.Domain.DTO.Tecnico;
 using MantenimientoFlota.Application.Interfaces;
+using MantenimientoFlota.Api.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MantenimientoFlota.Api.Controllers;
@@ -31,6 +33,7 @@ public sealed class TecnicoController : ControllerBase
     /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
     /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
     [EndpointSummary("Listar técnicos")]
+    [Authorize(Policy = AuthorizationPolicies.AdministradorOCoordinador)]
     [HttpGet]
     [ProducesResponseType(typeof(Result<IEnumerable<TecnicoDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -53,6 +56,7 @@ public sealed class TecnicoController : ControllerBase
     /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
     /// <response code="404">El recurso solicitado no existe.</response>
     [EndpointSummary("Consultar detalle de técnicos")]
+    [Authorize(Policy = AuthorizationPolicies.AdministradorOCoordinador)]
     [HttpGet("{id:int}", Name = "Tecnico_GetById")]
     [ProducesResponseType(typeof(Result<TecnicoDetalleDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -75,6 +79,7 @@ public sealed class TecnicoController : ControllerBase
     /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
     /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Registrar técnicos")]
+    [Authorize(Policy = AuthorizationPolicies.SoloAdministrador)]
     [HttpPost]
     [ProducesResponseType(typeof(Result<TecnicoDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -103,6 +108,7 @@ public sealed class TecnicoController : ControllerBase
     /// <response code="404">El recurso solicitado no existe.</response>
     /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Actualizar técnicos")]
+    [Authorize(Policy = AuthorizationPolicies.SoloAdministrador)]
     [HttpPut("{id:int}")]
     [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -128,6 +134,7 @@ public sealed class TecnicoController : ControllerBase
     /// <response code="404">El recurso solicitado no existe.</response>
     /// <response code="409">La operación entra en conflicto con los datos o las reglas de negocio.</response>
     [EndpointSummary("Eliminar técnicos")]
+    [Authorize(Policy = AuthorizationPolicies.SoloAdministrador)]
     [HttpDelete("{id:int}")]
     [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -151,6 +158,7 @@ public sealed class TecnicoController : ControllerBase
     /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
     /// <response code="404">El recurso solicitado no existe.</response>
     [EndpointSummary("Listar asociaciones técnico-especialidad")]
+    [Authorize(Policy = AuthorizationPolicies.AdministradorOCoordinador)]
     [HttpGet("{tecnicoId:int}/especialidades")]
     [ProducesResponseType(
         typeof(Result<IEnumerable<TecnicoEspecialidadDto>>),
@@ -175,6 +183,7 @@ public sealed class TecnicoController : ControllerBase
     /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
     /// <response code="404">El recurso solicitado no existe.</response>
     [EndpointSummary("Consultar detalle de asociaciones técnico-especialidad")]
+    [Authorize(Policy = AuthorizationPolicies.AdministradorOCoordinador)]
     [HttpGet("{tecnicoId:int}/especialidades/{especialidadId:int}", Name = "Tecnico_GetEspecialidad")]
     [ProducesResponseType(typeof(Result<TecnicoEspecialidadDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
@@ -202,6 +211,7 @@ public sealed class TecnicoController : ControllerBase
     /// <response code="409">La operación entra en conflicto con los datos o las reglas de negocio.</response>
     /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Registrar asociaciones técnico-especialidad")]
+    [Authorize(Policy = AuthorizationPolicies.SoloAdministrador)]
     [HttpPost("{tecnicoId:int}/especialidades")]
     [ProducesResponseType(
         typeof(Result<TecnicoEspecialidadDto>),
@@ -242,6 +252,7 @@ public sealed class TecnicoController : ControllerBase
     /// <response code="404">El recurso solicitado no existe.</response>
     /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Actualizar asociaciones técnico-especialidad")]
+    [Authorize(Policy = AuthorizationPolicies.SoloAdministrador)]
     [HttpPut("{tecnicoId:int}/especialidades/{especialidadId:int}")]
     [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -269,6 +280,7 @@ public sealed class TecnicoController : ControllerBase
     /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
     /// <response code="404">El recurso solicitado no existe.</response>
     [EndpointSummary("Eliminar asociaciones técnico-especialidad")]
+    [Authorize(Policy = AuthorizationPolicies.SoloAdministrador)]
     [HttpDelete("{tecnicoId:int}/especialidades/{especialidadId:int}")]
     [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]

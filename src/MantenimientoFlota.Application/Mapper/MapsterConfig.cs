@@ -237,7 +237,9 @@ public static class MapsterConfig
             .Ignore(dest => dest.FechaCierre)
             .Ignore(dest => dest.CostoTotal)
             .Ignore(dest => dest.EstadoActual)
-            .Ignore(dest => dest.Activo);
+            .Ignore(dest => dest.Activo)
+            .Ignore(dest => dest.UsuarioSolicitanteId)
+            .Ignore(dest => dest.UsuarioSolicitante);
 
         config.Compile();
         return config;

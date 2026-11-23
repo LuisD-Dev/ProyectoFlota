@@ -18,13 +18,16 @@ public class ActivoService : IActivoService
     private readonly IActivoImagenStorage _imagenes;
     private readonly IMapper _mapper;
     private readonly ILogger<ActivoService> _logger;
+    private readonly ICurrentUser _currentUser;
 
-    public ActivoService(IActivoRepository repository, IActivoImagenStorage imagenes, IMapper mapper, ILogger<ActivoService> logger)
+    public ActivoService(IActivoRepository repository, IActivoImagenStorage imagenes, IMapper mapper, ILogger<ActivoService> logger,
+        ICurrentUser currentUser)
     {
         _repository = repository;
         _imagenes = imagenes;
         _mapper = mapper;
         _logger = logger;
+        _currentUser = currentUser;
     }
 
     public async Task<Result<IReadOnlyList<ActivoDto>>> SearchAsync(BuscarActivosDto consulta)
@@ -56,6 +59,17 @@ public class ActivoService : IActivoService
         if (activo is null)
         {
             throw new ResourceNotFoundException($"No se encontró el activo con id {id}.");
+        }
+
+        // Un Solicitante/Consulta solo ve sus propias órdenes dentro del detalle del activo.
+        if (_currentUser.Rol == NombresRol.SolicitanteConsulta)
+        {
+            var usuarioId = _currentUser.UsuarioId
+                ?? throw new ForbiddenException("No se pudo identificar al usuario autenticado.");
+            activo.OrdenesMantenimiento = activo.OrdenesMantenimiento
+                .Where(orden => orden.UsuarioSolicitanteId == usuarioId)
+                .ToList();
+            cantidad = activo.OrdenesMantenimiento.Count;
         }
 
         var detalle = _mapper.Map<ActivoDetalleDto>(activo);

@@ -16,6 +16,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using MantenimientoFlota.Application.Interfaces;
 using MantenimientoFlota.Application.Implementation;
+using MantenimientoFlota.Api.Authorization;
+using Microsoft.AspNetCore.Authorization;
+using MantenimientoFlota.Domain.Constants;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -146,7 +149,31 @@ builder.Services
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+
+// Políticas: matriz de permisos por rol (sección 11 del enunciado).
+// Los nombres de rol deben coincidir exactamente con el claim "role" del token.
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(AuthorizationPolicies.SoloAdministrador,
+        policy => policy.RequireRole(NombresRol.Administrador));
+
+    options.AddPolicy(AuthorizationPolicies.AdministradorOCoordinador,
+        policy => policy.RequireRole(NombresRol.Administrador, NombresRol.CoordinadorTecnico));
+
+    options.AddPolicy(AuthorizationPolicies.TodosLosRoles,
+        policy => policy.RequireRole(
+            NombresRol.Administrador, NombresRol.CoordinadorTecnico, NombresRol.SolicitanteConsulta));
+
+    options.AddPolicy(AuthorizationPolicies.CrearSolicitudes,
+        policy => policy.RequireRole(NombresRol.Administrador, NombresRol.SolicitanteConsulta));
+
+    // Protección por defecto: todo endpoint sin [AllowAnonymous] exige un token válido.
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -195,10 +222,12 @@ app.UseExceptionHandler(new ExceptionHandlerOptions { SuppressDiagnosticsCallbac
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    // Documentación accesible sin token solo en Development.
+    app.MapOpenApi().AllowAnonymous();
     app.MapScalarApiReference(options => options
         .WithTitle("Mantenimiento de Flota API")
-        .WithDefaultHttpClient(ScalarTarget.JavaScript, ScalarClient.Fetch));
+        .WithDefaultHttpClient(ScalarTarget.JavaScript, ScalarClient.Fetch))
+        .AllowAnonymous();
 }
 
 app.UseHttpsRedirection();

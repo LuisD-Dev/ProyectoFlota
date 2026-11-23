@@ -222,6 +222,13 @@ public class AppDbContext : DbContext
                 .HasForeignKey(orden => orden.ActivoId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(orden => orden.UsuarioSolicitante)
+                .WithMany()
+                .HasForeignKey(orden => orden.UsuarioSolicitanteId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(orden => orden.UsuarioSolicitanteId);
+
         });
 
         // Proveedor

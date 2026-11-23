@@ -5,6 +5,8 @@ using MantenimientoFlota.Api.Contracts;
 
 using MantenimientoFlota.Domain.DTO.OrdenMantenimiento;
 using MantenimientoFlota.Application.Interfaces;
+using MantenimientoFlota.Api.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MantenimientoFlota.Api.Controllers;
@@ -27,6 +29,7 @@ public sealed class OrdenMantenimientoController : ControllerBase
     /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
     /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
     [EndpointSummary("Listar órdenes de mantenimiento")]
+    [Authorize(Policy = AuthorizationPolicies.TodosLosRoles)]
     [HttpGet]
     [ProducesResponseType(
         typeof(Result<IReadOnlyList<OrdenMantenimientoDto>>),
@@ -50,6 +53,7 @@ public sealed class OrdenMantenimientoController : ControllerBase
     /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
     /// <response code="404">El recurso solicitado no existe.</response>
     [EndpointSummary("Consultar detalle de órdenes de mantenimiento")]
+    [Authorize(Policy = AuthorizationPolicies.TodosLosRoles)]
     [HttpGet("{id:int}", Name = "OrdenMantenimiento_GetById")]
     [ProducesResponseType(
         typeof(Result<OrdenMantenimientoDetalleDto>),
@@ -75,6 +79,7 @@ public sealed class OrdenMantenimientoController : ControllerBase
     /// <response code="404">El recurso solicitado no existe.</response>
     /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Registrar órdenes de mantenimiento")]
+    [Authorize(Policy = AuthorizationPolicies.CrearSolicitudes)]
     [HttpPost]
     [ProducesResponseType(
         typeof(Result<OrdenMantenimientoDto>),

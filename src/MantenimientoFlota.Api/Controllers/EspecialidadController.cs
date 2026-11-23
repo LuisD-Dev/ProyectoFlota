@@ -5,6 +5,8 @@ using MantenimientoFlota.Api.Contracts;
 
 using MantenimientoFlota.Domain.DTO.Especialidad;
 using MantenimientoFlota.Application.Interfaces;
+using MantenimientoFlota.Api.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MantenimientoFlota.Api.Controllers;
@@ -25,6 +27,7 @@ public sealed class EspecialidadController : ControllerBase
     /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
     /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
     [EndpointSummary("Listar especialidades")]
+    [Authorize(Policy = AuthorizationPolicies.AdministradorOCoordinador)]
     [HttpGet]
     [ProducesResponseType(
         typeof(Result<IEnumerable<EspecialidadDto>>),
@@ -45,6 +48,7 @@ public sealed class EspecialidadController : ControllerBase
     /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
     /// <response code="404">El recurso solicitado no existe.</response>
     [EndpointSummary("Consultar detalle de especialidades")]
+    [Authorize(Policy = AuthorizationPolicies.AdministradorOCoordinador)]
     [HttpGet("{id:int}", Name = "Especialidad_GetById")]
     [ProducesResponseType(typeof(Result<EspecialidadDetalleDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -68,6 +72,7 @@ public sealed class EspecialidadController : ControllerBase
     /// <response code="409">La operación entra en conflicto con los datos o las reglas de negocio.</response>
     /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Registrar especialidades")]
+    [Authorize(Policy = AuthorizationPolicies.SoloAdministrador)]
     [HttpPost]
     [ProducesResponseType(typeof(Result<EspecialidadDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -98,6 +103,7 @@ public sealed class EspecialidadController : ControllerBase
     /// <response code="409">La operación entra en conflicto con los datos o las reglas de negocio.</response>
     /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Actualizar especialidades")]
+    [Authorize(Policy = AuthorizationPolicies.SoloAdministrador)]
     [HttpPut("{id:int}")]
     [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -124,6 +130,7 @@ public sealed class EspecialidadController : ControllerBase
     /// <response code="404">El recurso solicitado no existe.</response>
     /// <response code="409">La operación entra en conflicto con los datos o las reglas de negocio.</response>
     [EndpointSummary("Eliminar especialidades")]
+    [Authorize(Policy = AuthorizationPolicies.SoloAdministrador)]
     [HttpDelete("{id:int}")]
     [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]

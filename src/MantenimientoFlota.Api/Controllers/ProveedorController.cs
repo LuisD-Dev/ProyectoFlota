@@ -5,6 +5,8 @@ using MantenimientoFlota.Api.Contracts;
 
 using MantenimientoFlota.Domain.DTO.Proveedor;
 using MantenimientoFlota.Application.Interfaces;
+using MantenimientoFlota.Api.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MantenimientoFlota.Api.Controllers;
@@ -25,6 +27,7 @@ public sealed class ProveedorController : ControllerBase
     /// <param name="logger">Registrador de la operación, resuelto por inyección de dependencias.</param>
     /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
     [EndpointSummary("Listar proveedores")]
+    [Authorize(Policy = AuthorizationPolicies.AdministradorOCoordinador)]
     [HttpGet]
     [ProducesResponseType(
         typeof(Result<IReadOnlyList<ProveedorDto>>),
@@ -45,6 +48,7 @@ public sealed class ProveedorController : ControllerBase
     /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
     /// <response code="404">El recurso solicitado no existe.</response>
     [EndpointSummary("Consultar detalle de proveedores")]
+    [Authorize(Policy = AuthorizationPolicies.AdministradorOCoordinador)]
     [HttpGet("{id:int}", Name = "Proveedor_GetById")]
     [ProducesResponseType(typeof(Result<ProveedorDetalleDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -67,6 +71,7 @@ public sealed class ProveedorController : ControllerBase
     /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
     /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Registrar proveedores")]
+    [Authorize(Policy = AuthorizationPolicies.SoloAdministrador)]
     [HttpPost]
     [ProducesResponseType(typeof(Result<ProveedorDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -95,6 +100,7 @@ public sealed class ProveedorController : ControllerBase
     /// <response code="404">El recurso solicitado no existe.</response>
     /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Actualizar proveedores")]
+    [Authorize(Policy = AuthorizationPolicies.SoloAdministrador)]
     [HttpPut("{id:int}")]
     [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -120,6 +126,7 @@ public sealed class ProveedorController : ControllerBase
     /// <response code="404">El recurso solicitado no existe.</response>
     /// <response code="409">La operación entra en conflicto con los datos o las reglas de negocio.</response>
     [EndpointSummary("Eliminar proveedores")]
+    [Authorize(Policy = AuthorizationPolicies.SoloAdministrador)]
     [HttpDelete("{id:int}")]
     [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]

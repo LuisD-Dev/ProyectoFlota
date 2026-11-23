@@ -6,6 +6,8 @@ using MantenimientoFlota.Api.Contracts;
 
 using MantenimientoFlota.Domain.DTO.Repuesto;
 using MantenimientoFlota.Application.Interfaces;
+using MantenimientoFlota.Api.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MantenimientoFlota.Api.Controllers;
@@ -31,6 +33,7 @@ public sealed class RepuestoController : ControllerBase
     /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
     [EndpointSummary("Buscar repuestos con filtros, orden y paginación")]
     [EndpointDescription("Página inicial 1, tamaño 10 y máximo 50. Orden por lista blanca y desempate por ID. Sin coincidencias devuelve 200 con data vacía. Los filtros omitidos no restringen el resultado.")]
+    [Authorize(Policy = AuthorizationPolicies.AdministradorOCoordinador)]
     [HttpGet("buscar")]
     [ProducesResponseType(typeof(Result<IReadOnlyList<RepuestoDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -48,6 +51,7 @@ public sealed class RepuestoController : ControllerBase
     /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
     /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
     [EndpointSummary("Listar repuestos")]
+    [Authorize(Policy = AuthorizationPolicies.AdministradorOCoordinador)]
     [HttpGet]
     [ProducesResponseType(typeof(Result<IEnumerable<RepuestoDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -68,6 +72,7 @@ public sealed class RepuestoController : ControllerBase
     /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
     /// <response code="404">El recurso solicitado no existe.</response>
     [EndpointSummary("Consultar detalle de repuestos")]
+    [Authorize(Policy = AuthorizationPolicies.AdministradorOCoordinador)]
     [HttpGet("{id:int}", Name = "Repuesto_GetById")]
     [ProducesResponseType(typeof(Result<RepuestoDetalleDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -91,6 +96,7 @@ public sealed class RepuestoController : ControllerBase
     /// <response code="409">La operación entra en conflicto con los datos o las reglas de negocio.</response>
     /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Registrar repuestos")]
+    [Authorize(Policy = AuthorizationPolicies.SoloAdministrador)]
     [HttpPost]
     [ProducesResponseType(typeof(Result<RepuestoDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -121,6 +127,7 @@ public sealed class RepuestoController : ControllerBase
     /// <response code="409">La operación entra en conflicto con los datos o las reglas de negocio.</response>
     /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Actualizar repuestos")]
+    [Authorize(Policy = AuthorizationPolicies.SoloAdministrador)]
     [HttpPut("{id:int}")]
     [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -146,6 +153,7 @@ public sealed class RepuestoController : ControllerBase
     /// <response code="404">El recurso solicitado no existe.</response>
     /// <response code="409">La operación entra en conflicto con los datos o las reglas de negocio.</response>
     [EndpointSummary("Eliminar repuestos")]
+    [Authorize(Policy = AuthorizationPolicies.SoloAdministrador)]
     [HttpDelete("{id:int}")]
     [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -169,6 +177,7 @@ public sealed class RepuestoController : ControllerBase
     /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
     /// <response code="404">El recurso solicitado no existe.</response>
     [EndpointSummary("Listar asociaciones repuesto-proveedor")]
+    [Authorize(Policy = AuthorizationPolicies.AdministradorOCoordinador)]
     [HttpGet("{repuestoId:int}/proveedores")]
     [ProducesResponseType(
         typeof(Result<IReadOnlyList<RepuestoProveedorDto>>),
@@ -193,6 +202,7 @@ public sealed class RepuestoController : ControllerBase
     /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
     /// <response code="404">El recurso solicitado no existe.</response>
     [EndpointSummary("Consultar detalle de asociaciones repuesto-proveedor")]
+    [Authorize(Policy = AuthorizationPolicies.AdministradorOCoordinador)]
     [HttpGet("{repuestoId:int}/proveedores/{proveedorId:int}", Name = "Repuesto_GetProveedor")]
     [ProducesResponseType(
         typeof(Result<RepuestoProveedorDto>),
@@ -223,6 +233,7 @@ public sealed class RepuestoController : ControllerBase
     /// <response code="409">La operación entra en conflicto con los datos o las reglas de negocio.</response>
     /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Registrar asociaciones repuesto-proveedor")]
+    [Authorize(Policy = AuthorizationPolicies.SoloAdministrador)]
     [HttpPost("{repuestoId:int}/proveedores")]
     [ProducesResponseType(
         typeof(Result<RepuestoProveedorDto>),
@@ -263,6 +274,7 @@ public sealed class RepuestoController : ControllerBase
     /// <response code="404">El recurso solicitado no existe.</response>
     /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Actualizar asociaciones repuesto-proveedor")]
+    [Authorize(Policy = AuthorizationPolicies.SoloAdministrador)]
     [HttpPut("{repuestoId:int}/proveedores/{proveedorId:int}")]
     [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -292,6 +304,7 @@ public sealed class RepuestoController : ControllerBase
     /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
     /// <response code="404">El recurso solicitado no existe.</response>
     [EndpointSummary("Eliminar asociaciones repuesto-proveedor")]
+    [Authorize(Policy = AuthorizationPolicies.SoloAdministrador)]
     [HttpDelete("{repuestoId:int}/proveedores/{proveedorId:int}")]
     [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]

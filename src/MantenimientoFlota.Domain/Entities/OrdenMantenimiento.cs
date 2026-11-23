@@ -28,4 +28,12 @@ public class OrdenMantenimiento
 
     public int EstadoActual { get; set; } =
         EstadoOrdenMantenimiento.Solicitada;
+
+    /// <summary>
+    /// Usuario que registró la solicitud. Sale del claim "sub" del token, nunca del cliente.
+    /// Es nulo solo en las órdenes sembradas antes de existir esta relación.
+    /// </summary>
+    public int? UsuarioSolicitanteId { get; set; }
+
+    public Usuario? UsuarioSolicitante { get; set; }
 }
