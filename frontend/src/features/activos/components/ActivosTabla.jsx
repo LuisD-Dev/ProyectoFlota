@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -46,7 +47,12 @@ export default function ActivosTabla({ activos, loading }) {
                         activos.map((activo) => (
                             <TableRow key={activo.id}>
                                 <TableCell className="font-medium">
-                                    {activo.codigo}
+                                    <Link
+                                        to={`/activos/${activo.id}`}
+                                        className="underline underline-offset-4"
+                                    >
+                                        {activo.codigo}
+                                    </Link>
                                 </TableCell>
 
                                 <TableCell>{activo.nombre}</TableCell>
@@ -55,7 +61,9 @@ export default function ActivosTabla({ activos, loading }) {
                                     {activo.categoriaActivoNombre}
                                 </TableCell>
 
-                                <TableCell>{activo.placa || 'Sin placa'}</TableCell>
+                                <TableCell>
+                                    {activo.placa || 'Sin placa'}
+                                </TableCell>
 
                                 <TableCell className="text-right">
                                     {activo.kilometrajeActual.toLocaleString('es-CR')} km
