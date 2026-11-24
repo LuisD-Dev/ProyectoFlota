@@ -30,4 +30,13 @@ export const activoService = {
         const result = await httpClient.get(`Activo/${id}`, options)
         return result.data
     },
+    async create(activo) {
+        const result = await httpClient.post('Activo', activo)
+        return result.data
+    },
+
+    async update(id, activo) {
+        const result = await httpClient.put(`Activo/${id}`, activo)
+        return result
+    },
 }

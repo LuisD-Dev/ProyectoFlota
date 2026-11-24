@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
     Table,
@@ -17,7 +18,11 @@ const estados = {
     3: 'Dado de baja',
 }
 
-export default function ActivosTabla({ activos, loading }) {
+export default function ActivosTabla({
+    activos,
+    loading,
+    onEditar,
+}) {
     return (
         <div className="overflow-x-auto rounded-md border">
             <Table>
@@ -29,6 +34,8 @@ export default function ActivosTabla({ activos, loading }) {
                         <TableHead>Placa</TableHead>
                         <TableHead className="text-right">Kilometraje</TableHead>
                         <TableHead>Estado</TableHead>
+
+                        {onEditar && <TableHead>Acciones</TableHead>}
                     </TableRow>
                 </TableHeader>
 
@@ -36,11 +43,14 @@ export default function ActivosTabla({ activos, loading }) {
                     {loading ? (
                         Array.from({ length: 5 }, (_, index) => (
                             <TableRow key={index}>
-                                {Array.from({ length: 6 }, (_, column) => (
-                                    <TableCell key={column}>
-                                        <Skeleton className="h-5 w-full" />
-                                    </TableCell>
-                                ))}
+                                {Array.from(
+                                    { length: onEditar ? 7 : 6 },
+                                    (_, column) => (
+                                        <TableCell key={column}>
+                                            <Skeleton className="h-5 w-full" />
+                                        </TableCell>
+                                    ),
+                                )}
                             </TableRow>
                         ))
                     ) : (
@@ -74,6 +84,18 @@ export default function ActivosTabla({ activos, loading }) {
                                         {estados[activo.estado] ?? 'Desconocido'}
                                     </Badge>
                                 </TableCell>
+
+                                {onEditar && (
+                                    <TableCell>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => onEditar(activo)}
+                                        >
+                                            Editar
+                                        </Button>
+                                    </TableCell>
+                                )}
                             </TableRow>
                         ))
                     )}

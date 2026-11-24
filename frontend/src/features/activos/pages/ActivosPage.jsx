@@ -1,14 +1,25 @@
+import { useState } from 'react'
 import { useOutletContext, useSearchParams } from 'react-router'
+
 import { Button } from '@/components/ui/button'
-import ActivosTabla from '@/features/activos/components/ActivosTabla'
 import Paginacion from '@/components/shared/Paginacion'
-import { useActivos } from '@/hooks/useActivos'
-import { getErrorMessage } from '@/utils/apiError'
+import ActivosTabla from '@/features/activos/components/ActivosTabla'
 import ActivosFiltros from '@/features/activos/components/ActivosFiltros'
+import ActivoFormDialog from '@/features/activos/components/ActivoFormDialog'
+
+import { useActivos } from '@/hooks/useActivos'
 import { useCategorias } from '@/hooks/useCategorias'
+import { getErrorMessage } from '@/utils/apiError'
 
 export default function ActivosPage() {
     const [searchParams, setSearchParams] = useSearchParams()
+    const [formulario, setFormulario] = useState(null)
+    const { user } = useOutletContext()
+
+    const puedeAdministrar = user.rol === 'Administrador'
+
+    const puedeConsultarCategorias =
+        puedeAdministrar || user.rol === 'Coordinador/Técnico'
 
     const requestedPage = Number(searchParams.get('page') ?? 1)
 
@@ -34,6 +45,13 @@ export default function ActivosPage() {
     const { data, loading, error, reload } = useActivos(filtros)
     const activos = data?.items ?? []
 
+    const {
+        categorias,
+        loading: loadingCategorias,
+        error: errorCategorias,
+        reload: recargarCategorias,
+    } = useCategorias(puedeConsultarCategorias)
+
     function cambiarPagina(nextPage) {
         setSearchParams((current) => {
             const next = new URLSearchParams(current)
@@ -41,6 +59,7 @@ export default function ActivosPage() {
             return next
         })
     }
+
     function actualizarFiltros(changes) {
         setSearchParams((current) => {
             const next = new URLSearchParams(current)
@@ -57,36 +76,43 @@ export default function ActivosPage() {
             return next
         })
     }
-    const { user } = useOutletContext()
 
-    const puedeConsultarCategorias =
-        user.rol === 'Administrador' ||
-        user.rol === 'Coordinador/Técnico'
+    function cerrarFormulario() {
+        setFormulario(null)
+    }
 
-    const {
-        categorias,
-        loading: loadingCategorias,
-        error: errorCategorias,
-        reload: recargarCategorias,
-    } = useCategorias(puedeConsultarCategorias)
+    function alGuardar() {
+        setFormulario(null)
+        reload()
+    }
+
     return (
         <section className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <h1 className="text-2xl font-semibold">Activos</h1>
                     <p className="text-muted-foreground">
-                        Consulta de los activos de la flota.
+                        Consulta y administración de los activos de la flota.
                     </p>
                 </div>
 
-                <Button
-                    variant="outline"
-                    onClick={reload}
-                    disabled={loading}
-                >
-                    Actualizar
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={reload}
+                        disabled={loading}
+                    >
+                        Actualizar
+                    </Button>
+
+                    {puedeAdministrar && (
+                        <Button onClick={() => setFormulario({ activoId: null })}>
+                            Nuevo activo
+                        </Button>
+                    )}
+                </div>
             </div>
+
             <ActivosFiltros
                 filtros={filtros}
                 categorias={categorias}
@@ -99,7 +125,8 @@ export default function ActivosPage() {
             {errorCategorias && (
                 <div role="alert" className="space-y-2">
                     <p>
-                        No se pudieron cargar las categorías: {getErrorMessage(errorCategorias)}
+                        No se pudieron cargar las categorías:{' '}
+                        {getErrorMessage(errorCategorias)}
                     </p>
 
                     <Button variant="outline" onClick={recargarCategorias}>
@@ -107,9 +134,11 @@ export default function ActivosPage() {
                     </Button>
                 </div>
             )}
+
             {error ? (
                 <div className="space-y-3" role="alert">
                     <p>{getErrorMessage(error)}</p>
+
                     <Button variant="outline" onClick={reload}>
                         Reintentar
                     </Button>
@@ -127,7 +156,15 @@ export default function ActivosPage() {
                 </div>
             ) : (
                 <>
-                    <ActivosTabla activos={activos} loading={loading} />
+                    <ActivosTabla
+                        activos={activos}
+                        loading={loading}
+                        onEditar={
+                            puedeAdministrar
+                                ? (activo) => setFormulario({ activoId: activo.id })
+                                : undefined
+                        }
+                    />
 
                     {!loading && (
                         <Paginacion
@@ -138,6 +175,15 @@ export default function ActivosPage() {
                         />
                     )}
                 </>
+            )}
+
+            {formulario && (
+                <ActivoFormDialog
+                    key={formulario.activoId ?? 'nuevo'}
+                    activoId={formulario.activoId}
+                    onClose={cerrarFormulario}
+                    onSaved={alGuardar}
+                />
             )}
         </section>
     )
