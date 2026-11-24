@@ -6,6 +6,7 @@ import LoginPage from '@/features/auth/pages/LoginPage'
 import ProtectedRoute from '@/routes/ProtectedRoute'
 import ActivosPage from '@/features/activos/pages/ActivosPage'
 import ActivoDetallePage from '@/features/activos/pages/ActivoDetallePage'
+import CategoriasPage from '@/features/categorias/pages/CategoriasPage'
 
 export const router = createBrowserRouter([
     {
@@ -19,6 +20,10 @@ export const router = createBrowserRouter([
                 path: '/',
                 element: <AppLayout />,
                 children: [
+                    {
+                        path: 'categorias',
+                        element: <CategoriasPage />,
+                    },
                     {
                         path: 'activos/:id',
                         element: <ActivoDetallePage />,

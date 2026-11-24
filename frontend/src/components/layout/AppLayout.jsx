@@ -19,8 +19,8 @@ export default function AppLayout() {
 
     function estiloEnlace({ isActive }) {
         return `rounded-md px-3 py-2 text-sm ${isActive
-                ? 'bg-white/15 font-medium text-white'
-                : 'text-white/80 hover:bg-white/10 hover:text-white'
+            ? 'bg-white/15 font-medium text-white'
+            : 'text-white/80 hover:bg-white/10 hover:text-white'
             }`
     }
 
@@ -43,6 +43,11 @@ export default function AppLayout() {
                         <NavLink to="/activos" className={estiloEnlace}>
                             Activos
                         </NavLink>
+                        {['Administrador', 'Coordinador/Técnico'].includes(user.rol) && (
+                            <NavLink to="/categorias" className={estiloEnlace}>
+                                Categorías
+                            </NavLink>
+                        )}
                     </nav>
 
                     <div className="flex flex-wrap items-center gap-3">
