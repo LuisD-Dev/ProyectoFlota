@@ -4,6 +4,7 @@ import NotFound from '@/components/shared/NotFound'
 import HomePage from '@/features/home/pages/HomePage'
 import LoginPage from '@/features/auth/pages/LoginPage'
 import ProtectedRoute from '@/routes/ProtectedRoute'
+import ActivosPage from '@/features/activos/pages/ActivosPage'
 
 export const router = createBrowserRouter([
     {
@@ -17,6 +18,10 @@ export const router = createBrowserRouter([
                 path: '/',
                 element: <AppLayout />,
                 children: [
+                    {
+                        path: 'activos',
+                        element: <ActivosPage />,
+                    },
                     {
                         index: true,
                         element: <HomePage />,

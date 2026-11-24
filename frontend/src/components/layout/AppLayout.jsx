@@ -17,6 +17,13 @@ export default function AppLayout() {
         navigate('/login', { replace: true })
     }
 
+    function estiloEnlace({ isActive }) {
+        return `rounded-md px-3 py-2 text-sm ${isActive
+                ? 'bg-muted font-medium'
+                : 'text-muted-foreground'
+            }`
+    }
+
     return (
         <div className="min-h-svh bg-background text-foreground">
             <header className="border-b">
@@ -25,18 +32,16 @@ export default function AppLayout() {
                         Mantenimiento de Flota
                     </span>
 
-                    <nav aria-label="Navegación principal">
-                        <NavLink
-                            to="/"
-                            end
-                            className={({ isActive }) =>
-                                `rounded-md px-3 py-2 text-sm ${isActive
-                                    ? 'bg-muted font-medium'
-                                    : 'text-muted-foreground'
-                                }`
-                            }
-                        >
+                    <nav
+                        aria-label="Navegación principal"
+                        className="flex flex-wrap gap-1"
+                    >
+                        <NavLink to="/" end className={estiloEnlace}>
                             Inicio
+                        </NavLink>
+
+                        <NavLink to="/activos" className={estiloEnlace}>
+                            Activos
                         </NavLink>
                     </nav>
 
