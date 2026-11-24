@@ -1,12 +1,14 @@
 import { createBrowserRouter } from 'react-router'
+
 import AppLayout from '@/components/layout/AppLayout'
 import NotFound from '@/components/shared/NotFound'
 import HomePage from '@/features/home/pages/HomePage'
 import LoginPage from '@/features/auth/pages/LoginPage'
-import ProtectedRoute from '@/routes/ProtectedRoute'
 import ActivosPage from '@/features/activos/pages/ActivosPage'
 import ActivoDetallePage from '@/features/activos/pages/ActivoDetallePage'
 import CategoriasPage from '@/features/categorias/pages/CategoriasPage'
+import OrdenesPage from '@/features/ordenes/pages/OrdenesPage'
+import ProtectedRoute from '@/routes/ProtectedRoute'
 
 export const router = createBrowserRouter([
     {
@@ -21,20 +23,24 @@ export const router = createBrowserRouter([
                 element: <AppLayout />,
                 children: [
                     {
-                        path: 'categorias',
-                        element: <CategoriasPage />,
-                    },
-                    {
-                        path: 'activos/:id',
-                        element: <ActivoDetallePage />,
+                        index: true,
+                        element: <HomePage />,
                     },
                     {
                         path: 'activos',
                         element: <ActivosPage />,
                     },
                     {
-                        index: true,
-                        element: <HomePage />,
+                        path: 'activos/:id',
+                        element: <ActivoDetallePage />,
+                    },
+                    {
+                        path: 'categorias',
+                        element: <CategoriasPage />,
+                    },
+                    {
+                        path: 'ordenes',
+                        element: <OrdenesPage />,
                     },
                 ],
             },

@@ -60,4 +60,8 @@ export const activoService = {
     async remove(id) {
         return httpClient.delete(`Activo/${id}`)
     },
+    async getListado(options) {
+    const result = await httpClient.get('Activo', options)
+    return result.data ?? []
+},
 }

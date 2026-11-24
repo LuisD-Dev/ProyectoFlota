@@ -12,16 +12,22 @@ export default function AppLayout() {
     const { user } = useOutletContext()
     const navigate = useNavigate()
 
+    const puedeConsultarCategorias = [
+        'Administrador',
+        'Coordinador/Técnico',
+    ].includes(user.rol)
+
     function cerrarSesion() {
         authService.logout()
         navigate('/login', { replace: true })
     }
 
     function estiloEnlace({ isActive }) {
-        return `rounded-md px-3 py-2 text-sm ${isActive
-            ? 'bg-white/15 font-medium text-white'
-            : 'text-white/80 hover:bg-white/10 hover:text-white'
-            }`
+        return `rounded-md px-3 py-2 text-sm ${
+            isActive
+                ? 'bg-white/15 font-medium text-white'
+                : 'text-white/80 hover:bg-white/10 hover:text-white'
+        }`
     }
 
     return (
@@ -36,27 +42,53 @@ export default function AppLayout() {
                         aria-label="Navegación principal"
                         className="flex flex-wrap gap-1"
                     >
-                        <NavLink to="/" end className={estiloEnlace}>
+                        <NavLink
+                            to="/"
+                            end
+                            className={estiloEnlace}
+                        >
                             Inicio
                         </NavLink>
 
-                        <NavLink to="/activos" className={estiloEnlace}>
+                        <NavLink
+                            to="/activos"
+                            className={estiloEnlace}
+                        >
                             Activos
                         </NavLink>
-                        {['Administrador', 'Coordinador/Técnico'].includes(user.rol) && (
-                            <NavLink to="/categorias" className={estiloEnlace}>
+
+                        {puedeConsultarCategorias && (
+                            <NavLink
+                                to="/categorias"
+                                className={estiloEnlace}
+                            >
                                 Categorías
                             </NavLink>
                         )}
+
+                        <NavLink
+                            to="/ordenes"
+                            className={estiloEnlace}
+                        >
+                            Órdenes
+                        </NavLink>
                     </nav>
 
                     <div className="flex flex-wrap items-center gap-3">
                         <div className="text-sm">
-                            <p className="font-medium">{user.nombreCompleto}</p>
-                            <p className="text-white/75">{user.rol}</p>
+                            <p className="font-medium">
+                                {user.nombreCompleto}
+                            </p>
+                            <p className="text-white/75">
+                                {user.rol}
+                            </p>
                         </div>
 
-                        <Button variant="outline" className="border-white/35 bg-transparent text-white hover:bg-white/15 hover:text-white" onClick={cerrarSesion}>
+                        <Button
+                            variant="outline"
+                            className="border-white/35 bg-transparent text-white hover:bg-white/15 hover:text-white"
+                            onClick={cerrarSesion}
+                        >
                             Cerrar sesión
                         </Button>
                     </div>
