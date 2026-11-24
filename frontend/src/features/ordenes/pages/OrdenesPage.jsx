@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useOutletContext } from 'react-router'
+import { Link, useOutletContext } from 'react-router'
 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -40,6 +40,7 @@ function mostrarFecha(valor) {
 export default function OrdenesPage() {
     const { user } = useOutletContext()
     const { ordenes, loading, error, reload } = useOrdenes()
+
     const [mostrarFormulario, setMostrarFormulario] = useState(false)
 
     const puedeSolicitar = [
@@ -117,13 +118,19 @@ export default function OrdenesPage() {
                             {ordenes.map((orden) => (
                                 <TableRow key={orden.id}>
                                     <TableCell className="font-medium">
-                                        {orden.codigo}
+                                        <Link
+                                            to={`/ordenes/${orden.id}`}
+                                            className="underline underline-offset-4"
+                                        >
+                                            {orden.codigo}
+                                        </Link>
                                     </TableCell>
 
                                     <TableCell>
                                         <p className="font-medium">
                                             {orden.activoCodigo}
                                         </p>
+
                                         <p className="text-sm text-muted-foreground">
                                             {orden.activoNombre}
                                         </p>

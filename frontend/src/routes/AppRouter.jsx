@@ -9,6 +9,7 @@ import ActivoDetallePage from '@/features/activos/pages/ActivoDetallePage'
 import CategoriasPage from '@/features/categorias/pages/CategoriasPage'
 import OrdenesPage from '@/features/ordenes/pages/OrdenesPage'
 import ProtectedRoute from '@/routes/ProtectedRoute'
+import OrdenDetallePage from '@/features/ordenes/pages/OrdenDetallePage'
 
 export const router = createBrowserRouter([
     {
@@ -41,6 +42,10 @@ export const router = createBrowserRouter([
                     {
                         path: 'ordenes',
                         element: <OrdenesPage />,
+                    },
+                    {
+                        path: 'ordenes/:id',
+                        element: <OrdenDetallePage />,
                     },
                 ],
             },
