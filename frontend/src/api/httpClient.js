@@ -79,9 +79,20 @@ async function request(method, path, options = {}) {
     }
 
     if (!response.ok) {
+        const isLogin = path.replace(/^\/+/, '') === 'Auth/login'
+
+        if (
+            response.status === 401 &&
+            !isLogin &&
+            token &&
+            tokenStorage.get() === token
+        ) {
+            tokenStorage.clear()
+            window.dispatchEvent(new Event('auth:expired'))
+        }
+
         throw createApiError(response.status, data)
     }
-
     return data
 }
 

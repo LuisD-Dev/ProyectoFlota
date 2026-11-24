@@ -7,7 +7,19 @@ import { getErrorMessage } from '@/utils/apiError'
 export default function ProtectedRoute() {
     const { loading, user, error } = useCurrentUser()
 
-    if (!tokenStorage.get() || error?.status === 401) {
+    if (error?.status === 401) {
+        return (
+            <Navigate
+                to="/login"
+                replace
+                state={{
+                    message: 'Tu sesión dejó de ser válida. Iniciá sesión nuevamente.',
+                }}
+            />
+        )
+    }
+
+    if (!tokenStorage.get()) {
         return <Navigate to="/login" replace />
     }
 

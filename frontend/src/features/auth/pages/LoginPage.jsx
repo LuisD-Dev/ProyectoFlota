@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
@@ -22,6 +22,7 @@ import {
 
 export default function LoginPage() {
     const navigate = useNavigate()
+    const location = useLocation()
 
     const {
         register,
@@ -64,6 +65,11 @@ export default function LoginPage() {
                 </CardHeader>
 
                 <CardContent>
+                    {location.state?.message && (
+                        <p role="status" className="mb-4 text-sm text-muted-foreground">
+                            {location.state.message}
+                        </p>
+                    )}
                     <form
                         onSubmit={handleSubmit(onSubmit)}
                         className="space-y-4"

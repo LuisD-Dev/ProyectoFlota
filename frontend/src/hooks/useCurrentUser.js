@@ -12,24 +12,41 @@ export function useCurrentUser() {
     useEffect(() => {
         const controller = new AbortController()
 
-        authService
-            .getCurrentUser({ signal: controller.signal })
-            .then((user) => {
-                if (!controller.signal.aborted) {
-                    setSession({ loading: false, user, error: null })
-                }
+        function expireSession() {
+            controller.abort()
+
+            setSession({
+                loading: false,
+                user: null,
+                error: { status: 401 },
             })
-            .catch((error) => {
-                if (controller.signal.aborted) return
+        }
 
-                if (error.status === 401) {
-                    tokenStorage.clear()
-                }
+        window.addEventListener('auth:expired', expireSession)
 
-                setSession({ loading: false, user: null, error })
-            })
+        if (tokenStorage.get()) {
+            authService
+                .getCurrentUser({ signal: controller.signal })
+                .then((user) => {
+                    if (!controller.signal.aborted) {
+                        setSession({ loading: false, user, error: null })
+                    }
+                })
+                .catch((error) => {
+                    if (controller.signal.aborted) return
 
-        return () => controller.abort()
+                    if (error.status === 401) {
+                        tokenStorage.clear()
+                    }
+
+                    setSession({ loading: false, user: null, error })
+                })
+        }
+
+        return () => {
+            controller.abort()
+            window.removeEventListener('auth:expired', expireSession)
+        }
     }, [])
 
     return session
