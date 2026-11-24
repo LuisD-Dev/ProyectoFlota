@@ -1,21 +1,20 @@
-import { Link, useParams } from 'react-router'
+import { Link, useOutletContext, useParams } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import EstadoActivoBadge from '@/features/activos/components/EstadoActivoBadge'
 import {
     Card,
     CardContent,
     CardHeader,
     CardTitle,
 } from '@/components/ui/card'
+
+import ActivoImagen from '@/features/activos/components/ActivoImagen'
 import { useActivo } from '@/hooks/useActivo'
 import { getErrorMessage } from '@/utils/apiError'
+import ActivoAcciones from '@/features/activos/components/ActivoAcciones'
 
-const estadosActivo = {
-    0: 'Operativo',
-    1: 'En mantenimiento',
-    2: 'Fuera de servicio',
-    3: 'Dado de baja',
-}
+
 
 const estadosOrden = {
     0: 'Solicitada',
@@ -39,6 +38,9 @@ function Dato({ label, children }) {
 
 export default function ActivoDetallePage() {
     const { id } = useParams()
+    const { user } = useOutletContext()
+
+    const puedeAdministrar = user.rol === 'Administrador'
 
     const parsedId = Number(id)
     const validId =
@@ -55,6 +57,7 @@ export default function ActivoDetallePage() {
         return (
             <section className="space-y-4">
                 <p role="alert">El identificador del activo no es válido.</p>
+
                 <Button asChild variant="outline">
                     <Link to="/activos">Volver a activos</Link>
                 </Button>
@@ -84,7 +87,9 @@ export default function ActivoDetallePage() {
         )
     }
 
-    if (!activo) return <p>No se encontró información del activo.</p>
+    if (!activo) {
+        return <p>No se encontró información del activo.</p>
+    }
 
     return (
         <section className="space-y-6">
@@ -107,9 +112,7 @@ export default function ActivoDetallePage() {
                 <CardContent>
                     <dl className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                         <Dato label="Estado">
-                            <Badge variant="outline">
-                                {estadosActivo[activo.estado] ?? 'Desconocido'}
-                            </Badge>
+                            <EstadoActivoBadge estado={activo.estado} />
                         </Dato>
 
                         <Dato label="Categoría">
@@ -152,12 +155,26 @@ export default function ActivoDetallePage() {
 
                     <div className="mt-6">
                         <h2 className="font-medium">Descripción</h2>
+
                         <p className="mt-1 whitespace-pre-wrap text-muted-foreground">
                             {activo.descripcion || 'Sin descripción.'}
                         </p>
                     </div>
                 </CardContent>
             </Card>
+
+            <ActivoImagen
+                key={`${activo.id}-${activo.imagenUrl}`}
+                activo={activo}
+                puedeAdministrar={puedeAdministrar}
+                onUpdated={reload}
+            />
+            {puedeAdministrar && (
+                <ActivoAcciones
+                    activo={activo}
+                    onUpdated={reload}
+                />
+            )}
 
             <Card>
                 <CardHeader>
@@ -170,9 +187,14 @@ export default function ActivoDetallePage() {
                     ) : (
                         <ul className="space-y-3">
                             {activo.ordenes.map((orden) => (
-                                <li key={orden.codigo} className="rounded-md border p-4">
+                                <li
+                                    key={orden.codigo}
+                                    className="rounded-md border p-4"
+                                >
                                     <div className="flex flex-wrap items-center justify-between gap-2">
-                                        <span className="font-medium">{orden.codigo}</span>
+                                        <span className="font-medium">
+                                            {orden.codigo}
+                                        </span>
 
                                         <Badge variant="outline">
                                             {estadosOrden[orden.estadoActual] ?? 'Desconocido'}

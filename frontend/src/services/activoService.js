@@ -39,4 +39,25 @@ export const activoService = {
         const result = await httpClient.put(`Activo/${id}`, activo)
         return result
     },
+    async uploadImage(id, archivo) {
+        const formData = new FormData()
+        formData.append('Archivo', archivo)
+
+        const result = await httpClient.put(
+            `Activo/${id}/imagen`,
+            formData,
+        )
+
+        return result.data
+    },
+
+    async changeState(id, estado) {
+        return httpClient.patch(`Activo/${id}/estado`, {
+            estado,
+        })
+    },
+
+    async remove(id) {
+        return httpClient.delete(`Activo/${id}`)
+    },
 }

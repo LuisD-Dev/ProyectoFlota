@@ -19,14 +19,14 @@ export default function AppLayout() {
 
     function estiloEnlace({ isActive }) {
         return `rounded-md px-3 py-2 text-sm ${isActive
-                ? 'bg-muted font-medium'
-                : 'text-muted-foreground'
+                ? 'bg-white/15 font-medium text-white'
+                : 'text-white/80 hover:bg-white/10 hover:text-white'
             }`
     }
 
     return (
         <div className="min-h-svh bg-background text-foreground">
-            <header className="border-b">
+            <header className="border-b border-primary/20 bg-primary text-primary-foreground shadow-sm">
                 <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 p-4">
                     <span className="font-semibold">
                         Mantenimiento de Flota
@@ -48,10 +48,10 @@ export default function AppLayout() {
                     <div className="flex flex-wrap items-center gap-3">
                         <div className="text-sm">
                             <p className="font-medium">{user.nombreCompleto}</p>
-                            <p className="text-muted-foreground">{user.rol}</p>
+                            <p className="text-white/75">{user.rol}</p>
                         </div>
 
-                        <Button variant="outline" onClick={cerrarSesion}>
+                        <Button variant="outline" className="border-white/35 bg-transparent text-white hover:bg-white/15 hover:text-white" onClick={cerrarSesion}>
                             Cerrar sesión
                         </Button>
                     </div>

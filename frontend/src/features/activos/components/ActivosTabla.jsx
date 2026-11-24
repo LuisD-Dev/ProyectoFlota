@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
-import { Badge } from '@/components/ui/badge'
+import EstadoActivoBadge from '@/features/activos/components/EstadoActivoBadge'
+import ActivoMiniatura from '@/features/activos/components/ActivoMiniatura'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -11,12 +12,6 @@ import {
     TableRow,
 } from '@/components/ui/table'
 
-const estados = {
-    0: 'Operativo',
-    1: 'En mantenimiento',
-    2: 'Fuera de servicio',
-    3: 'Dado de baja',
-}
 
 export default function ActivosTabla({
     activos,
@@ -28,6 +23,7 @@ export default function ActivosTabla({
             <Table>
                 <TableHeader>
                     <TableRow>
+                        <TableHead>Imagen</TableHead>
                         <TableHead>Código</TableHead>
                         <TableHead>Nombre</TableHead>
                         <TableHead>Categoría</TableHead>
@@ -44,7 +40,7 @@ export default function ActivosTabla({
                         Array.from({ length: 5 }, (_, index) => (
                             <TableRow key={index}>
                                 {Array.from(
-                                    { length: onEditar ? 7 : 6 },
+                                    { length: onEditar ? 8 : 7 },
                                     (_, column) => (
                                         <TableCell key={column}>
                                             <Skeleton className="h-5 w-full" />
@@ -56,6 +52,12 @@ export default function ActivosTabla({
                     ) : (
                         activos.map((activo) => (
                             <TableRow key={activo.id}>
+                                <TableCell>
+                                    <ActivoMiniatura
+                                        key={`${activo.id}-${activo.imagenUrl}`}
+                                        activo={activo}
+                                    />
+                                </TableCell>
                                 <TableCell className="font-medium">
                                     <Link
                                         to={`/activos/${activo.id}`}
@@ -80,9 +82,7 @@ export default function ActivosTabla({
                                 </TableCell>
 
                                 <TableCell>
-                                    <Badge variant="outline">
-                                        {estados[activo.estado] ?? 'Desconocido'}
-                                    </Badge>
+                                    <EstadoActivoBadge estado={activo.estado} />
                                 </TableCell>
 
                                 {onEditar && (
