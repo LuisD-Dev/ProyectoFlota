@@ -20,9 +20,9 @@ public interface IActivoRepository
 
     Task<Activo?> AddAsync(Activo activo);
 
-    Task UpdateAsync(Activo activo);
+    Task UpdateAsync(Activo activo, int? usuarioId = null);
 
-    Task UpdateEstadoAsync(Activo activo);
+    Task UpdateEstadoAsync(Activo activo, int? usuarioId = null);
 
     Task ActualizarImagenUrlAsync(int id, string imagenUrl, CancellationToken cancellationToken);
 

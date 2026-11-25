@@ -222,6 +222,13 @@ public class AppDbContext : DbContext
                 .HasForeignKey(orden => orden.ActivoId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(orden => orden.UsuarioSolicitante)
+                .WithMany()
+                .HasForeignKey(orden => orden.UsuarioSolicitanteId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(orden => orden.UsuarioSolicitanteId);
+
         });
 
         // Proveedor
@@ -414,6 +421,47 @@ public class AppDbContext : DbContext
             entity.HasOne(x => x.Rol).WithMany(x => x.Usuarios)
                 .HasForeignKey(x => x.RolId).OnDelete(DeleteBehavior.Restrict);
 
+        });
+
+        modelBuilder.Entity<OrdenMantenimiento>()
+            .HasOne(x => x.EspecialidadRequerida).WithMany()
+            .HasForeignKey(x => x.EspecialidadRequeridaId).OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<HistorialEstado>(entity =>
+        {
+            entity.ToTable("HistorialEstados", table => table.HasCheckConstraint("CK_HistorialEstados_Recurso",
+                "([OrdenMantenimientoId] IS NOT NULL AND [ActivoId] IS NULL) OR ([OrdenMantenimientoId] IS NULL AND [ActivoId] IS NOT NULL)"));
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Observacion).HasMaxLength(1000);
+            entity.HasOne(x => x.OrdenMantenimiento).WithMany().HasForeignKey(x => x.OrdenMantenimientoId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.Activo).WithMany().HasForeignKey(x => x.ActivoId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.Usuario).WithMany().HasForeignKey(x => x.UsuarioId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<RepuestoOrden>(entity =>
+        {
+            entity.ToTable("RepuestosOrden", table =>
+            {
+                table.HasCheckConstraint("CK_RepuestosOrden_Cantidad", "[Cantidad] > 0");
+                table.HasCheckConstraint("CK_RepuestosOrden_Costo", "[CostoUnitario] >= 0");
+            });
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Cantidad).HasPrecision(18, 2);
+            entity.Property(x => x.CostoUnitario).HasPrecision(18, 2);
+            entity.HasOne(x => x.OrdenMantenimiento).WithMany().HasForeignKey(x => x.OrdenMantenimientoId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.Repuesto).WithMany().HasForeignKey(x => x.RepuestoId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<TecnicoOrden>(entity =>
+        {
+            entity.ToTable("TecnicosOrden", table =>
+            {
+                table.HasCheckConstraint("CK_TecnicosOrden_Horas", "[HorasTrabajadas] > 0");
+                table.HasCheckConstraint("CK_TecnicosOrden_Tarifa", "[TarifaPorHora] >= 0");
+            });
+            entity.HasKey(x => new { x.OrdenMantenimientoId, x.TecnicoId });
+            entity.Property(x => x.HorasTrabajadas).HasPrecision(18, 2);
+            entity.Property(x => x.TarifaPorHora).HasPrecision(18, 2);
+            entity.HasOne(x => x.OrdenMantenimiento).WithMany().HasForeignKey(x => x.OrdenMantenimientoId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.Tecnico).WithMany().HasForeignKey(x => x.TecnicoId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.SeedCatalogs();

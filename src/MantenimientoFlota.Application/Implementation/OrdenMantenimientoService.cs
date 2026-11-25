@@ -15,20 +15,35 @@ public class OrdenMantenimientoService : IOrdenMantenimientoService
     private readonly IOrdenMantenimientoRepository _repository;
     private readonly IMapper _mapper;
     private readonly ILogger<OrdenMantenimientoService> _logger;
+    private readonly ICurrentUser _currentUser;
 
     public OrdenMantenimientoService(
-        IOrdenMantenimientoRepository repository, IMapper mapper, ILogger<OrdenMantenimientoService> logger)
+        IOrdenMantenimientoRepository repository, IMapper mapper, ILogger<OrdenMantenimientoService> logger,
+        ICurrentUser currentUser)
     {
         _repository = repository;
         _mapper = mapper;
         _logger = logger;
+        _currentUser = currentUser;
+    }
+
+    /// <summary>
+    /// Si el usuario es Solicitante/Consulta, devuelve su id para limitar la consulta a sus propias órdenes;
+    /// para los demás roles devuelve null (sin restricción por propietario).
+    /// </summary>
+    private int? FiltroPorSolicitante()
+    {
+        if (_currentUser.Rol != NombresRol.SolicitanteConsulta) return null;
+
+        return _currentUser.UsuarioId
+            ?? throw new ForbiddenException("No se pudo identificar al usuario autenticado.");
     }
 
     public async Task<Result<IReadOnlyList<OrdenMantenimientoDto>>> GetAllAsync(int? activoId = null)
     {
         if (activoId is <= 0)
             throw new InvalidRequestException("El identificador del activo debe ser mayor que cero.");
-        var ordenes = await _repository.GetAllAsync(activoId);
+        var ordenes = await _repository.GetAllAsync(activoId, FiltroPorSolicitante());
         _logger.LogDebug("Operación de negocio completada. Operation={Operation}", "OrdenMantenimiento.GetAllAsync");
         return Result<IReadOnlyList<OrdenMantenimientoDto>>.Success(_mapper.Map<List<OrdenMantenimientoDto>>(ordenes), 200);
     }
@@ -43,6 +58,14 @@ public class OrdenMantenimientoService : IOrdenMantenimientoService
         if (orden is null)
         {
             throw new ResourceNotFoundException($"No se encontró la orden de mantenimiento con id {id}.");
+        }
+
+        var solicitante = FiltroPorSolicitante();
+        if (solicitante is not null && orden.UsuarioSolicitanteId != solicitante)
+        {
+            _logger.LogWarning(
+                "Acceso rechazado a una orden ajena. UsuarioId={UsuarioId} OrdenId={OrdenId}", solicitante, id);
+            throw new ForbiddenException("Solo puede consultar las órdenes que usted solicitó.");
         }
 
         // Los componentes almacenados se interpretan como calendario UTC, sin conversión de zona.
@@ -68,6 +91,9 @@ public class OrdenMantenimientoService : IOrdenMantenimientoService
         orden.Codigo = $"OM-{Guid.NewGuid():N}";
         orden.FechaSolicitud = DateTime.UtcNow;
         orden.EstadoActual = EstadoOrdenMantenimiento.Solicitada;
+        // El solicitante sale del token; el cliente no puede indicarlo.
+        orden.UsuarioSolicitanteId = _currentUser.UsuarioId
+            ?? throw new ForbiddenException("No se pudo identificar al usuario autenticado.");
 
         var ordenCreada = await _repository.AddAsync(orden);
         var ordenCompleta = await _repository.GetByIdAsync(ordenCreada.Id)

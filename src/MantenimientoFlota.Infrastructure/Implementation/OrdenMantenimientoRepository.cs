@@ -14,7 +14,8 @@ public sealed class OrdenMantenimientoRepository : IOrdenMantenimientoRepository
         _context = context;
     }
 
-    public async Task<IReadOnlyList<OrdenMantenimiento>> GetAllAsync(int? activoId = null)
+    public async Task<IReadOnlyList<OrdenMantenimiento>> GetAllAsync(
+        int? activoId = null, int? usuarioSolicitanteId = null)
     {
         IQueryable<OrdenMantenimiento> query = _context.OrdenesMantenimiento
             .AsNoTracking();
@@ -22,6 +23,11 @@ public sealed class OrdenMantenimientoRepository : IOrdenMantenimientoRepository
         if (activoId.HasValue)
         {
             query = query.Where(orden => orden.ActivoId == activoId.Value);
+        }
+
+        if (usuarioSolicitanteId.HasValue)
+        {
+            query = query.Where(orden => orden.UsuarioSolicitanteId == usuarioSolicitanteId.Value);
         }
 
         return await query.Include(orden => orden.Activo)
@@ -53,6 +59,13 @@ public sealed class OrdenMantenimientoRepository : IOrdenMantenimientoRepository
         OrdenMantenimiento ordenMantenimiento)
     {
         await _context.OrdenesMantenimiento.AddAsync(ordenMantenimiento);
+        if (ordenMantenimiento.UsuarioSolicitanteId is int usuarioId)
+            _context.Add(new HistorialEstado
+            {
+                OrdenMantenimiento = ordenMantenimiento, EstadoAnterior = null,
+                EstadoNuevo = ordenMantenimiento.EstadoActual, FechaUtc = DateTime.UtcNow,
+                UsuarioId = usuarioId, Observacion = "Solicitud registrada."
+            });
         await _context.SaveChangesAsync();
 
         return ordenMantenimiento;

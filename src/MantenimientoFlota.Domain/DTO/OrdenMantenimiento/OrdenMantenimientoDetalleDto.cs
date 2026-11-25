@@ -8,6 +8,7 @@ public sealed class OrdenMantenimientoDetalleDto
     /// <summary>Identificador asignado al recurso.</summary>
     /// <example>1</example>
     public int Id { get; set; }
+    public int? EspecialidadRequeridaId { get; set; }
     /// <summary>Código identificador del recurso.</summary>
     /// <example>OM-DEMO-001</example>
     public string Codigo { get; set; } = string.Empty;

@@ -6,5 +6,7 @@ public static class ApiErrorCodes
     public const string InvalidRequest = "INVALID_REQUEST";
     public const string ResourceNotFound = "RESOURCE_NOT_FOUND";
     public const string Conflict = "CONFLICT";
+    public const string Unauthorized = "UNAUTHORIZED";
+    public const string Forbidden = "FORBIDDEN";
     public const string UnexpectedError = "UNEXPECTED_ERROR";
 }

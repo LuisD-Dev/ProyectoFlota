@@ -54,6 +54,7 @@ public static class DependencyInjection
             IOrdenMantenimientoRepository,
             OrdenMantenimientoRepository>();
         services.AddScoped<IUsuarioRepository, UsuarioRepository>();
+        services.AddScoped<IOrdenProcesoRepository, OrdenProcesoRepository>();
 
         return services;
     }

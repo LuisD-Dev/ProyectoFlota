@@ -490,3 +490,6 @@ $RECYCLE.BIN/
 
 # Serilog runtime files
 **/logs/
+
+# Resultados locales de pruebas de los bloques 5-8
+/tests/resultados-belen/

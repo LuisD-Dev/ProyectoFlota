@@ -1,4 +1,4 @@
-﻿using MantenimientoFlota.Api.Common;
+using MantenimientoFlota.Api.Common;
 using MantenimientoFlota.Api.Contracts;
 using MantenimientoFlota.Application.Interfaces;
 using MantenimientoFlota.Domain.DTO;
@@ -22,6 +22,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>Iniciar sesión y obtener un token JWT.</summary>
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("login")]
     [HttpPost("login")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(Result<LoginResponseDto>), 200)]

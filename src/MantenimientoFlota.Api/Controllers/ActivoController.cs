@@ -5,6 +5,8 @@ using MantenimientoFlota.Api.Contracts;
 
 using MantenimientoFlota.Domain.DTO.Activo;
 using MantenimientoFlota.Application.Interfaces;
+using MantenimientoFlota.Api.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MantenimientoFlota.Api.Controllers;
@@ -28,6 +30,7 @@ public sealed class ActivoController : ControllerBase
     /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
     [EndpointSummary("Buscar activos con filtros, orden y paginación")]
     [EndpointDescription("Página inicial 1, tamaño 10 y máximo 50. Orden por lista blanca y desempate por ID. Sin coincidencias devuelve 200 con data vacía. Los filtros omitidos no restringen el resultado.")]
+    [Authorize(Policy = AuthorizationPolicies.TodosLosRoles)]
     [HttpGet("buscar")]
     [ProducesResponseType(typeof(Result<IReadOnlyList<ActivoDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -45,6 +48,7 @@ public sealed class ActivoController : ControllerBase
     /// <response code="200">Operación completada; el cuerpo contiene Result.</response>
     /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
     [EndpointSummary("Listar activos")]
+    [Authorize(Policy = AuthorizationPolicies.TodosLosRoles)]
     [HttpGet]
     [ProducesResponseType(typeof(Result<IEnumerable<ActivoDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -65,6 +69,7 @@ public sealed class ActivoController : ControllerBase
     /// <response code="400">Entrada inválida; consulte los errores por campo.</response>
     /// <response code="404">El recurso solicitado no existe.</response>
     [EndpointSummary("Consultar detalle de activos")]
+    [Authorize(Policy = AuthorizationPolicies.TodosLosRoles)]
     [HttpGet("{id:int}", Name = "Activo_GetById")]
     [ProducesResponseType(typeof(Result<ActivoDetalleDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -88,6 +93,7 @@ public sealed class ActivoController : ControllerBase
     /// <response code="409">La operación entra en conflicto con los datos o las reglas de negocio.</response>
     /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Registrar activos")]
+    [Authorize(Policy = AuthorizationPolicies.SoloAdministrador)]
     [HttpPost]
     [ProducesResponseType(typeof(Result<ActivoDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -118,6 +124,7 @@ public sealed class ActivoController : ControllerBase
     /// <response code="409">La operación entra en conflicto con los datos o las reglas de negocio.</response>
     /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Actualizar activos")]
+    [Authorize(Policy = AuthorizationPolicies.SoloAdministrador)]
     [HttpPut("{id:int}")]
     [EndpointDescription("Actualiza el activo. Si cambia a FueraDeServicio o DadoDeBaja, rechaza la solicitud con 409 cuando existen órdenes abiertas. Reenviar el estado actual permite actualizar los demás campos.")]
     [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]
@@ -148,6 +155,7 @@ public sealed class ActivoController : ControllerBase
     /// <response code="413">El tamaño de la solicitud supera el límite permitido.</response>
     /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Cargar o reemplazar imagen de activo")]
+    [Authorize(Policy = AuthorizationPolicies.SoloAdministrador)]
     [HttpPut("{id:int}/imagen")]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(3 * 1024 * 1024)]
@@ -186,6 +194,7 @@ public sealed class ActivoController : ControllerBase
     /// <response code="409">La operación entra en conflicto con los datos o las reglas de negocio.</response>
     /// <response code="415">El tipo de contenido no está admitido.</response>
     [EndpointSummary("Cambiar estado administrativo del activo")]
+    [Authorize(Policy = AuthorizationPolicies.SoloAdministrador)]
     [HttpPatch("{id:int}/estado")]
     [EndpointDescription("Establece exclusivamente FueraDeServicio (2) o DadoDeBaja (3). Rechaza con 409 si existen órdenes abiertas, incluso al repetir el estado actual. Las órdenes finales no bloquean esta operación.")]
     [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]
@@ -213,6 +222,7 @@ public sealed class ActivoController : ControllerBase
     /// <response code="404">El recurso solicitado no existe.</response>
     /// <response code="409">La operación entra en conflicto con los datos o las reglas de negocio.</response>
     [EndpointSummary("Dar de baja lógica un activo")]
+    [Authorize(Policy = AuthorizationPolicies.SoloAdministrador)]
     [HttpDelete("{id:int}")]
     [EndpointDescription("Realiza la baja lógica del activo, conservando el registro y estableciendo su estado en DadoDeBaja. Devuelve 409 si tiene cualquier orden de mantenimiento asociada.")]
     [ProducesResponseType(typeof(Result<object?>), StatusCodes.Status200OK)]

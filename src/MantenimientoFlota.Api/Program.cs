@@ -16,6 +16,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using MantenimientoFlota.Application.Interfaces;
 using MantenimientoFlota.Application.Implementation;
+using MantenimientoFlota.Api.Authorization;
+using Microsoft.AspNetCore.Authorization;
+using MantenimientoFlota.Domain.Constants;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -108,6 +111,22 @@ builder.Services
         };
         options.Events = new JwtBearerEvents
         {
+            OnTokenValidated = async context =>
+            {
+                var principal = context.Principal;
+                if (!int.TryParse(principal?.FindFirst("sub")?.Value, out var id))
+                {
+                    context.Fail("Token no válido.");
+                    return;
+                }
+                var repository = context.HttpContext.RequestServices
+                    .GetRequiredService<IUsuarioRepository>();
+                var usuario = await repository.GetByIdAsync(id);
+                if (usuario is null || !usuario.Activo ||
+                    usuario.Rol.Nombre != principal?.FindFirst("role")?.Value ||
+                    usuario.Login != principal?.FindFirst("name")?.Value)
+                    context.Fail("La sesión ya no está vigente.");
+            },
             OnChallenge = async context =>
             {
                 context.HandleResponse();
@@ -146,7 +165,54 @@ builder.Services
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+
+// Políticas: matriz de permisos por rol (sección 11 del enunciado).
+// Los nombres de rol deben coincidir exactamente con el claim "role" del token.
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(AuthorizationPolicies.SoloAdministrador,
+        policy => policy.RequireRole(NombresRol.Administrador));
+
+    options.AddPolicy(AuthorizationPolicies.AdministradorOCoordinador,
+        policy => policy.RequireRole(NombresRol.Administrador, NombresRol.CoordinadorTecnico));
+
+    options.AddPolicy(AuthorizationPolicies.TodosLosRoles,
+        policy => policy.RequireRole(
+            NombresRol.Administrador, NombresRol.CoordinadorTecnico, NombresRol.SolicitanteConsulta));
+
+    options.AddPolicy(AuthorizationPolicies.CrearSolicitudes,
+        policy => policy.RequireRole(NombresRol.Administrador, NombresRol.SolicitanteConsulta));
+
+    // Protección por defecto: todo endpoint sin [AllowAnonymous] exige un token válido.
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy("login", context =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "local",
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        if (context.Lease.TryGetMetadata(System.Threading.RateLimiting.MetadataName.RetryAfter, out var retryAfter))
+            context.HttpContext.Response.Headers.RetryAfter = Math.Ceiling(retryAfter.TotalSeconds)
+                .ToString(System.Globalization.CultureInfo.InvariantCulture);
+        await context.HttpContext.Response.WriteAsJsonAsync(ApiErrorFactory.Create(
+            context.HttpContext, 429, "Demasiados intentos. Espere antes de volver a iniciar sesión.",
+            title: "Límite de solicitudes", errorCode: "RATE_LIMITED"), cancellationToken);
+    };
+});
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -195,10 +261,12 @@ app.UseExceptionHandler(new ExceptionHandlerOptions { SuppressDiagnosticsCallbac
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    // Documentación accesible sin token solo en Development.
+    app.MapOpenApi().AllowAnonymous();
     app.MapScalarApiReference(options => options
         .WithTitle("Mantenimiento de Flota API")
-        .WithDefaultHttpClient(ScalarTarget.JavaScript, ScalarClient.Fetch));
+        .WithDefaultHttpClient(ScalarTarget.JavaScript, ScalarClient.Fetch))
+        .AllowAnonymous();
 }
 
 app.UseHttpsRedirection();
@@ -212,6 +280,7 @@ app.UseStaticFiles(new StaticFileOptions
 });
 app.UseCors("Frontend");
 
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 

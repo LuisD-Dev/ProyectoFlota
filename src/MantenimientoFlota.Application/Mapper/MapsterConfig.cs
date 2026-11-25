@@ -237,8 +237,35 @@ public static class MapsterConfig
             .Ignore(dest => dest.FechaCierre)
             .Ignore(dest => dest.CostoTotal)
             .Ignore(dest => dest.EstadoActual)
-            .Ignore(dest => dest.Activo);
+            .Ignore(dest => dest.Activo)
+            .Ignore(dest => dest.UsuarioSolicitanteId)
+            .Ignore(dest => dest.UsuarioSolicitante)
+            .Ignore(dest => dest.EspecialidadRequeridaId)
+            .Ignore(dest => dest.EspecialidadRequerida);
 
+        config.NewConfig<MantenimientoFlota.Domain.Entities.Usuario, MantenimientoFlota.Domain.DTO.Usuario.UsuarioDto>()
+            .Map(dest => dest.Rol, src => src.Rol.Nombre);
+        config.NewConfig<MantenimientoFlota.Domain.Entities.Rol, MantenimientoFlota.Domain.DTO.Usuario.RolDto>();
+        config.NewConfig<MantenimientoFlota.Domain.DTO.Usuario.CrearUsuarioDto, MantenimientoFlota.Domain.Entities.Usuario>()
+            .Map(dest => dest.Login, src => src.Login.Trim())
+            .Map(dest => dest.NombreCompleto, src => src.NombreCompleto.Trim())
+            .Map(dest => dest.Correo, src => src.Correo.Trim())
+            .Ignore(dest => dest.Id).Ignore(dest => dest.PasswordHash).Ignore(dest => dest.Rol)
+            .Ignore(dest => dest.FechaCreacionUtc).Ignore(dest => dest.UltimoAccesoUtc).Ignore(dest => dest.Activo);
+        config.NewConfig<MantenimientoFlota.Domain.DTO.Usuario.ActualizarUsuarioDto, MantenimientoFlota.Domain.Entities.Usuario>()
+            .Map(dest => dest.Login, src => src.Login.Trim())
+            .Map(dest => dest.NombreCompleto, src => src.NombreCompleto.Trim())
+            .Map(dest => dest.Correo, src => src.Correo.Trim())
+            .Ignore(dest => dest.Id).Ignore(dest => dest.PasswordHash).Ignore(dest => dest.Rol)
+            .Ignore(dest => dest.FechaCreacionUtc).Ignore(dest => dest.UltimoAccesoUtc).Ignore(dest => dest.Activo);
+
+        config.NewConfig<MantenimientoFlota.Domain.Entities.HistorialEstado, MantenimientoFlota.Domain.DTO.OrdenMantenimiento.HistorialEstadoDto>();
+        config.NewConfig<MantenimientoFlota.Domain.Entities.RepuestoOrden, MantenimientoFlota.Domain.DTO.OrdenMantenimiento.RepuestoOrdenDto>()
+            .Map(dest => dest.Nombre, src => src.Repuesto.Nombre)
+            .Ignore(dest => dest.Subtotal);
+        config.NewConfig<MantenimientoFlota.Domain.Entities.TecnicoOrden, MantenimientoFlota.Domain.DTO.OrdenMantenimiento.TecnicoOrdenDto>()
+            .Map(dest => dest.NombreCompleto, src => src.Tecnico.NombreCompleto)
+            .Ignore(dest => dest.Subtotal);
         config.Compile();
         return config;
     }

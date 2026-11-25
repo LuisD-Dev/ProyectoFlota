@@ -99,17 +99,31 @@ public class ActivoRepository : IActivoRepository
         return activo;
     }
 
-    public async Task UpdateAsync(Activo activo)
+    public async Task UpdateAsync(Activo activo, int? usuarioId = null)
     {
+        RegistrarHistorial(activo, usuarioId);
         if (_context.Entry(activo).State == EntityState.Detached)
             _context.Activos.Update(activo);
         await _context.SaveChangesAsync();
     }
 
-    public async Task UpdateEstadoAsync(Activo activo)
+    public async Task UpdateEstadoAsync(Activo activo, int? usuarioId = null)
     {
+        RegistrarHistorial(activo, usuarioId);
         _context.Entry(activo).Property(entidad => entidad.Estado).IsModified = true;
         await _context.SaveChangesAsync();
+    }
+
+    private void RegistrarHistorial(Activo activo, int? usuarioId)
+    {
+        var anterior = _context.Entry(activo).Property(x => x.Estado).OriginalValue;
+        if (anterior == activo.Estado) return;
+        if (usuarioId is null) throw new InvalidOperationException("Se requiere usuario para registrar un cambio de estado.");
+        _context.Add(new HistorialEstado
+        {
+            ActivoId = activo.Id, EstadoAnterior = anterior, EstadoNuevo = activo.Estado,
+            FechaUtc = DateTime.UtcNow, UsuarioId = usuarioId.Value, Observacion = "Cambio administrativo del activo."
+        });
     }
 
     public async Task ActualizarImagenUrlAsync(int id, string imagenUrl, CancellationToken cancellationToken)

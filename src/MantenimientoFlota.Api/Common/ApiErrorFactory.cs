@@ -14,8 +14,11 @@ public static class ApiErrorFactory
         string? errorCode = null)
     {
         if (status is StatusCodes.Status400BadRequest
+            or StatusCodes.Status401Unauthorized
+            or StatusCodes.Status403Forbidden
             or StatusCodes.Status404NotFound
-            or StatusCodes.Status409Conflict)
+            or StatusCodes.Status409Conflict
+            or StatusCodes.Status429TooManyRequests)
         {
             context.Items[RequestOutcomeMarker.Key] = RequestOutcome.ExpectedFailure;
         }
@@ -27,6 +30,8 @@ public static class ApiErrorFactory
             title ?? status switch
             {
                 StatusCodes.Status400BadRequest => "Solicitud no válida",
+                StatusCodes.Status401Unauthorized => "No autenticado",
+                StatusCodes.Status403Forbidden => "Acceso denegado",
                 StatusCodes.Status404NotFound => "Recurso no encontrado",
                 StatusCodes.Status409Conflict => "Conflicto",
                 _ => "Error interno"
@@ -37,6 +42,8 @@ public static class ApiErrorFactory
             errorCode ?? status switch
             {
                 StatusCodes.Status400BadRequest => ApiErrorCodes.InvalidRequest,
+                StatusCodes.Status401Unauthorized => ApiErrorCodes.Unauthorized,
+                StatusCodes.Status403Forbidden => ApiErrorCodes.Forbidden,
                 StatusCodes.Status404NotFound => ApiErrorCodes.ResourceNotFound,
                 StatusCodes.Status409Conflict => ApiErrorCodes.Conflict,
                 _ => ApiErrorCodes.UnexpectedError

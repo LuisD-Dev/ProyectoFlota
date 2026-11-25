@@ -1,6 +1,5 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using MantenimientoFlota.Infrastructure.Exceptions;
 
 namespace MantenimientoFlota.Api.Common;
 
@@ -8,11 +7,14 @@ internal static class ExceptionClassification
 {
     public static bool IsPersistenceConflict(Exception exception)
     {
-        if (exception is ImagenUpdateRejectedException { InnerException: not null } image)
-            exception = image.InnerException!;
-        return exception is SqlException { Number: 547 or 2601 or 2627 }
-            || exception is DbUpdateConcurrencyException
-            || exception is DbUpdateException { InnerException: SqlException sql }
-                && sql.Number is 547 or 2601 or 2627;
+        // EF puede envolver un deadlock en InvalidOperationException/RetryLimitExceededException.
+        // Se inspeccionan los tipos y códigos, sin exponer sus mensajes al cliente.
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+        {
+            if (current is DbUpdateConcurrencyException ||
+                current is SqlException { Number: 547 or 1205 or 2601 or 2627 or 3960 })
+                return true;
+        }
+        return false;
     }
 }

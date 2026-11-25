@@ -24,6 +24,8 @@ public static class DependencyInjection
         services.AddScoped<IRepuestoProveedorService, RepuestoProveedorService>();
         services.AddScoped<IOrdenMantenimientoService, OrdenMantenimientoService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IUsuarioService, UsuarioService>();
+        services.AddScoped<IOrdenProcesoService, OrdenProcesoService>();
 
         return services;
     }

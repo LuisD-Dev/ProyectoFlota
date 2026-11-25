@@ -4,7 +4,8 @@ namespace MantenimientoFlota.Infrastructure.Interfaces;
 
 public interface IOrdenMantenimientoRepository
 {
-    Task<IReadOnlyList<OrdenMantenimiento>> GetAllAsync(int? activoId = null);
+    Task<IReadOnlyList<OrdenMantenimiento>> GetAllAsync(
+        int? activoId = null, int? usuarioSolicitanteId = null);
 
     Task<OrdenMantenimiento?> GetByIdAsync(int id);
 
