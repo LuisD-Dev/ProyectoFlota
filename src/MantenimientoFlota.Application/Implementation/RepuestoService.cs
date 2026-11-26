@@ -6,6 +6,7 @@ using MantenimientoFlota.Domain.DTO.Repuesto;
 using MantenimientoFlota.Application.Interfaces;
 using MantenimientoFlota.Infrastructure.Interfaces;
 using MantenimientoFlota.Domain.Entities;
+using MantenimientoFlota.Application.Common;
 
 namespace MantenimientoFlota.Application.Implementation;
 
@@ -14,12 +15,17 @@ public class RepuestoService : IRepuestoService
     private readonly IRepuestoRepository _repository;
     private readonly IMapper _mapper;
     private readonly ILogger<RepuestoService> _logger;
-
-    public RepuestoService(IRepuestoRepository repository, IMapper mapper, ILogger<RepuestoService> logger)
+    private readonly IStockBajoNotifier _stockNotifier;
+    public RepuestoService(
+    IRepuestoRepository repository,
+    IMapper mapper,
+    ILogger<RepuestoService> logger,
+    IStockBajoNotifier stockNotifier)
     {
         _repository = repository;
         _mapper = mapper;
         _logger = logger;
+        _stockNotifier = stockNotifier;
     }
 
     public async Task<Result<IReadOnlyList<RepuestoDto>>> SearchAsync(BuscarRepuestosDto consulta)
@@ -55,53 +61,99 @@ public class RepuestoService : IRepuestoService
     }
 
     public async Task<Result<RepuestoDto>> CreateAsync(
-        CrearRepuestoDto dto)
+    CrearRepuestoDto dto)
     {
         var codigo = dto.Codigo.Trim();
 
         if (await _repository.ExistsByCodigoAsync(codigo))
         {
-            throw new ConflictException("Ya existe un repuesto con el código indicado.");
+            throw new ConflictException(
+                "Ya existe un repuesto con el código indicado.");
         }
 
         var repuesto = _mapper.Map<Repuesto>(dto);
 
-        var repuestoCreado = await _repository.AddAsync(repuesto) ?? repuesto;
+        var repuestoCreado =
+            await _repository.AddAsync(repuesto) ?? repuesto;
 
-        _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Repuesto.CreateAsync");
+        // AddAsync ya terminó SaveChangesAsync.
+        // Un repuesto nuevo también puede nacer bajo mínimo.
+        var alerta = AlertasStock.CrearSiCorresponde(
+            repuestoCreado,
+            estabaBajoMinimo: false,
+            stockAnterior: 0m);
 
-        return Result<RepuestoDto>.Success(_mapper.Map<RepuestoDto>(repuestoCreado), 201);
+        if (alerta is not null)
+        {
+            await _stockNotifier.PublicarAsync(alerta);
+        }
+
+        _logger.LogInformation(
+            "Operación de negocio completada. Operation={Operation}",
+            "Repuesto.CreateAsync");
+
+        return Result<RepuestoDto>.Success(
+            _mapper.Map<RepuestoDto>(repuestoCreado),
+            201);
     }
 
     public async Task<Result<object?>> UpdateAsync(
-        int id,
-        ActualizarRepuestoDto dto)
+    int id,
+    ActualizarRepuestoDto dto)
     {
         if (id <= 0)
-            throw new InvalidRequestException("El identificador debe ser mayor que cero.");
+        {
+            throw new InvalidRequestException(
+                "El identificador debe ser mayor que cero.");
+        }
+
         var repuesto = await _repository.GetForUpdateAsync(id);
 
         if (repuesto is null)
         {
-            throw new ResourceNotFoundException($"No se encontró el repuesto con id {id}.");
+            throw new ResourceNotFoundException(
+                $"No se encontró el repuesto con id {id}.");
         }
 
         var codigo = dto.Codigo.Trim();
 
         if (await _repository.ExistsByCodigoAsync(codigo, id))
         {
-            throw new ConflictException("Ya existe un repuesto con el código indicado.");
+            throw new ConflictException(
+                "Ya existe un repuesto con el código indicado.");
         }
+
+        // Conservar la condición anterior antes del mapeo.
+        var stockAnterior = repuesto.StockActual;
+
+        var estabaBajoMinimo =
+            repuesto.StockActual < repuesto.StockMinimo;
 
         _mapper.Map(dto, repuesto);
 
         await _repository.UpdateAsync(repuesto);
 
-        _logger.LogInformation("Operación de negocio completada. Operation={Operation}", "Repuesto.UpdateAsync");
+        // Publicar únicamente después de guardar correctamente.
+        var alerta = AlertasStock.CrearSiCorresponde(
+            repuesto,
+            estabaBajoMinimo,
+            stockAnterior);
 
-        return Result<object?>.Success(null, 200, "OK", "Operación completada.");
+        if (alerta is not null)
+        {
+            await _stockNotifier.PublicarAsync(alerta);
+        }
+
+        _logger.LogInformation(
+            "Operación de negocio completada. Operation={Operation}",
+            "Repuesto.UpdateAsync");
+
+        return Result<object?>.Success(
+            null,
+            200,
+            "OK",
+            "Operación completada.");
     }
-
     public async Task<Result<object?>> DeleteAsync(int id)
     {
         if (id <= 0)

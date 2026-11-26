@@ -493,3 +493,6 @@ $RECYCLE.BIN/
 
 # Resultados locales de pruebas de los bloques 5-8
 /tests/resultados-belen/
+
+# Resultados y archivos temporales de las pruebas de SignalR
+/tests/resultados-signalr/

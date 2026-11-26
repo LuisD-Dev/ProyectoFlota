@@ -72,6 +72,15 @@ export default function AppLayout() {
                         >
                             Órdenes
                         </NavLink>
+
+                        {puedeConsultarCategorias && (
+                            <NavLink
+                                to="/alertas-stock"
+                                className={estiloEnlace}
+                            >
+                                Alertas de stock
+                            </NavLink>
+                        )}
                     </nav>
 
                     <div className="flex flex-wrap items-center gap-3">
@@ -79,6 +88,7 @@ export default function AppLayout() {
                             <p className="font-medium">
                                 {user.nombreCompleto}
                             </p>
+
                             <p className="text-white/75">
                                 {user.rol}
                             </p>

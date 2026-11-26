@@ -13,6 +13,7 @@ import os, re, json, subprocess, time, secrets, socket
 
 ROOT = Path(__file__).resolve().parents[1]
 API = ROOT / 'src/MantenimientoFlota.Api'
+CONFIGURATION = os.environ.get('FLOTA_QA_CONFIGURATION', 'Release')
 BASE = 'http://127.0.0.1:5399'
 DB = 'MantenimientoFlotaDb_QA_Belen_' + datetime.now().strftime('%Y%m%d_%H%M%S')
 RESULTADOS = []
@@ -48,7 +49,7 @@ def sql_test(mode):
     # La verificación se repite dentro del auxiliar .NET, antes de abrir SQL.
     assert DB.startswith('MantenimientoFlotaDb_QA_Belen_')
     env = {**os.environ, 'FLOTA_QA_CONNECTION': QA_CONNECTION}
-    helper = ROOT/'tests/SqlQa/bin/Release/net10.0/SqlQa.dll'
+    helper = ROOT/f'tests/SqlQa/bin/{CONFIGURATION}/net10.0/SqlQa.dll'
     result = subprocess.run(['dotnet', str(helper), mode], env=env, capture_output=True)
     if result.returncode:
         raise RuntimeError('Falló el auxiliar .NET de la base aislada de pruebas.')
@@ -243,7 +244,7 @@ def main():
     # No heredar una variable temporal con el nombre incorrecto usado en sesiones anteriores.
     env.pop('ConnectionStringsDefaultConnection',None)
     log=(output/'servidor.log').open('w',encoding='utf-8')
-    proc=subprocess.Popen(['dotnet',str(API/'bin/Release/net10.0/MantenimientoFlota.Api.dll'),
+    proc=subprocess.Popen(['dotnet',str(API/f'bin/{CONFIGURATION}/net10.0/MantenimientoFlota.Api.dll'),
         '--urls',BASE],cwd=API,env=env,stdout=log,stderr=subprocess.STDOUT)
     ok=False
     try:

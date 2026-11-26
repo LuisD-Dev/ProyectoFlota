@@ -2,14 +2,21 @@ import { createBrowserRouter } from 'react-router'
 
 import AppLayout from '@/components/layout/AppLayout'
 import NotFound from '@/components/shared/NotFound'
+
 import HomePage from '@/features/home/pages/HomePage'
 import LoginPage from '@/features/auth/pages/LoginPage'
+
 import ActivosPage from '@/features/activos/pages/ActivosPage'
 import ActivoDetallePage from '@/features/activos/pages/ActivoDetallePage'
+
 import CategoriasPage from '@/features/categorias/pages/CategoriasPage'
+
 import OrdenesPage from '@/features/ordenes/pages/OrdenesPage'
-import ProtectedRoute from '@/routes/ProtectedRoute'
 import OrdenDetallePage from '@/features/ordenes/pages/OrdenDetallePage'
+
+import StockAlertsPage from '@/features/stock/pages/StockAlertsPage'
+
+import ProtectedRoute from '@/routes/ProtectedRoute'
 
 export const router = createBrowserRouter([
     {
@@ -46,6 +53,10 @@ export const router = createBrowserRouter([
                     {
                         path: 'ordenes/:id',
                         element: <OrdenDetallePage />,
+                    },
+                    {
+                        path: 'alertas-stock',
+                        element: <StockAlertsPage />,
                     },
                 ],
             },

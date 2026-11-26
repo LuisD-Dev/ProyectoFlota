@@ -19,6 +19,8 @@ using MantenimientoFlota.Application.Implementation;
 using MantenimientoFlota.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using MantenimientoFlota.Domain.Constants;
+using MantenimientoFlota.Api.Hubs;
+using MantenimientoFlota.Api.Notifications;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,8 +57,13 @@ builder.Services.AddCors(options =>
     options.AddPolicy("Frontend", policy => policy
         .WithOrigins(allowedOrigins)
         .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE")
-        .WithHeaders("Content-Type", "Authorization")
+        .WithHeaders(
+            "Content-Type",
+            "Authorization",
+            "X-Requested-With",
+            "X-SignalR-User-Agent")
         .WithExposedHeaders("Location")
+        .AllowCredentials()
         .SetPreflightMaxAge(TimeSpan.FromMinutes(10))));
 
 var jwtKey = builder.Configuration["Jwt:Key"]
@@ -111,6 +118,18 @@ builder.Services
         };
         options.Events = new JwtBearerEvents
         {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    context.HttpContext.Request.Path.StartsWithSegments(StockHub.Ruta))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            },
             OnTokenValidated = async context =>
             {
                 var principal = context.Principal;
@@ -213,6 +232,12 @@ builder.Services.AddRateLimiter(options =>
             title: "Límite de solicitudes", errorCode: "RATE_LIMITED"), cancellationToken);
     };
 });
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<StockSubscriptions>();
+
+builder.Services.AddScoped<
+    IStockBajoNotifier,
+    SignalRStockBajoNotifier>();
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -278,6 +303,7 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = LocalActivoImagenStorage.RequestPath,
     OnPrepareResponse = context => context.Context.Response.Headers["X-Content-Type-Options"] = "nosniff"
 });
+app.UseRouting();
 app.UseCors("Frontend");
 
 app.UseRateLimiter();
@@ -285,5 +311,10 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
+app.MapHub<StockHub>(
+    StockHub.Ruta,
+    options =>
+    {
+        options.CloseOnAuthenticationExpiration = true;
+    });
 app.Run();

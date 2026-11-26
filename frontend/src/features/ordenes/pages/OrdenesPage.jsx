@@ -15,6 +15,7 @@ import {
 import OrdenFormDialog from '@/features/ordenes/components/OrdenFormDialog'
 import { useOrdenes } from '@/hooks/useOrdenes'
 import { getErrorMessage } from '@/utils/apiError'
+import { parseApiUtcDate } from '@/utils/format'
 
 const estados = {
     0: 'Solicitada',
@@ -30,7 +31,7 @@ const estados = {
 function mostrarFecha(valor) {
     if (!valor) return 'Sin fecha'
 
-    const fecha = new Date(valor)
+    const fecha = parseApiUtcDate(valor)
 
     return Number.isNaN(fecha.getTime())
         ? 'Fecha no disponible'

@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
 import { ArrowRight, ClipboardList, Layers, Truck } from 'lucide-react'
 import { useOrdenes } from '@/hooks/useOrdenes'
+import { parseApiUtcDate } from '@/utils/format'
 
 const modulos = [
     { ruta: '/ordenes', titulo: 'Órdenes', detalle: 'Consultá solicitudes y seguí cada mantenimiento.', Icono: ClipboardList, color: 'bg-blue-50 text-blue-800' },
@@ -23,7 +25,7 @@ function OrdenesRecientes() {
     if (!ordenes.length) return <p className="p-5 text-muted-foreground">Todavía no hay órdenes registradas.</p>
 
     const recientes = [...ordenes].sort((a, b) =>
-        (Date.parse(b.fechaSolicitud) || 0) - (Date.parse(a.fechaSolicitud) || 0)
+        (parseApiUtcDate(b.fechaSolicitud).getTime() || 0) - (parseApiUtcDate(a.fechaSolicitud).getTime() || 0)
     ).slice(0, 4)
 
     return (
@@ -34,7 +36,7 @@ function OrdenesRecientes() {
                         <span className="font-mono text-sm font-semibold text-primary">{orden.codigo}</span>
                         <span className="min-w-32 flex-1">{orden.activoNombre || orden.activoCodigo}</span>
                         <span className="text-sm text-muted-foreground">
-                            {Number.isFinite(Date.parse(orden.fechaSolicitud)) ? fechaCorta.format(new Date(orden.fechaSolicitud)) : 'Sin fecha'}
+                            {Number.isFinite(parseApiUtcDate(orden.fechaSolicitud).getTime()) ? fechaCorta.format(parseApiUtcDate(orden.fechaSolicitud)) : 'Sin fecha'}
                         </span>
                         <ArrowRight aria-hidden="true" size={16} />
                     </Link>
@@ -45,6 +47,7 @@ function OrdenesRecientes() {
 }
 
 export default function HomePage() {
+    const [fechaActual] = useState(() => new Date())
     const { user } = useOutletContext()
     const verCategorias = ['Administrador', 'Coordinador/Técnico'].includes(user.rol)
     const visibles = modulos.filter(({ ruta }) => ruta !== '/categorias' || verCategorias)
@@ -53,7 +56,7 @@ export default function HomePage() {
         <div className="space-y-6">
             <header className="relative isolate overflow-hidden rounded-3xl bg-linear-to-br from-[#102f45] via-[#164f70] to-[#087e83] px-6 py-9 text-white sm:px-10 sm:py-12">
                 <div aria-hidden="true" className="pointer-events-none absolute -right-12 -bottom-28 -z-10 size-80 rounded-full border-[32px] border-white/5 ring-[32px] ring-white/5" />
-                <p className="mb-3 text-sm font-medium text-teal-100">{fechaCorta.format(new Date())}</p>
+                <p className="mb-3 text-sm font-medium text-teal-100">{fechaCorta.format(fechaActual)}</p>
                 <h1 className="text-3xl font-semibold tracking-tight sm:text-5xl">Panel de flota</h1>
                 <p className="mt-3 max-w-xl text-base text-blue-50">Seguimiento de activos y órdenes de mantenimiento.</p>
             </header>
